@@ -1,0 +1,16 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    plugins {
+        id "com.android.application" version "8.3.0"
+        id "org.jetbrains.kotlin.android" version "1.9.22"
+        // Flutter Gradle Plugin은 버전 지정 X
+        id "dev.flutter.flutter-gradle-plugin"
+    }
+}
+
+rootProject.name = "image_view_pro"
+include ':app'
