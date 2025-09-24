@@ -6,36 +6,34 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/main.dart';
+import 'package:riverpod/riverpod.dart';
 
 import '../model/ImageModel.dart';
 
-class ImageListMap extends StatefulWidget {
-  List<ImageModel> imageModels;
-  int currentCur;
+class ImageListMap extends ConsumerStatefulWidget {
 
 
-  ImageListMap({super.key, required this.currentCur, required this.imageModels});
+  const ImageListMap({super.key});
   @override
-  State<ImageListMap> createState() => _ImageListMap();
+  ConsumerState<ImageListMap> createState() => _ImageListMap();
 }
 
-class _ImageListMap extends State<ImageListMap> {
+class _ImageListMap extends ConsumerState<ImageListMap> {
 
   late final List<ImageModel> _imageModels;
   late List<bool> _hoverStates;
 
-  @override
-  void initState() {
-    super.initState();
-    _imageModels = widget.imageModels;
-    _hoverStates = List.generate(widget.imageModels.length, (_) => false);
-    print("hoverModels : ${_hoverStates}");
-    print("imageModels : ${_imageModels}");
-  }
-
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(stateProvider);
+    _imageModels = state.images;
+    _hoverStates = List.generate(state.images.length, (_) => false);
+
+
+
     if (_imageModels.isEmpty) {
       return const SizedBox();
     }

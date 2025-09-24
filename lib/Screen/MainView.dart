@@ -10,6 +10,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 
@@ -25,10 +26,10 @@ class MainView extends ConsumerStatefulWidget {
 class _MainView extends ConsumerState<MainView> {
   bool isControllerWatched = true;
   bool isOrderWatched = false;
-  double currentZoomSize = 1.00;
-  int currentIndex = 0;
-  int currentWatchSize = 1;
-  List<ImageModel> imageModels = [];
+  // double currentZoomSize = 1.00;
+  // int currentIndex = 0;
+  // int currentWatchSize = 1;
+  // List<ImageModel> imageModels = [];
   Timer? _orderTimer;
 
   Future<ui.Image> getImageSize(String path) async {
@@ -52,6 +53,11 @@ class _MainView extends ConsumerState<MainView> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(stateProvider);
+    // List<ImageModel> imageModels = state.images;
+    // int currentWatchSize = state.curSize;
+    // int currentIndex = state.curIndex;
+    // double currentZoomSize = state.curZoom;
 
 
     return Scaffold(
@@ -67,21 +73,25 @@ class _MainView extends ConsumerState<MainView> {
               // 컨트롤 키 확인
               if (HardwareKeyboard.instance.isControlPressed) {
                 // 스크롤 방향에 따라서 확인
-                print("scrolled.");
+                if (kDebugMode) {
+                  print("scrolled.");
+                }
 
                 setState(() {
-                  print(currentZoomSize);
+                  if (kDebugMode) {
+                    print(state.curZoom);
+                  }
                   if (event.scrollDelta.dy < 0) {
-                    if (currentZoomSize < 2.0) {
-                      currentZoomSize += 0.05;
+                    if (state.curZoom < 2.0) {
+                      ref.read(stateProvider.notifier).updateZoom(state.curZoom + 0.05);
                     } else {
-                      currentZoomSize = 2.00;
+                      ref.read(stateProvider.notifier).updateZoom(2.0);
                     }
                   } else {
-                    if (currentZoomSize > 0.05) {
-                      currentZoomSize -= 0.05;
+                    if (state.curZoom > 0.05) {
+                      ref.read(stateProvider.notifier).updateZoom(state.curZoom - 0.05);
                     } else {
-                      currentZoomSize = 0.05;
+                      ref.read(stateProvider.notifier).updateZoom(0.05);
                     }
                   }
                 });
@@ -90,16 +100,20 @@ class _MainView extends ConsumerState<MainView> {
                   isOrderWatched = true;
 
                   if (event.scrollDelta.dy > 0) {
-                    if (currentIndex < (imageModels.length + currentWatchSize) - 2) {
-                      currentIndex++;
+                    if (state.curIndex < (state.images.length + state.curSize) - 2) {
+                      ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
                     } else {
-                      print("탑에 도달했습니다.");
+                      if (kDebugMode) {
+                        print("탑에 도달했습니다.");
+                      }
                     }
                   } else {
-                    if (currentIndex > 0) {
-                      currentIndex--;
+                    if (state.curIndex > 0) {
+                      ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
                     } else {
-                      print("바텀에 도달했습니다.");
+                      if (kDebugMode) {
+                        print("바텀에 도달했습니다.");
+                      }
                     }
                   }
 
@@ -133,7 +147,7 @@ class _MainView extends ConsumerState<MainView> {
                         SizedBox(
                           width: 100,
                           height: 100,
-                          child: Text("${currentIndex + 1}/${imageModels.length}",
+                          child: Text("${state.curIndex + 1}/${state.images.length}",
                           style: const TextStyle(
                             color: Colors.grey,
                             fontWeight: FontWeight.w400
@@ -158,7 +172,7 @@ class _MainView extends ConsumerState<MainView> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (imageModels.isEmpty)
+                      if (state.images.isEmpty)
                         Center(
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
@@ -169,7 +183,9 @@ class _MainView extends ConsumerState<MainView> {
                                 FilePickerResult? result = await FilePicker.platform.pickFiles(
                                     allowMultiple: true
                                 );
-                                print(result);
+                                if (kDebugMode) {
+                                  print(result);
+                                }
 
                                 for (var item in result!.paths) {
 
@@ -178,8 +194,16 @@ class _MainView extends ConsumerState<MainView> {
 
                                   Map<String, IfdTag> datas = await readExifFromBytes(bytes);
 
-                                  imageModels.add(
-                                    ImageModel(
+                                  // imageModels.add(
+                                  //   ImageModel(
+                                  //     height: image.height.toDouble(),
+                                  //     width: image.width.toDouble(),
+                                  //     path: item.toString(),
+                                  //     exifData: datas
+                                  //   )
+                                  // );
+
+                                  ref.read(stateProvider.notifier).addImage(ImageModel(
                                       height: image.height.toDouble(),
                                       width: image.width.toDouble(),
                                       path: item.toString(),
@@ -190,7 +214,7 @@ class _MainView extends ConsumerState<MainView> {
 
                                 setState(() {
                                   if (kDebugMode) {
-                                    print(imageModels.toString());
+                                    print(state.images.toString());
                                   }
                                 });
                               },
@@ -218,16 +242,16 @@ class _MainView extends ConsumerState<MainView> {
                             alignment: Alignment.center, // 확대/축소 기준을 중앙으로
                             clipBehavior: Clip.none,
                             child: Transform.scale(
-                              scale: currentZoomSize,
+                              scale: state.curZoom,
                               alignment: Alignment.center,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  for (int i = currentIndex;
-                                  i < currentIndex + currentWatchSize && i < imageModels.length;
+                                  for (int i = state.curIndex;
+                                  i < state.curIndex + state.curSize && i < state.images.length;
                                   i++)
-                                    Image.file(File(imageModels[i].path))
+                                    Image.file(File(state.images[i].path))
                                 ],
                               ),
                             ),
@@ -247,13 +271,17 @@ class _MainView extends ConsumerState<MainView> {
                       onEnter: (event) {
                         setState(() {
                           isControllerWatched = true;
-                          print(1);
+                          if (kDebugMode) {
+                            print(1);
+                          }
                         });
                       },
                       onExit: (event) {
                         setState(() {
                           isControllerWatched = false;
-                          print(2);
+                          if (kDebugMode) {
+                            print(2);
+                          }
                         });
                       },
 
@@ -284,11 +312,16 @@ class _MainView extends ConsumerState<MainView> {
                                     isOrderWatched = true;
                                     setState(() {
                                       isOrderWatched = true;
-                                      if (currentWatchSize < 6 && currentIndex > 0) {
-                                        currentWatchSize++;
-                                        currentIndex--;
+                                      if (state.curSize < 6 && state.curIndex > 0) {
+                                        // currentWatchSize++;
+                                        ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
+                                        // currentIndex--;
+                                        ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
                                       } else {
-                                        print("바텀에 도달했습니다.");
+                                        // TODO: 스낵바 넣을 것
+                                        if (kDebugMode) {
+                                          print("처음 이미지입니다.");
+                                        }
                                       }
                                     });
                                     _orderTimer?.cancel();
@@ -305,11 +338,15 @@ class _MainView extends ConsumerState<MainView> {
                                   ControllerButton(btnCallback: () {
                                     isOrderWatched = true;
                                     setState(() {
-                                      if (currentIndex > 0) {
-                                        currentIndex--;
+                                      if (state.curIndex > 0) {
+                                        // currentIndex--;
+                                        ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
                                       } else {
-                                        currentIndex = 0;
-                                        print("바텀에 도달했습니다.");
+                                        // currentIndex = 0;
+                                        // TODO: 스낵바 넣을 것
+                                        if (kDebugMode) {
+                                          print("처음 이미지입니다.");
+                                        }
                                       }
                                     });
 
@@ -324,7 +361,7 @@ class _MainView extends ConsumerState<MainView> {
                                     });
                                   }, icon: const Icon(Icons.arrow_back_ios_new, size: 35,),),
                                   Text(
-                                    "${(currentZoomSize * 100).toInt()}%",
+                                    "${(state.curZoom * 100).toInt()}%",
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w500
                                     ),
@@ -333,10 +370,14 @@ class _MainView extends ConsumerState<MainView> {
                                     isOrderWatched = true;
 
                                     setState(() {
-                                      if (currentWatchSize < 6 && currentIndex < (imageModels.length - currentWatchSize)) {
-                                        currentIndex++;
+                                      if (state.curIndex < (state.images.length - state.curSize)) {
+                                        // currentIndex++;
+                                        ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
                                       } else {
-                                        print("탑에 도달했습니다.");
+                                        // todo: 스낵바
+                                        if (kDebugMode) {
+                                          print("탑에 도달했습니다.");
+                                        }
                                       }
                                     });
 
@@ -360,11 +401,15 @@ class _MainView extends ConsumerState<MainView> {
                                       // } else {
                                       //   print("탑에 도달했습니다.");
                                       // }
-                                      if (currentWatchSize < 6 && currentIndex < (imageModels.length - currentWatchSize)) {
-                                        currentWatchSize++;
-                                        currentIndex++;
+                                      if (state.curSize < 6 && state.curIndex < (state.images.length - state.curSize)) {
+                                        // currentWatchSize++;
+                                        // currentIndex++;
+                                        ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
                                       } else {
-                                        print("탑에 도달했습니다.");
+                                        // todo: 스낵바
+                                        if (kDebugMode) {
+                                          print("탑에 도달했습니다.");
+                                        }
                                       }
                                     });
 
@@ -389,7 +434,7 @@ class _MainView extends ConsumerState<MainView> {
                 ),
 
               // 이미지 내비게이션 (가져온 이미지 목록)
-              if (imageModels.isNotEmpty)
+              if (state.images.isNotEmpty)
                 Positioned(
                   top: 5,
                   left: 10,
@@ -397,8 +442,7 @@ class _MainView extends ConsumerState<MainView> {
                     width: 100,
                     height: MediaQuery.of(context).size.height * 0.6,
                     child: ImageListMap(
-                        currentCur: currentIndex,
-                        imageModels: imageModels,
+
                     ),
                   )
                 )

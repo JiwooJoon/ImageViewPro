@@ -7,7 +7,13 @@ import 'package:image_view_pro/model/stateModel.dart';
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
-  StateProv() : super(StateModel(curIndex: 0, curSize: 1, images: []));
+  StateProv() : super(StateModel(
+      curIndex: 0,
+      curSize: 1,
+      images: [],
+      curZoom: 1.0,
+    )
+  );
 
   // 상태를 변경하는 메서드
   void updateIndex(int index) {
@@ -20,6 +26,14 @@ class StateProv extends StateNotifier<StateModel> {
 
   void updateModel(List<ImageModel> images) {
     state = state.copyWith(images: images);
+  }
+
+  void addImage(ImageModel image) {
+    state.images.add(image);
+  }
+
+  void updateZoom(double zoom) {
+    state = state.copyWith(curZoom: zoom);
   }
 }
 
