@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/widget/CustomSnackBar.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 
 import '../widget/ControllerButton.dart';
@@ -58,6 +59,15 @@ class _MainView extends ConsumerState<MainView> {
     // int currentWatchSize = state.curSize;
     // int currentIndex = state.curIndex;
     // double currentZoomSize = state.curZoom;
+
+    ref.listen(stateProvider, (previous, next) {
+      if (previous?.curZoom != next.curZoom) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          CustomSnackBar(
+              msg: "크기 : ${next.curZoom}"
+        ) as SnackBar);
+      }
+    });
 
 
     return Scaffold(
@@ -194,15 +204,6 @@ class _MainView extends ConsumerState<MainView> {
 
                                   Map<String, IfdTag> datas = await readExifFromBytes(bytes);
 
-                                  // imageModels.add(
-                                  //   ImageModel(
-                                  //     height: image.height.toDouble(),
-                                  //     width: image.width.toDouble(),
-                                  //     path: item.toString(),
-                                  //     exifData: datas
-                                  //   )
-                                  // );
-
                                   ref.read(stateProvider.notifier).addImage(ImageModel(
                                       height: image.height.toDouble(),
                                       width: image.width.toDouble(),
@@ -226,12 +227,6 @@ class _MainView extends ConsumerState<MainView> {
                           ),
                         )
                       else
-                        // for(int i=currentIndex; i < currentIndex + currentWatchSize && i < (imageModels.length - currentWatchSize) + 2 ; i++)
-                        //   Transform.scale(
-                        //     scale: currentZoomSize,
-                        //     child: Image.file(File(imageModels[i].path),
-                        //     )
-                        //   )
                         Positioned.fill(
                           child: InteractiveViewer(
                             minScale: 0.5,
@@ -246,12 +241,15 @@ class _MainView extends ConsumerState<MainView> {
                               alignment: Alignment.center,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                                // crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   for (int i = state.curIndex;
                                   i < state.curIndex + state.curSize && i < state.images.length;
                                   i++)
-                                    Image.file(File(state.images[i].path))
+                                    Image.file(
+                                      File(state.images[i].path),
+                                      fit: BoxFit.contain,
+                                    )
                                 ],
                               ),
                             ),
@@ -340,7 +338,7 @@ class _MainView extends ConsumerState<MainView> {
                                     setState(() {
                                       if (state.curIndex > 0) {
                                         // currentIndex--;
-                                        ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+                                        ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
                                       } else {
                                         // currentIndex = 0;
                                         // TODO: 스낵바 넣을 것
@@ -438,12 +436,10 @@ class _MainView extends ConsumerState<MainView> {
                 Positioned(
                   top: 5,
                   left: 10,
-                  child: Container(
+                  child: SizedBox(
                     width: 100,
                     height: MediaQuery.of(context).size.height * 0.6,
-                    child: ImageListMap(
-
-                    ),
+                    child: const ImageListMap(),
                   )
                 )
             ],
