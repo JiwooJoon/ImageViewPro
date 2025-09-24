@@ -22,15 +22,18 @@ class ImageListMap extends ConsumerStatefulWidget {
 
 class _ImageListMap extends ConsumerState<ImageListMap> {
 
-  late final List<ImageModel> _imageModels;
-  late List<bool> _hoverStates;
+  List<ImageModel> _imageModels = [];
+  List<bool> _hoverStates = [];
 
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
     _imageModels = state.images;
-    _hoverStates = List.generate(state.images.length, (_) => false);
+
+    if (_hoverStates.length != _imageModels.length) {
+      _hoverStates = List.generate(state.images.length, (_) => false);
+    }
 
 
 
@@ -58,14 +61,25 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                       _hoverStates[index] = false;
                     });
                   },
-                  child: AnimatedOpacity(
-                    opacity: _hoverStates[index] ? 1.0 : 0.2,
-                    duration: const Duration(milliseconds: 200),
-                    child: Image.file(
-                      File(_imageModels[index].path),
-                      width: 100,
-                      height: 50,
-                      fit: BoxFit.cover
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      ref.read(stateProvider.notifier).updateIndex(index);
+                    },
+                    child: AnimatedScale(
+                      alignment: Alignment.center,
+                      scale: _hoverStates[index] ? 1.2 : 1.0,
+                      duration: const Duration(milliseconds: 100),
+                      child: AnimatedOpacity(
+                        opacity: _hoverStates[index] ? 1.0 : 0.2,
+                        duration: const Duration(milliseconds: 200),
+                        child: Image.file(
+                          File(_imageModels[index].path),
+                          width: 100,
+                          height: 50,
+                          fit: BoxFit.cover
+                        ),
+                      ),
                     ),
                   ),
                 ),
