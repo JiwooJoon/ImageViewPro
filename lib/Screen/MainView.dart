@@ -5,23 +5,24 @@ import 'dart:ui' as ui;
 
 import 'package:exif/exif.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 
 import '../widget/ControllerButton.dart';
 
-class MainView extends StatefulWidget {
+class MainView extends ConsumerStatefulWidget {
   const MainView({super.key});
 
   @override
-  State<MainView> createState() => _MainView();
+  ConsumerState<MainView> createState() => _MainView();
 }
 
-class _MainView extends State<MainView> {
-  List<String> images = [];
+class _MainView extends ConsumerState<MainView> {
   bool isControllerWatched = true;
   bool isOrderWatched = false;
   double currentZoomSize = 1.00;
@@ -157,7 +158,7 @@ class _MainView extends State<MainView> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (images.isEmpty)
+                      if (imageModels.isEmpty)
                         Center(
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
@@ -187,13 +188,10 @@ class _MainView extends State<MainView> {
                                   );
                                 }
 
-                                print(imageModels[0]);
-
-                                if (result != null) {
-                                  images.addAll(result.paths.whereType<String>().toList());
-                                }
                                 setState(() {
-                                  print(images);
+                                  if (kDebugMode) {
+                                    print(imageModels.toString());
+                                  }
                                 });
                               },
                               child: const Text('이미지, 혹은 디렉터리를 새로 가져와주세요.',
