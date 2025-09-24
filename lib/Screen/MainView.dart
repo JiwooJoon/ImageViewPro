@@ -1,18 +1,14 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'dart:ui' as ui;
 
 import 'package:exif/exif.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
-import 'package:image_view_pro/util/FilePicker.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 
 import '../widget/ControllerButton.dart';
