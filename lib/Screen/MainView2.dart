@@ -175,77 +175,6 @@ class _MainView extends ConsumerState<MainView> {
 
         body: Stack(
             children: [
-              DropTarget(
-                  onDragEntered: (detail) {
-                    setState(() {
-                      isDragging = true;
-                    });
-                  },
-
-                  onDragExited: (detail) {
-                    setState(() {
-                      isDragging = false;
-                    });
-                  },
-
-                  onDragDone: (details) async {
-                    isDragging = false;
-                    if (details.files.isEmpty) return;
-
-                    // 드랍한 파일이 한개 인가
-                    if (details.files.length == 1) {
-                      final file = details.files.first;
-
-                      final type = FileSystemEntity.typeSync(file.path);
-                      if (type == FileSystemEntityType.directory) {
-                        debugPrint("${file.name}은 폴더.");
-                      } else if (type == FileSystemEntityType.file) {
-                        // 이미지 확인
-                        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-                        final ext = file.path.toLowerCase();
-
-                        if (imageExtensions.any((e) => ext.endsWith(e))) {
-                          debugPrint("${file.name}은 이미지 파일!");
-
-                          ui.Image image = await getImageSize(file.path);
-                          Uint8List bytes = await getImageBytes(file.path);
-
-                          Map<String, IfdTag> datas = await readExifFromBytes(bytes);
-
-                          ref.read(stateProvider.notifier).addImage(
-                              ImageModel(
-                                  height: image.height.toDouble(),
-                                  width: image.width.toDouble(),
-                                  path: file.path,
-                                  exifData: datas
-                              )
-                          );
-
-                          setState(() {
-                            debugPrint(datas.toString());
-                          });
-
-                        } else {
-
-                        }
-                      }
-                    }
-
-                    setState(() {
-                    });
-                  },
-
-                  child: Container(
-                    height: MediaQuery.of(context).size.height,
-                    width: MediaQuery.of(context).size.width,
-                    color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
-                    child: Center(
-                      child: isDragging
-                          ? const Text("이곳으로 끌어와주세요.")
-                          : const SizedBox.shrink(),
-                    ),
-                  )
-              ),
               Positioned.fill(
                 child: FocusableActionDetector(
                   autofocus: true,
@@ -528,6 +457,76 @@ class _MainView extends ConsumerState<MainView> {
                           )
                       ],
                     ),
+                  ),
+                ),
+              ),
+              DropTarget(
+                onDragEntered: (detail) {
+                  setState(() {
+                    isDragging = true;
+                  });
+                },
+
+                onDragExited: (detail) {
+                  setState(() {
+                    isDragging = false;
+                  });
+                },
+
+                onDragDone: (details) async {
+                  isDragging = false;
+                  if (details.files.isEmpty) return;
+
+                  // 드랍한 파일이 한개 인가
+                  if (details.files.length == 1) {
+                    final file = details.files.first;
+
+                    final type = FileSystemEntity.typeSync(file.path);
+                    if (type == FileSystemEntityType.directory) {
+                      debugPrint("${file.name}은 폴더.");
+                    } else if (type == FileSystemEntityType.file) {
+                      // 이미지 확인
+                      const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                      final ext = file.path.toLowerCase();
+
+                      if (imageExtensions.any((e) => ext.endsWith(e))) {
+                        debugPrint("${file.name}은 이미지 파일!");
+
+                        ui.Image image = await getImageSize(file.path);
+                        Uint8List bytes = await getImageBytes(file.path);
+
+                        Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+
+                        ref.read(stateProvider.notifier).addImage(
+                            ImageModel(
+                                height: image.height.toDouble(),
+                                width: image.width.toDouble(),
+                                path: image.toString(),
+                                exifData: datas
+                            )
+                        );
+
+                        setState(() {
+                          debugPrint(datas.toString());
+                        });
+
+                      } else {
+
+                      }
+                    }
+                  }
+
+                  setState(() {
+                  });
+                },
+                child: Container(
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                  child: Center(
+                    child: isDragging
+                        ? const Text("이곳으로 끌어와주세요.")
+                        : const SizedBox.shrink(),
                   ),
                 ),
               )
