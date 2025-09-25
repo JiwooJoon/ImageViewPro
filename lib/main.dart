@@ -32,6 +32,10 @@ class StateProv extends StateNotifier<StateModel> {
     state.images.add(image);
   }
 
+  void addImages(List<ImageModel> images) {
+    state.images.addAll(images);
+  }
+
   void updateZoom(double zoom) {
     state = state.copyWith(curZoom: zoom);
   }

@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:image_view_pro/func/getDirectoryPaths.dart';
+import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
@@ -175,77 +177,155 @@ class _MainView extends ConsumerState<MainView> {
 
         body: Stack(
             children: [
-              DropTarget(
-                  onDragEntered: (detail) {
-                    setState(() {
-                      isDragging = true;
-                    });
-                  },
+              if (state.images.isEmpty)
+                DropTarget(
+                    onDragEntered: (detail) {
+                      setState(() {
+                        isDragging = true;
+                      });
+                    },
 
-                  onDragExited: (detail) {
-                    setState(() {
+                    onDragExited: (detail) {
+                      setState(() {
+                        isDragging = false;
+                      });
+                    },
+
+                    onDragDone: (details) async {
                       isDragging = false;
-                    });
-                  },
+                      if (details.files.isEmpty) return;
 
-                  onDragDone: (details) async {
-                    isDragging = false;
-                    if (details.files.isEmpty) return;
+                      // 드랍한 파일이 한개 인가
+                      if (details.files.length == 1) {
+                        final file = details.files.first;
 
-                    // 드랍한 파일이 한개 인가
-                    if (details.files.length == 1) {
-                      final file = details.files.first;
+                        final entity = FileSystemEntity.typeSync(file.path);
+                        
+                        // 폴더를 드랍했다면
+                        if (entity == FileSystemEntityType.directory) {
+                          debugPrint("${file.name}은 폴더.");
+                          // 내부 파일 재귀적으로 읽기
 
-                      final type = FileSystemEntity.typeSync(file.path);
-                      if (type == FileSystemEntityType.directory) {
-                        debugPrint("${file.name}은 폴더.");
-                      } else if (type == FileSystemEntityType.file) {
-                        // 이미지 확인
-                        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-                        final ext = file.path.toLowerCase();
+                          // for (final file in details.files) {
+                          //   final path = file.path;
+                          //
+                          //   final dir = Directory(path);
+                          //
+                          //   final files = dir.listSync(recursive: true)
+                          //     .whereType<File>(); // 파일만 필터링하여 읽는다
+                          //
+                          //   List<String> paths = [];
+                          //   // 각 파일의 path 저장
+                          //   for (var f in files) {
+                          //      paths.add(f.path);
+                          //   }
+                          //   const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                          //
+                          //   List<String> iPaths = paths
+                          //     .where((path) =>
+                          //       imageExtensions.any((e) => path.endsWith(e))
+                          //   ).toList();
+                          //
+                          //   final tempResult = await pathToImages(paths: iPaths);
+                          //
+                          //   ref.read(stateProvider.notifier).addImages(tempResult);
+                          //
+                          //   setState(() {
+                          //     debugPrint(tempResult.toString());
+                          //   });
+                          // }
 
-                        if (imageExtensions.any((e) => ext.endsWith(e))) {
-                          debugPrint("${file.name}은 이미지 파일!");
+                          List<String> paths = await getDirectoryPaths(file.path);
+                          debugPrint(paths.toString());
 
-                          ui.Image image = await getImageSize(file.path);
-                          Uint8List bytes = await getImageBytes(file.path);
+                          const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
 
-                          Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+                          List<String> iPaths = paths
+                            .where((path) =>
+                              imageExtensions.any((e) => path.endsWith(e))
+                          ).toList();
+                          debugPrint(iPaths.toString());
 
-                          ref.read(stateProvider.notifier).addImage(
-                              ImageModel(
-                                  height: image.height.toDouble(),
-                                  width: image.width.toDouble(),
-                                  path: file.path,
-                                  exifData: datas
-                              )
-                          );
+                          final tempResult = await pathToImages(paths: iPaths);
+                          debugPrint("temResult : ${tempResult.toString()}");
+
+                          ref.read(stateProvider.notifier).addImages(tempResult);
 
                           setState(() {
-                            debugPrint(datas.toString());
+                            debugPrint(tempResult.toString());
                           });
+                          
 
-                        } else {
+                        } else if (entity == FileSystemEntityType.file) {
+                          // 이미지 확인
+                          const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                          final ext = file.path.toLowerCase();
 
+                          if (imageExtensions.any((e) => ext.endsWith(e))) {
+                            debugPrint("${file.name}은 이미지 파일!");
+
+                            ui.Image image = await getImageSize(file.path);
+                            Uint8List bytes = await getImageBytes(file.path);
+
+                            Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+
+                            ref.read(stateProvider.notifier).addImage(
+                                ImageModel(
+                                    height: image.height.toDouble(),
+                                    width: image.width.toDouble(),
+                                    path: file.path,
+                                    exifData: datas
+                                )
+                            );
+
+                            setState(() {
+                              debugPrint(datas.toString());
+                            });
+
+                          } else {
+
+                          }
                         }
+                      } else {
+                        List<String> paths = details.files.map((file) => file.path).toList();
+
+                        final tempResult = await pathToImages(paths: paths);
+
+                        ref.read(stateProvider.notifier).addImages(tempResult);
+
+                        setState(() {
+                          debugPrint(tempResult.toString());
+                        });
                       }
-                    }
 
-                    setState(() {
-                    });
-                  },
+                      setState(() {
+                      });
+                    },
 
-                  child: Container(
-                    height: MediaQuery.of(context).size.height,
-                    width: MediaQuery.of(context).size.width,
-                    color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
-                    child: Center(
-                      child: isDragging
-                          ? const Text("이곳으로 끌어와주세요.")
-                          : const SizedBox.shrink(),
-                    ),
-                  )
-              ),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height,
+                      width: MediaQuery.of(context).size.width,
+                      color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                      child: Center(
+                        child: isDragging
+                            ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.image, size: 100,),
+                                  Text("화면에 끌어와주세요.",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900, color: Colors.blueAccent,
+                                      fontSize: 50
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )
+                            : const SizedBox.shrink(),
+                      ),
+                    )
+                ),
               Positioned.fill(
                 child: FocusableActionDetector(
                   autofocus: true,
@@ -372,21 +452,12 @@ class _MainView extends ConsumerState<MainView> {
                                               print(result);
                                             }
 
-                                            for (var item in result!.paths) {
+                                            List<String?> paths = result!.paths;
 
-                                              ui.Image image = await getImageSize(item!);
-                                              Uint8List bytes = await getImageBytes(item);
+                                            final tempResult = await pathToImages(paths: paths);
 
-                                              Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+                                            ref.read(stateProvider.notifier).addImages(tempResult);
 
-                                              ref.read(stateProvider.notifier).addImage(ImageModel(
-                                                  height: image.height.toDouble(),
-                                                  width: image.width.toDouble(),
-                                                  path: item.toString(),
-                                                  exifData: datas
-                                              )
-                                              );
-                                            }
 
                                             setState(() {
                                               if (kDebugMode) {
