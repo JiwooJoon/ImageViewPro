@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/aboutWindow.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:menu_bar/menu_bar.dart';
 
@@ -158,7 +159,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   // 대하여
                   MenuItemButton(
                     onPressed: () {
-
+                      createWindow(windowName: "LaL", windows: []);
                     },
                     child: MenuAcceleratorLabel("LaL에 대하여.. (L)"),
                   ),

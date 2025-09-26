@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:exif/exif.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -16,11 +17,13 @@ import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/model/window_info.dart';
 import 'package:image_view_pro/widget/CustomSnackBar.dart';
 import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
 import '../widget/ControllerButton.dart';
+import 'package:image_view_pro/func/aboutWindow.dart';
 
 class MainView extends ConsumerStatefulWidget {
   const MainView({super.key});
@@ -39,6 +42,8 @@ class _MainView extends ConsumerState<MainView> {
 
   bool isHoverOnMenubar = true;
   bool isHoverOnNavi = true;
+
+  final List<WindowInfo> _windows = [];
 
   Future<ui.Image> getImageSize(String path) async {
     // 파일 경로에서 바이트 데이터를 읽어온다
@@ -60,10 +65,18 @@ class _MainView extends ConsumerState<MainView> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    DesktopMultiWindow.setMethodHandler(handleMethodCall);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
     final bool isDeskTop = Platform.isWindows;
-    final _isLoading = ref.watch(loadingProvider);
+    final isLoading = ref.watch(loadingProvider);
+
 
     // 값이 바뀔 때..
     ref.listen(stateProvider, (previous, next) {
@@ -625,7 +638,7 @@ class _MainView extends ConsumerState<MainView> {
               ]
           )
       ),
-        if (_isLoading)
+        if (isLoading)
           const LoadingOverlay()
     ]
   );

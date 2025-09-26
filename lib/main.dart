@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
+import 'package:image_view_pro/widget/Second_Window.dart';
 
 final loadingProvider = StateProvider<bool>((ref) => false);
 
@@ -54,16 +57,31 @@ final stateProvider = StateNotifierProvider<StateProv, StateModel>(
     (ref) => StateProv()
 );
 
-void main() {
+void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(
-    ProviderScope(
-        child: MaterialApp(
-          theme: ThemeData(),
-          home: const MainView(),
+  if (args.firstOrNull == 'multi_window') {
+    final windowId = int.parse(args[1]);
+    final arguments = args[2];
+
+    debugPrint("123132123");
+
+    final config = jsonDecode(arguments) as Map<String, dynamic>;
+
+    runApp(
+      ProviderScope(child: SecondaryWindowApp(windowId: windowId, windowName: config['name'] as String))
+    );
+  } else {
+    runApp(
+        ProviderScope(
+            child: MaterialApp(
+              theme: ThemeData(),
+              home: const MainView(),
+            )
         )
-    )
-  );
+    );
+  }
+
+
 }
 
