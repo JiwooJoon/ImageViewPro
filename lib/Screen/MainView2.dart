@@ -36,6 +36,9 @@ class _MainView extends ConsumerState<MainView> {
   List<String> droppedFiles = [];
   bool isDragging = false;
 
+  bool isHoverOnMenubar = true;
+  bool isHoverOnNavi = true;
+
   Future<ui.Image> getImageSize(String path) async {
     // 파일 경로에서 바이트 데이터를 읽어온다
     Uint8List bytes = await File(path).readAsBytes();
@@ -62,11 +65,26 @@ class _MainView extends ConsumerState<MainView> {
 
     // 값이 바뀔 때..
     ref.listen(stateProvider, (previous, next) {
-      if (previous?.curZoom != next.curZoom) {
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // 현재 줌 크기
+      if (previous!.curZoom < next.curZoom) {
         ScaffoldMessenger.of(context).showSnackBar(
             CustomSnackBar(
-                msg: "크기 : ${next.curZoom}"
-            ) as SnackBar);
+              content: Text("확대 : ${next.curZoom}"),
+            ));
+      } else if (previous!.curZoom > next.curZoom)  {
+        ScaffoldMessenger.of(context).showSnackBar(
+            CustomSnackBar(
+              content: Text("축소 : ${next.curZoom}"),
+            ));
+      }
+
+      if (previous.curIndex != next.curIndex) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            CustomSnackBar(content: Text("${next.curIndex} / ${state.images.length}"))
+        );
       }
     });
 
@@ -169,10 +187,33 @@ class _MainView extends ConsumerState<MainView> {
     return Scaffold(
         backgroundColor: Colors.grey.shade900,
 
-        appBar: const DeskTopMenuBar(),
-
         body: Stack(
             children: [
+              // // 순서 표시 번호
+              // Positioned(
+              //   left: 15,
+              //   right: 0,
+              //   top: 5,
+              //   bottom: 0,
+              //   child: AnimatedOpacity(
+              //     opacity: isOrderWatched ? 1 : 0.0,
+              //     duration: const Duration(milliseconds: 700),
+              //     curve: Curves.easeInOutCubic,
+              //     child:
+              //     SizedBox(
+              //       width: 100,
+              //       height: 100,
+              //       child: Text("${state.curIndex + 1}/${state.images.length}",
+              //         style: const TextStyle(
+              //             color: Colors.grey,
+              //             fontWeight: FontWeight.w400
+              //         ),),
+              //     ),
+              //   ),
+              // ),
+
+
+              // 메인 화면
               if (state.images.isEmpty)
                 DropTarget(
                     onDragEntered: (detail) {
@@ -362,28 +403,7 @@ class _MainView extends ConsumerState<MainView> {
                     child: Stack(
 
                       children: [
-                        // 순서 표시 번호
-                        Positioned(
-                          left: 15,
-                          right: 0,
-                          top: 5,
-                          bottom: 0,
-                          child: AnimatedOpacity(
-                            opacity: isOrderWatched ? 1 : 0.0,
-                            duration: const Duration(milliseconds: 700),
-                            curve: Curves.easeInOutCubic,
-                            child:
-                            SizedBox(
-                              width: 100,
-                              height: 100,
-                              child: Text("${state.curIndex + 1}/${state.images.length}",
-                                style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.w400
-                                ),),
-                            ),
-                          ),
-                        ),
+
 
 
 
@@ -437,30 +457,40 @@ class _MainView extends ConsumerState<MainView> {
                                       ),
                                     )
                                   else
-                                    Positioned.fill(
+
+                                    Center(
                                       child: InteractiveViewer(
                                         minScale: 0.5,
-                                        maxScale: 3.0,
+                                        maxScale: 2.0,
                                         panEnabled: true, // 드래그 이동 가능
                                         scaleEnabled: false, // 줌인/줌아웃 가능
                                         boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
                                         alignment: Alignment.center, // 확대/축소 기준을 중앙으로
                                         clipBehavior: Clip.none,
-                                        child: Transform.scale(
-                                          scale: state.curZoom,
-                                          alignment: Alignment.center,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            // crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              for (int i = state.curIndex;
-                                              i < state.curIndex + state.curSize && i < state.images.length;
-                                              i++)
-                                                Image.file(
-                                                  File(state.images[i].path),
-                                                  fit: BoxFit.contain,
-                                                )
-                                            ],
+                                        child: SizedBox(
+                                          width: MediaQuery.of(context).size.width,
+                                          height: MediaQuery.of(context).size.height,
+                                          child: Transform.scale(
+                                            scale: state.curZoom,
+                                            alignment: Alignment.center,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              // crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                for (int i = state.curIndex;
+                                                i < state.curIndex + state.curSize && i < state.images.length;
+                                                i++)
+                                                  Expanded(
+                                                    child: Image.file(
+                                                      File(state.images[i].path),
+                                                      fit: BoxFit.contain,
+                                                    ),
+                                                  )
+                                              ],
+                                            ),
+
+
                                           ),
                                         ),
                                       ),
@@ -566,17 +596,45 @@ class _MainView extends ConsumerState<MainView> {
                   ),
                 ),
               ),
+              // 이미지 내비게이션
+              Positioned(
+                  top: 5,
+                  left: 10,
+                  child: SizedBox(
+                    width: 100,
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: const ImageListMap(),
+                  )
+              ),
+              // 메뉴바
+              Positioned(
+                  top: 0,
+                  child: DeskTopMenuBar()
+              ),
+
+
               // 이미지 내비게이션 (가져온 이미지 목록)
-              if (state.images.isNotEmpty)
-                Positioned(
-                    top: 5,
-                    left: 10,
-                    child: SizedBox(
-                      width: 100,
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      child: const ImageListMap(),
-                    )
-                )
+              // if (state.images.isNotEmpty)
+              //   MouseRegion(
+              //     child: AnimatedOpacity(
+              //       opacity: isHoverOnNavi ? 1.0 : 0.0,
+              //       duration: const Duration(milliseconds: 300),
+              //       child: Positioned(
+              //           top: 5,
+              //           left: 10,
+              //           child: SizedBox(
+              //             width: 100,
+              //             height: MediaQuery.of(context).size.height * 0.6,
+              //             child: const ImageListMap(),
+              //           )
+              //       ),
+              //     ),
+              //   ),
+              // // 메뉴바
+              // const Positioned(
+              //
+              //     child: DeskTopMenuBar()
+              // )
             ]
         )
     );

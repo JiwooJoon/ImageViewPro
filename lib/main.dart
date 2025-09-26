@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 
+final loadingProvider = StateProvider<bool>((ref) => false);
+
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
   StateProv() : super(StateModel(
@@ -12,6 +14,8 @@ class StateProv extends StateNotifier<StateModel> {
       curSize: 1,
       images: [],
       curZoom: 1.0,
+      direction: true,
+      watchMode: true,
     )
   );
 
@@ -38,6 +42,10 @@ class StateProv extends StateNotifier<StateModel> {
 
   void updateZoom(double zoom) {
     state = state.copyWith(curZoom: zoom);
+  }
+
+  void toggleDirection() {
+    state = state.copyWith(direction: !state.direction);
   }
 }
 

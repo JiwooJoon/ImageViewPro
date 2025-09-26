@@ -39,6 +39,7 @@ dependencies:
   exif: ^3.0.1
   flutter_riverpod: ^3.0.0
   desktop_drop: ^0.6.1
+  menu_bar: ^0.5.3
 
 dev_dependencies:
   flutter_test:

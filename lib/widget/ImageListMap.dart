@@ -24,6 +24,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
 
   List<ImageModel> _imageModels = [];
   List<bool> _hoverStates = [];
+  bool _isHoveredOnNavi = false;
 
 
   @override
@@ -33,58 +34,75 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
 
     if (_hoverStates.length != _imageModels.length) {
       _hoverStates = List.generate(state.images.length, (_) => false);
+      _isHoveredOnNavi = true;
     }
 
 
-
-    if (_imageModels.isEmpty) {
-      return const SizedBox();
-    }
-
+    // if (_imageModels.isEmpty) {
+    //   return const SizedBox();
+    // }
 
 
-    return ListView.builder(
-      scrollDirection: Axis.vertical,
-      itemCount: _imageModels.length,
-      itemBuilder: (context, index) {
-        return
-          Padding(
-                padding: const EdgeInsets.only(left: 5.0, top: 10.0, bottom: 10.0),
-                child: MouseRegion(
-                  onEnter: (e) {
-                    setState(() {
-                      _hoverStates[index] = true;
-                    });
-                  },
-                  onExit: (e) {
-                    setState(() {
-                      _hoverStates[index] = false;
-                    });
-                  },
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      ref.read(stateProvider.notifier).updateIndex(index);
-                    },
-                    child: AnimatedScale(
-                      alignment: Alignment.center,
-                      scale: _hoverStates[index] ? 1.2 : 1.0,
-                      duration: const Duration(milliseconds: 100),
-                      child: AnimatedOpacity(
-                        opacity: _hoverStates[index] ? 1.0 : 0.2,
-                        duration: const Duration(milliseconds: 200),
-                        child: Image.file(
-                          File(_imageModels[index].path),
-                          width: 100,
-                          height: 50,
-                          fit: BoxFit.cover
+
+    return MouseRegion(
+      onEnter: (e) {
+        setState(() {
+          _isHoveredOnNavi = true;
+        });
+      },
+      onExit: (e) {
+        setState(() {
+          _isHoveredOnNavi = false;
+        });
+      },
+      child: AnimatedOpacity(
+        opacity: _isHoveredOnNavi ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+
+        child: ListView.builder(
+          scrollDirection: Axis.vertical,
+          itemCount: _imageModels.length,
+          itemBuilder: (context, index) {
+            return
+              Padding(
+                    padding: const EdgeInsets.only(left: 5.0, top: 10.0, bottom: 10.0),
+                    child: MouseRegion(
+                      onEnter: (e) {
+                        setState(() {
+                          _hoverStates[index] = true;
+                        });
+                      },
+                      onExit: (e) {
+                        setState(() {
+                          _hoverStates[index] = false;
+                        });
+                      },
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          ref.read(stateProvider.notifier).updateIndex(index);
+                        },
+                        child: AnimatedScale(
+                          alignment: Alignment.center,
+                          scale: _hoverStates[index] ? 1.5 : 1.0,
+                          duration: const Duration(milliseconds: 100),
+                          child: AnimatedOpacity(
+                            opacity: _hoverStates[index] ? 1.0 : 0.2,
+                            duration: const Duration(milliseconds: 200),
+                            child: Image.file(
+                              File(_imageModels[index].path),
+                              width: 100,
+                              height: 50,
+                              fit: BoxFit.cover
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-          );
-      }
+              );
+          }
+        ),
+      ),
     );
   }
 }
