@@ -23,7 +23,6 @@ Future<ImageModel> pathToModel(String path) async {
   final meta = await compute(readImageMeta, path);
 
   final bytes = meta['bytes'] as Uint8List;
-  final exif = meta['exif'] as Map<String, IfdTag>;
 
   // ui.Image 디코딩 (메인 isolate)
   // 디코딩 작업은 오직 메인 isolate에서만 가능함
@@ -39,7 +38,6 @@ Future<ImageModel> pathToModel(String path) async {
     height: image.height.toDouble(),
     width: image.width.toDouble(),
     path: path,
-    exifData: exif,
   );
 }
 

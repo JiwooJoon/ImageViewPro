@@ -31,10 +31,6 @@ class MainView extends ConsumerStatefulWidget {
 class _MainView extends ConsumerState<MainView> {
   bool isControllerWatched = true;
   bool isOrderWatched = false;
-  // double currentZoomSize = 1.00;
-  // int currentIndex = 0;
-  // int currentWatchSize = 1;
-  // List<ImageModel> imageModels = [];
   Timer? _orderTimer;
 
   List<String> droppedFiles = [];
@@ -173,10 +169,9 @@ class _MainView extends ConsumerState<MainView> {
     return Scaffold(
         backgroundColor: Colors.grey.shade900,
 
-        appBar: const DeskTopMenuBar(),
-
         body: Stack(
             children: [
+              // 메인 화면
               if (state.images.isEmpty)
                 DropTarget(
                     onDragEntered: (detail) {
@@ -204,36 +199,6 @@ class _MainView extends ConsumerState<MainView> {
                         // 폴더를 드랍했다면
                         if (entity == FileSystemEntityType.directory) {
                           debugPrint("${file.name}은 폴더.");
-                          // 내부 파일 재귀적으로 읽기
-
-                          // for (final file in details.files) {
-                          //   final path = file.path;
-                          //
-                          //   final dir = Directory(path);
-                          //
-                          //   final files = dir.listSync(recursive: true)
-                          //     .whereType<File>(); // 파일만 필터링하여 읽는다
-                          //
-                          //   List<String> paths = [];
-                          //   // 각 파일의 path 저장
-                          //   for (var f in files) {
-                          //      paths.add(f.path);
-                          //   }
-                          //   const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-                          //
-                          //   List<String> iPaths = paths
-                          //     .where((path) =>
-                          //       imageExtensions.any((e) => path.endsWith(e))
-                          //   ).toList();
-                          //
-                          //   final tempResult = await pathToImages(paths: iPaths);
-                          //
-                          //   ref.read(stateProvider.notifier).addImages(tempResult);
-                          //
-                          //   setState(() {
-                          //     debugPrint(tempResult.toString());
-                          //   });
-                          // }
 
                           List<String> paths = await getDirectoryPaths(file.path);
                           debugPrint(paths.toString());
@@ -267,19 +232,16 @@ class _MainView extends ConsumerState<MainView> {
                             ui.Image image = await getImageSize(file.path);
                             Uint8List bytes = await getImageBytes(file.path);
 
-                            Map<String, IfdTag> datas = await readExifFromBytes(bytes);
 
                             ref.read(stateProvider.notifier).addImage(
                                 ImageModel(
                                     height: image.height.toDouble(),
                                     width: image.width.toDouble(),
                                     path: file.path,
-                                    exifData: datas
                                 )
                             );
 
                             setState(() {
-                              debugPrint(datas.toString());
                             });
 
                           } else {
@@ -361,12 +323,13 @@ class _MainView extends ConsumerState<MainView> {
                             }
                           });
                         } else {
+                          // 컨트롤 키가 안눌렸다면
                           setState(() {
                             isOrderWatched = true;
 
                             if (event.scrollDelta.dy > 0) {
                               if (state.curIndex < (state.images.length + state.curSize) - 2) {
-                                ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
+                                convertIndexPlusOrMinus(isPlus: true);
                               } else {
                                 if (kDebugMode) {
                                   print("탑에 도달했습니다.");
@@ -374,7 +337,7 @@ class _MainView extends ConsumerState<MainView> {
                               }
                             } else {
                               if (state.curIndex > 0) {
-                                ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
+                                convertIndexPlusOrMinus(isPlus: false);
                               } else {
                                 if (kDebugMode) {
                                   print("바텀에 도달했습니다.");
@@ -473,30 +436,40 @@ class _MainView extends ConsumerState<MainView> {
                                       ),
                                     )
                                   else
-                                    Positioned.fill(
+
+                                    Center(
                                       child: InteractiveViewer(
                                         minScale: 0.5,
-                                        maxScale: 3.0,
+                                        maxScale: 2.0,
                                         panEnabled: true, // 드래그 이동 가능
                                         scaleEnabled: false, // 줌인/줌아웃 가능
                                         boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
                                         alignment: Alignment.center, // 확대/축소 기준을 중앙으로
                                         clipBehavior: Clip.none,
-                                        child: Transform.scale(
-                                          scale: state.curZoom,
-                                          alignment: Alignment.center,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            // crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              for (int i = state.curIndex;
-                                              i < state.curIndex + state.curSize && i < state.images.length;
-                                              i++)
-                                                Image.file(
-                                                  File(state.images[i].path),
-                                                  fit: BoxFit.contain,
-                                                )
-                                            ],
+                                        child: Container(
+                                          width: MediaQuery.of(context).size.width,
+                                          height: MediaQuery.of(context).size.height,
+                                          child: Transform.scale(
+                                            scale: state.curZoom,
+                                            alignment: Alignment.center,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              // crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                for (int i = state.curIndex;
+                                                i < state.curIndex + state.curSize && i < state.images.length;
+                                                i++)
+                                                  Expanded(
+                                                    child: Image.file(
+                                                      File(state.images[i].path),
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  )
+                                              ],
+                                            ),
+
+
                                           ),
                                         ),
                                       ),
@@ -586,22 +559,34 @@ class _MainView extends ConsumerState<MainView> {
                             )
                         ),
 
-                        // 이미지 내비게이션 (가져온 이미지 목록)
-                        if (state.images.isNotEmpty)
-                          Positioned(
-                              top: 5,
-                              left: 10,
-                              child: SizedBox(
-                                width: 100,
-                                height: MediaQuery.of(context).size.height * 0.6,
-                                child: const ImageListMap(),
-                              )
-                          )
+                        // // 이미지 내비게이션 (가져온 이미지 목록)
+                        // if (state.images.isNotEmpty)
+                        //   Positioned(
+                        //       top: 5,
+                        //       left: 10,
+                        //       child: SizedBox(
+                        //         width: 100,
+                        //         height: MediaQuery.of(context).size.height * 0.6,
+                        //         child: const ImageListMap(),
+                        //       )
+                        //   )
                       ],
                     ),
                   ),
                 ),
-              )
+              ),
+              // 이미지 내비게이션 (가져온 이미지 목록)
+              if (state.images.isNotEmpty)
+                Positioned(
+                    top: 5,
+                    left: 10,
+                    child: SizedBox(
+                      width: 100,
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: const ImageListMap(),
+                    )
+                )
+              // 메뉴바
             ]
         )
     );

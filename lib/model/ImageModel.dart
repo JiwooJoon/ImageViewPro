@@ -4,12 +4,11 @@ class ImageModel {
   double height;
   double width;
   String path;
-  Map<String, IfdTag> exifData;
 
   @override
   String toString() {
-    return "height: $height, width: $width, \npath: $path, \n$exifData";
+    return "height: $height, width: $width, \npath: $path";
   }
 
-  ImageModel({required this.height, required this.width, required this.path, required this.exifData});
+  ImageModel({required this.height, required this.width, required this.path});
 }

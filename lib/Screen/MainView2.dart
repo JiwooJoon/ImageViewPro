@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:image_view_pro/func/getDirectoryPaths.dart';
+import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
@@ -29,10 +31,6 @@ class MainView extends ConsumerStatefulWidget {
 class _MainView extends ConsumerState<MainView> {
   bool isControllerWatched = true;
   bool isOrderWatched = false;
-  // double currentZoomSize = 1.00;
-  // int currentIndex = 0;
-  // int currentWatchSize = 1;
-  // List<ImageModel> imageModels = [];
   Timer? _orderTimer;
 
   List<String> droppedFiles = [];
@@ -175,77 +173,122 @@ class _MainView extends ConsumerState<MainView> {
 
         body: Stack(
             children: [
-              DropTarget(
-                  onDragEntered: (detail) {
-                    setState(() {
-                      isDragging = true;
-                    });
-                  },
+              if (state.images.isEmpty)
+                DropTarget(
+                    onDragEntered: (detail) {
+                      setState(() {
+                        isDragging = true;
+                      });
+                    },
 
-                  onDragExited: (detail) {
-                    setState(() {
+                    onDragExited: (detail) {
+                      setState(() {
+                        isDragging = false;
+                      });
+                    },
+
+                    onDragDone: (details) async {
                       isDragging = false;
-                    });
-                  },
+                      if (details.files.isEmpty) return;
 
-                  onDragDone: (details) async {
-                    isDragging = false;
-                    if (details.files.isEmpty) return;
+                      // 드랍한 파일이 한개 인가
+                      if (details.files.length == 1) {
+                        final file = details.files.first;
 
-                    // 드랍한 파일이 한개 인가
-                    if (details.files.length == 1) {
-                      final file = details.files.first;
+                        final entity = FileSystemEntity.typeSync(file.path);
 
-                      final type = FileSystemEntity.typeSync(file.path);
-                      if (type == FileSystemEntityType.directory) {
-                        debugPrint("${file.name}은 폴더.");
-                      } else if (type == FileSystemEntityType.file) {
-                        // 이미지 확인
-                        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-                        final ext = file.path.toLowerCase();
+                        // 폴더를 드랍했다면
+                        if (entity == FileSystemEntityType.directory) {
+                          debugPrint("${file.name}은 폴더.");
 
-                        if (imageExtensions.any((e) => ext.endsWith(e))) {
-                          debugPrint("${file.name}은 이미지 파일!");
+                          List<String> paths = await getDirectoryPaths(file.path);
+                          debugPrint(paths.toString());
 
-                          ui.Image image = await getImageSize(file.path);
-                          Uint8List bytes = await getImageBytes(file.path);
+                          const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
 
-                          Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+                          List<String> iPaths = paths
+                              .where((path) =>
+                              imageExtensions.any((e) => path.endsWith(e))
+                          ).toList();
+                          debugPrint(iPaths.toString());
 
-                          ref.read(stateProvider.notifier).addImage(
-                              ImageModel(
+                          final tempResult = await pathToImages(paths: iPaths);
+                          debugPrint("temResult : ${tempResult.toString()}");
+
+                          ref.read(stateProvider.notifier).addImages(tempResult);
+
+                          setState(() {
+                            debugPrint(tempResult.toString());
+                          });
+
+
+                        } else if (entity == FileSystemEntityType.file) {
+                          // 이미지 확인
+                          const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                          final ext = file.path.toLowerCase();
+
+                          if (imageExtensions.any((e) => ext.endsWith(e))) {
+                            debugPrint("${file.name}은 이미지 파일!");
+
+                            ui.Image image = await getImageSize(file.path);
+                            Uint8List bytes = await getImageBytes(file.path);
+
+
+                            ref.read(stateProvider.notifier).addImage(
+                                ImageModel(
                                   height: image.height.toDouble(),
                                   width: image.width.toDouble(),
                                   path: file.path,
-                                  exifData: datas
-                              )
-                          );
+                                )
+                            );
 
-                          setState(() {
-                            debugPrint(datas.toString());
-                          });
+                            setState(() {
+                            });
 
-                        } else {
+                          } else {
 
+                          }
                         }
+                      } else {
+                        List<String> paths = details.files.map((file) => file.path).toList();
+
+                        final tempResult = await pathToImages(paths: paths);
+
+                        ref.read(stateProvider.notifier).addImages(tempResult);
+
+                        setState(() {
+                          debugPrint(tempResult.toString());
+                        });
                       }
-                    }
 
-                    setState(() {
-                    });
-                  },
+                      setState(() {
+                      });
+                    },
 
-                  child: Container(
-                    height: MediaQuery.of(context).size.height,
-                    width: MediaQuery.of(context).size.width,
-                    color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
-                    child: Center(
-                      child: isDragging
-                          ? const Text("이곳으로 끌어와주세요.")
-                          : const SizedBox.shrink(),
-                    ),
-                  )
-              ),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height,
+                      width: MediaQuery.of(context).size.width,
+                      color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                      child: Center(
+                        child: isDragging
+                            ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.image, size: 100,),
+                              Text("화면에 끌어와주세요.",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w900, color: Colors.blueAccent,
+                                    fontSize: 50
+                                ),
+                              )
+                            ],
+                          ),
+                        )
+                            : const SizedBox.shrink(),
+                      ),
+                    )
+                ),
               Positioned.fill(
                 child: FocusableActionDetector(
                   autofocus: true,
@@ -281,12 +324,13 @@ class _MainView extends ConsumerState<MainView> {
                             }
                           });
                         } else {
+                          // 컨트롤 키가 안눌렸다면
                           setState(() {
                             isOrderWatched = true;
 
                             if (event.scrollDelta.dy > 0) {
                               if (state.curIndex < (state.images.length + state.curSize) - 2) {
-                                ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
+                                convertIndexPlusOrMinus(isPlus: true);
                               } else {
                                 if (kDebugMode) {
                                   print("탑에 도달했습니다.");
@@ -294,7 +338,7 @@ class _MainView extends ConsumerState<MainView> {
                               }
                             } else {
                               if (state.curIndex > 0) {
-                                ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
+                                convertIndexPlusOrMinus(isPlus: false);
                               } else {
                                 if (kDebugMode) {
                                   print("바텀에 도달했습니다.");
@@ -372,21 +416,12 @@ class _MainView extends ConsumerState<MainView> {
                                               print(result);
                                             }
 
-                                            for (var item in result!.paths) {
+                                            List<String?> paths = result!.paths;
 
-                                              ui.Image image = await getImageSize(item!);
-                                              Uint8List bytes = await getImageBytes(item);
+                                            final tempResult = await pathToImages(paths: paths);
 
-                                              Map<String, IfdTag> datas = await readExifFromBytes(bytes);
+                                            ref.read(stateProvider.notifier).addImages(tempResult);
 
-                                              ref.read(stateProvider.notifier).addImage(ImageModel(
-                                                  height: image.height.toDouble(),
-                                                  width: image.width.toDouble(),
-                                                  path: item.toString(),
-                                                  exifData: datas
-                                              )
-                                              );
-                                            }
 
                                             setState(() {
                                               if (kDebugMode) {
@@ -515,22 +550,33 @@ class _MainView extends ConsumerState<MainView> {
                             )
                         ),
 
-                        // 이미지 내비게이션 (가져온 이미지 목록)
-                        if (state.images.isNotEmpty)
-                          Positioned(
-                              top: 5,
-                              left: 10,
-                              child: SizedBox(
-                                width: 100,
-                                height: MediaQuery.of(context).size.height * 0.6,
-                                child: const ImageListMap(),
-                              )
-                          )
+                        // // 이미지 내비게이션 (가져온 이미지 목록)
+                        // if (state.images.isNotEmpty)
+                        //   Positioned(
+                        //       top: 5,
+                        //       left: 10,
+                        //       child: SizedBox(
+                        //         width: 100,
+                        //         height: MediaQuery.of(context).size.height * 0.6,
+                        //         child: const ImageListMap(),
+                        //       )
+                        //   )
                       ],
                     ),
                   ),
                 ),
-              )
+              ),
+              // 이미지 내비게이션 (가져온 이미지 목록)
+              if (state.images.isNotEmpty)
+                Positioned(
+                    top: 5,
+                    left: 10,
+                    child: SizedBox(
+                      width: 100,
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: const ImageListMap(),
+                    )
+                )
             ]
         )
     );
