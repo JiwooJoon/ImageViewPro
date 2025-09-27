@@ -19,7 +19,7 @@ Future<dynamic> handleMethodCall(MethodCall call, int fromWindowId) async {
 
 Future<void> createWindow({required String windowName, required List<WindowInfo> windows}) async {
   try {
-    final name = 'Window $windowName';
+    final name = '$windowName';
     final windowConfig = {
       'name' : name,
     };
@@ -42,7 +42,7 @@ Future<void> createWindow({required String windowName, required List<WindowInfo>
   }
 }
 
-Future<List<WindowInfo>> _closeWindow(int windowId, List<WindowInfo> windows) async {
+Future<List<WindowInfo>> closeWindow(int windowId, List<WindowInfo> windows) async {
   try {
     // 해당 id를 가진 윈도우 컨트롤러에서 찾는다
     final info = windows.firstWhere((w) => w.id == windowId);
@@ -58,7 +58,7 @@ Future<List<WindowInfo>> _closeWindow(int windowId, List<WindowInfo> windows) as
   return windows;
 }
 
-Future<void> _sendMessageToWindow(int windowId, List<WindowInfo> windows) async {
+Future<void> sendMessageToWindow(int windowId, List<WindowInfo> windows) async {
   try {
     final response = await DesktopMultiWindow.invokeMethod(windowId, 'message_from_main', 'Hello from main Window');
 

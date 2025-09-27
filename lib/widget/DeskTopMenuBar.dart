@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 import 'package:image_view_pro/main.dart';
+import 'package:image_view_pro/widget/OptionWindow.dart';
 import 'package:menu_bar/menu_bar.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
@@ -152,7 +153,17 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   // 설정
                   MenuItemButton(
                     onPressed: () {
-
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Dialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const OptionWindow(),
+                          );
+                        }
+                      );
                     },
                     child: MenuAcceleratorLabel("설정 (O)"),
                   ),

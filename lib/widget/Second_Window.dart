@@ -2,6 +2,7 @@
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_view_pro/widget/OptionWindow.dart';
 
 class SecondaryWindowApp extends StatelessWidget {
   final int windowId;
@@ -50,15 +51,24 @@ class _SecondaryWindowState extends State<_SecondaryWindow> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.windowName),
-        backgroundColor: Colors.grey[900],
-      ),
-      body: Center(
-        child: TextButton(onPressed: _sendMessageToMain, child: const Text('Send a message to the main Window')),
-      ),
-    );
+
+    if (widget.windowName == "option") {
+      return const MaterialApp(
+        title: "설정",
+        home: OptionWindow(),
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.windowName),
+          backgroundColor: Colors.grey[100],
+        ),
+        body: Center(
+          child: TextButton(onPressed: _sendMessageToMain, child: const Text('Send a message to the main Window')),
+        ),
+      );
+    }
+
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call, int fromWindowId) async {
