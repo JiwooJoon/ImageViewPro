@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class GoogleVisionOcr {
   // ⚠️ 1. 여기에 발급받은 Google Cloud API 키를 입력하세요.
   // 실제 앱에서는 환경 변수나 보안 저장소를 사용해야 합니다.
-  static const String apiKey = "AIzaSyA9V5n7_xp9PSd798Dmaq5XUJOnp8HTCjo";
+  static const String apiKey = "";
 
   // Google Vision API의 텍스트 감지 엔드포인트
   static const String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=$apiKey";
