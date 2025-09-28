@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
+import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 
 import 'package:image_view_pro/main.dart';
@@ -22,6 +23,7 @@ import 'package:image_view_pro/widget/CustomSnackBar.dart';
 import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
+import '../model/stateModel.dart';
 import '../widget/ControllerButton.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 
@@ -64,6 +66,7 @@ class _MainView extends ConsumerState<MainView> {
     return bytes;
   }
 
+
   @override
   void initState() {
     super.initState();
@@ -71,12 +74,19 @@ class _MainView extends ConsumerState<MainView> {
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
   }
 
+  Future<void> _loadOpt() async {
+    ref.read(stateProvider.notifier).updateOption(await loadOpt());
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
     final bool isDeskTop = Platform.isWindows;
     final isLoading = ref.watch(loadingProvider);
 
+    _loadOpt();
 
     // 값이 바뀔 때..
     ref.listen(stateProvider, (previous, next) {
@@ -197,6 +207,7 @@ class _MainView extends ConsumerState<MainView> {
         });
       }
     }
+
 
 
     return Stack(
@@ -644,4 +655,8 @@ class _MainView extends ConsumerState<MainView> {
   );
 
   }
+}
+
+extension on Future<Map<String, dynamic>> {
+  operator [](String other) {}
 }

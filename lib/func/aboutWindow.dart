@@ -17,11 +17,12 @@ Future<dynamic> handleMethodCall(MethodCall call, int fromWindowId) async {
   return null;
 }
 
-Future<void> createWindow({required String windowName, required List<WindowInfo> windows}) async {
+Future<void> createWindow({required String windowName, required List<WindowInfo> windows, required String? data}) async {
   try {
-    final name = '$windowName';
+    final name = windowName;
     final windowConfig = {
       'name' : name,
+      'data' : data,
     };
 
     // 새 윈도우 창 생성

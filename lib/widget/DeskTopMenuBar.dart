@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
+import 'package:image_view_pro/func/translate.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/widget/OptionWindow.dart';
-import 'package:menu_bar/menu_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
   const DeskTopMenuBar({super.key});
@@ -14,10 +17,72 @@ class DeskTopMenuBar extends ConsumerStatefulWidget {
 
 class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
+  Future<String?> startProcess() async {
+
+    final state = ref.watch(stateProvider);
+
+    if (state.curSize != 1 || state.images.isEmpty) {
+      showDialog(
+          context: context,
+          builder: (BuildContext ctx) {
+            return AlertDialog(
+              content: const Text('이미지 보기가 1장일 때만 가능합니다.'),
+              actions: [
+                ElevatedButton(onPressed: () {
+                  Navigator.of(ctx).pop();
+                }, child: const Text("네")
+                )
+              ],
+            );
+          }
+      );
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      final api = prefs.get("selected_api");
+      switch (api) {
+        case "Google Translate API" : {
+          final apiKey = await state.storage.read(key: 'apiKey');
+
+          final file = File(state.images[state.curIndex].path);
+          final recognized = await state.recognizer.recognizeText(file);
+
+          debugPrint('인식 결과 : ${recognized.substring(0, 20)}...');
+
+          // 인식한 결과를 api 사용
+          final result = await translateGoogle(recognized, apiKey!);
+
+          // createWindow(windowName: "translate_window", windows: [], data: result);
+
+          return result;
+        }
+      // google
+
+        default : {
+          showDialog(
+              context: context,
+              builder: (BuildContext ctx) {
+                return AlertDialog(
+                  content: const Text('뭘 한거에요?'),
+                  actions: [
+                    ElevatedButton(onPressed: () {
+                      Navigator.of(ctx).pop();
+                    }, child: const Text("네?")
+                    )
+                  ],
+                );
+              }
+          );
+        }
+      }
+    }
+    return null;
+  }
+
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
+
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -83,22 +148,22 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         onPressed: () {
 
                         },
-                        child: MenuAcceleratorLabel("현 이미지 저장(C)"),
+                        child: const MenuAcceleratorLabel("현 이미지 저장(C)"),
                       ),
                       MenuItemButton(
                         onPressed: () {
 
                         },
-                        child: MenuAcceleratorLabel("전체 이미지 저장 (A)"),
+                        child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
                       ),
                       MenuItemButton(
                         onPressed: () {
 
                         },
-                        child: MenuAcceleratorLabel("보이는 대로 저장 (S)"),
+                        child: const MenuAcceleratorLabel("보이는 대로 저장 (S)"),
                       )
                     ],
-                    child: MenuAcceleratorLabel("저장 (S)"),
+                    child: const MenuAcceleratorLabel("저장 (S)"),
                   ),
 
                 ],
@@ -124,27 +189,18 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     child: MenuAcceleratorLabel(state.watchMode ? "끊어 보기 (S)" : "이어 보기 (S)"),
                   ),
                   // 인식
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () {
+                  MenuItemButton(
+                    onPressed: () async {
+                      final result = await startProcess();
 
-                        },
-                        child: MenuAcceleratorLabel("글자 인식 (L)"),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-
-                        },
-                        child: MenuAcceleratorLabel("사물 인식 (O)"),
-                      ),
-                    ],
-                    child: MenuAcceleratorLabel("이미지 인식 (I)"),
+                      createWindow(windowName: "translate_window", windows: [], data: result);
+                    },
+                    child: const MenuAcceleratorLabel("이미지 번역 (O)"),
                   ),
 
                 ],
 
-                child: MenuAcceleratorLabel("이미지 (I)"),
+                child: const MenuAcceleratorLabel("이미지 (I)"),
               ),
 
               // 옵션
@@ -165,18 +221,18 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         }
                       );
                     },
-                    child: MenuAcceleratorLabel("설정 (O)"),
+                    child: const MenuAcceleratorLabel("설정 (O)"),
                   ),
                   // 대하여
                   MenuItemButton(
                     onPressed: () {
-                      createWindow(windowName: "LaL", windows: []);
+                      createWindow(windowName: "LaL", windows: [], data: '');
                     },
-                    child: MenuAcceleratorLabel("LaL에 대하여.. (L)"),
+                    child: const MenuAcceleratorLabel("LaL에 대하여.. (L)"),
                   ),
                 ],
 
-                child: MenuAcceleratorLabel("옵션 (O)"),
+                child: const MenuAcceleratorLabel("옵션 (O)"),
               ),
             ],
           ),

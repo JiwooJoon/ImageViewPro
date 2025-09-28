@@ -42,6 +42,12 @@ dependencies:
   menu_bar: ^0.5.3
   desktop_multi_window: ^0.2.1
   image: ^4.5.4
+  flutter_secure_storage: ^8.0.0
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.3
+  http: ^1.1.0
+  googleapis: ^14.0.0
+
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +74,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo_comp.png
+    - config/option.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

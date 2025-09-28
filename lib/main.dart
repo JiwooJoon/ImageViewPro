@@ -2,11 +2,16 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 import 'package:image_view_pro/widget/Second_Window.dart';
+
+import 'func/visonOcr.dart';
+
 
 final loadingProvider = StateProvider<bool>((ref) => false);
 
@@ -19,6 +24,10 @@ class StateProv extends StateNotifier<StateModel> {
       curZoom: 1.0,
       direction: true,
       watchMode: true,
+      storage: const FlutterSecureStorage(),
+      recognizer: GoogleVisionOcr(),
+      recognizedText: [],
+      options: {},
     )
   );
 
@@ -33,6 +42,14 @@ class StateProv extends StateNotifier<StateModel> {
 
   void updateModel(List<ImageModel> images) {
     state = state.copyWith(images: images);
+  }
+
+  void updateStorage(FlutterSecureStorage storage) {
+    state = state.copyWith(storage: storage);
+  }
+
+  void updateOption(Map<String, dynamic> opt) {
+    state = state.copyWith(options: {...opt});
   }
 
   void addImage(ImageModel image) {
@@ -57,8 +74,11 @@ final stateProvider = StateNotifierProvider<StateProv, StateModel>(
     (ref) => StateProv()
 );
 
-void main(List<String> args) {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
+
 
   if (args.firstOrNull == 'multi_window') {
     final windowId = int.parse(args[1]);
@@ -69,7 +89,7 @@ void main(List<String> args) {
     final config = jsonDecode(arguments) as Map<String, dynamic>;
 
     runApp(
-      ProviderScope(child: SecondaryWindowApp(windowId: windowId, windowName: config['name'] as String))
+      ProviderScope(child: SecondaryWindowApp(windowId: windowId, windowName: config['name'] as String, result: config['data'] ?? "오류",))
     );
   } else {
     runApp(

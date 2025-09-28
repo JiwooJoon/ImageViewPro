@@ -2,16 +2,18 @@
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_view_pro/widget/OptionWindow.dart';
+import 'package:image_view_pro/Screen/TranslatedView.dart';
 
 class SecondaryWindowApp extends StatelessWidget {
   final int windowId;
   final String windowName;
+  final String result;
 
   const SecondaryWindowApp({
     super.key,
     required this.windowId,
-    required this.windowName
+    required this.windowName,
+    required this.result
   });
 
   @override
@@ -21,6 +23,7 @@ class SecondaryWindowApp extends StatelessWidget {
       home: _SecondaryWindow(
         windowId: windowId,
         windowName: windowName,
+        result: result,
       ),
       debugShowCheckedModeBanner: false,
     );
@@ -30,10 +33,12 @@ class SecondaryWindowApp extends StatelessWidget {
 class _SecondaryWindow extends StatefulWidget {
   final int windowId;
   final String windowName;
+  final String result;
 
   const _SecondaryWindow({
     required this.windowId,
     required this.windowName,
+    required this.result
   });
 
   @override
@@ -47,15 +52,22 @@ class _SecondaryWindowState extends State<_SecondaryWindow> {
 
     // 메인 윈도우로부터 메시지를 받는다
     DesktopMultiWindow.setMethodHandler(_handleMethodCall);
+
   }
 
   @override
   Widget build(BuildContext context) {
 
-    if (widget.windowName == "option") {
-      return const MaterialApp(
-        title: "설정",
-        home: OptionWindow(),
+    if (widget.windowName == "translate_window") {
+      return MaterialApp(
+        title: "번역",
+        home: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.windowName),
+            backgroundColor: Colors.grey[400],
+          ),
+          body: TranslatedView(recognized: widget.result),
+        ),
       );
     } else {
       return Scaffold(

@@ -1,21 +1,78 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
+import 'package:image_view_pro/func/jsonDeIn.dart';
+import 'package:image_view_pro/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class OptionWindow extends StatefulWidget {
+import '../model/stateModel.dart';
+
+class OptionWindow extends ConsumerStatefulWidget {
   const OptionWindow({super.key});
 
   @override
-  State<OptionWindow> createState() => _OptionWindowState();
+  ConsumerState<OptionWindow> createState() => _OptionWindowState();
 }
 
-class _OptionWindowState extends State<OptionWindow> {
+class _OptionWindowState extends ConsumerState<OptionWindow> {
   final TextEditingController _apiKeyController = TextEditingController();
-  String? _selectedValue = "Google Translate API";
+  final opts = [
+    'Google Translate API',
+    'Microsoft Translator',
+    'DeepL',
+    'Amazon Translate',
+    'LibreTranslate'
+  ];
+
+  String? _selectedValue;
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    final state = ref.read(stateProvider);
+    _loadApiKey(state);
+    _loadSelectedValue();
+
+  }
+
+  Future<void> _loadSelectedValue() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedValue = prefs.getString('selected_api') ?? opts.first;
+    });
+  }
+
+  Future<void> _saveSelectedValue(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_api', value);
+  }
+
+
+
+  Future<void> _loadApiKey(StateModel state) async {
+    final apiKey = await state.storage.read(key: 'apiKey');
+
+    if (!mounted) return;
+
+    setState(() {
+      _apiKeyController.text = apiKey ?? "";
+    });
+  }
 
   @override
   Widget build(BuildContext ctx) {
+
+    final state = ref.watch(stateProvider);
 
     return Scaffold(
       body: Container(
@@ -51,7 +108,7 @@ class _OptionWindowState extends State<OptionWindow> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        const Row(
                           children: [
                             Text(
                               "Api 키 입력 ",
@@ -73,8 +130,8 @@ class _OptionWindowState extends State<OptionWindow> {
                                 filled: true,
                                 fillColor: Colors.grey.shade400,
                                 focusColor: Colors.grey.shade300,
-                                border: OutlineInputBorder(
-                                    borderRadius: const BorderRadius.all(Radius.zero)
+                                border: const OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(Radius.zero)
                                 ),
                               ),
 
@@ -92,12 +149,12 @@ class _OptionWindowState extends State<OptionWindow> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 25,),
+                    const SizedBox(height: 25,),
                     // ai 지정
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           "번역용 ai 지정 ",
                           style: TextStyle(
                               fontSize: 15,
@@ -112,20 +169,16 @@ class _OptionWindowState extends State<OptionWindow> {
                           ),
                           child: DropdownButton(
                               value: _selectedValue,
-                              items: [
-                                'Google Translate API',
-                                'Microsoft Translator',
-                                'DeepL',
-                                'Amazon Translate',
-                                'LibreTranslate'
-                              ].map((e) => DropdownMenuItem(
+                              items: opts.map((e) => DropdownMenuItem(
                                   value: e,
                                   child: Text(e)
                               )).toList(),
                               onChanged: (value) {
                                 setState(() {
-                                  _selectedValue = value;
+                                  _selectedValue = value!;
                                 });
+                                _saveSelectedValue(value!);
+
                               }
                           ),
                         ),
@@ -151,6 +204,8 @@ class _OptionWindowState extends State<OptionWindow> {
                 right: 25,
                 child: ElevatedButton(
                   onPressed: () {
+                    state.storage.write(key: "apiKey", value: _apiKeyController.text);
+
                     Navigator.of(context).pop();
                   },
                   child: const Text("완료"),
