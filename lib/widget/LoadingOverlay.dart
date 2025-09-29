@@ -2,7 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class LoadingOverlay extends StatelessWidget {
-  const LoadingOverlay({super.key});
+  const LoadingOverlay({
+    super.key,
+    required this.msg
+  });
+
+  final String msg;
 
   @override
   Widget build(BuildContext context) {
@@ -27,18 +32,18 @@ class LoadingOverlay extends StatelessWidget {
           )
         ),
 
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
+              const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-              SizedBox(height: 15,),
+              const SizedBox(height: 15,),
               Text(
-                "이미지 로딩중",
-                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                msg,
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
               )
             ],
           ),

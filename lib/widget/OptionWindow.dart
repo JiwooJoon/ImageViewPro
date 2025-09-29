@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_view_pro/func/aboutWindow.dart';
-import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,11 +16,11 @@ class OptionWindow extends ConsumerStatefulWidget {
 
 class _OptionWindowState extends ConsumerState<OptionWindow> {
   final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _apiKey2Controller = TextEditingController();
   final opts = [
     'Google Translate API',
     'Microsoft Translator',
     'DeepL',
-    'Amazon Translate',
     'LibreTranslate'
   ];
 
@@ -31,6 +29,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _apiKey2Controller.dispose();
 
     super.dispose();
   }
@@ -61,11 +60,13 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
 
   Future<void> _loadApiKey(StateModel state) async {
     final apiKey = await state.storage.read(key: 'apiKey');
+    final apiKey2 = await state.storage.read(key: 'apiKey');
 
     if (!mounted) return;
 
     setState(() {
       _apiKeyController.text = apiKey ?? "";
+      _apiKey2Controller.text = apiKey2 ?? "";
     });
   }
 
@@ -139,8 +140,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                           ),
                         ),
                         Text(
-                          "사용하는 번역용 ai의 key를 적용합니다.\n"
-                              "api키는 암호화되어 저장됩니다",
+                          "Google Cloud Vision의 API Key가 필요합니다.\n",
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
@@ -190,6 +190,51 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                               color: Colors.grey.shade800
                           ),
                         ),
+                        if (_selectedValue != "Google Translate API" && _selectedValue != "LibreTranslate")
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Text(
+                                    "번역 Api 키 입력 ",
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.black
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Material(
+                                child: SizedBox(
+                                  width: 500,
+                                  // color: Colors.grey,
+                                  child: TextField(
+                                    controller: _apiKey2Controller,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.grey.shade400,
+                                      focusColor: Colors.grey.shade300,
+                                      border: const OutlineInputBorder(
+                                          borderRadius: BorderRadius.all(Radius.zero)
+                                      ),
+                                    ),
+
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                "사용하는 번역용 ai의 key를 적용합니다.\n"
+                                    "api키는 암호화되어 저장됩니다",
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.grey.shade800
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     )
 
@@ -205,6 +250,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                 child: ElevatedButton(
                   onPressed: () {
                     state.storage.write(key: "apiKey", value: _apiKeyController.text);
+                    state.storage.write(key: "apiKey2", value: _apiKey2Controller.text);
 
                     Navigator.of(context).pop();
                   },

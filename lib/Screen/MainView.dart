@@ -283,7 +283,6 @@ class _MainView extends ConsumerState<MainView> {
                               debugPrint("${file.name}은 이미지 파일!");
 
                               ui.Image image = await getImageSize(file.path);
-                              Uint8List bytes = await getImageBytes(file.path);
 
 
                               ref.read(stateProvider.notifier).addImage(
@@ -578,6 +577,7 @@ class _MainView extends ConsumerState<MainView> {
                                             ControllerButton(btnCallback: () {
                                               convertIndexPlusOrMinus(isPlus: true);
                                             }, icon: const Icon(Icons.arrow_forward_ios, size: 35,),),
+                                            // 앞으로 붙이기
                                             ControllerButton(btnCallback: () {
                                               convertSizePlusOrMinus(isPlus: true);
                                             }, icon: const Icon(Icons.keyboard_double_arrow_right_sharp, size: 35,),)
@@ -590,18 +590,6 @@ class _MainView extends ConsumerState<MainView> {
                                 ),
                               )
                           ),
-
-                          // // 이미지 내비게이션 (가져온 이미지 목록)
-                          // if (state.images.isNotEmpty)
-                          //   Positioned(
-                          //       top: 5,
-                          //       left: 10,
-                          //       child: SizedBox(
-                          //         width: 100,
-                          //         height: MediaQuery.of(context).size.height * 0.6,
-                          //         child: const ImageListMap(),
-                          //       )
-                          //   )
                         ],
                       ),
                     ),
@@ -622,41 +610,13 @@ class _MainView extends ConsumerState<MainView> {
                   top: 0,
                   child: DeskTopMenuBar()
                 ),
-
-
-                // 이미지 내비게이션 (가져온 이미지 목록)
-                // if (state.images.isNotEmpty)
-                //   MouseRegion(
-                //     child: AnimatedOpacity(
-                //       opacity: isHoverOnNavi ? 1.0 : 0.0,
-                //       duration: const Duration(milliseconds: 300),
-                //       child: Positioned(
-                //           top: 5,
-                //           left: 10,
-                //           child: SizedBox(
-                //             width: 100,
-                //             height: MediaQuery.of(context).size.height * 0.6,
-                //             child: const ImageListMap(),
-                //           )
-                //       ),
-                //     ),
-                //   ),
-                // // 메뉴바
-                // const Positioned(
-                //
-                //     child: DeskTopMenuBar()
-                // )
               ]
           )
       ),
         if (isLoading)
-          const LoadingOverlay()
+          const LoadingOverlay(msg: "로딩 중..",)
     ]
   );
 
   }
-}
-
-extension on Future<Map<String, dynamic>> {
-  operator [](String other) {}
 }

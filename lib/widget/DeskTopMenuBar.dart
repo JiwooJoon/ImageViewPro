@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
+import 'package:image_view_pro/func/saveImages.dart';
 import 'package:image_view_pro/func/translate.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/widget/OptionWindow.dart';
+import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
@@ -39,41 +41,32 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
     } else {
       final prefs = await SharedPreferences.getInstance();
       final api = prefs.get("selected_api");
-      switch (api) {
-        case "Google Translate API" : {
-          final apiKey = await state.storage.read(key: 'apiKey');
 
-          final file = File(state.images[state.curIndex].path);
-          final recognized = await state.recognizer.recognizeText(file);
+      final apiKey = await state.storage.read(key: 'apiKey');
 
-          debugPrint('인식 결과 : ${recognized.substring(0, 20)}...');
+      final file = File(state.images[state.curIndex].path);
+      final recognized = await state.recognizer.recognizeText(file);
 
-          // 인식한 결과를 api 사용
-          final result = await translateGoogle(recognized, apiKey!);
+      debugPrint('인식 결과 : ${recognized.substring(0, 20)}...');
 
-          // createWindow(windowName: "translate_window", windows: [], data: result);
+      // 인식한 결과를 api 사용
+      final result = await translateGoogle(recognized, apiKey!);
 
-          return result;
-        }
-      // google
-
-        default : {
-          showDialog(
-              context: context,
-              builder: (BuildContext ctx) {
-                return AlertDialog(
-                  content: const Text('뭘 한거에요?'),
-                  actions: [
-                    ElevatedButton(onPressed: () {
-                      Navigator.of(ctx).pop();
-                    }, child: const Text("네?")
-                    )
-                  ],
-                );
-              }
-          );
-        }
+      switch(api) {
+        case "Google Translate API":
+          return await translateGoogle(recognized, apiKey);
+        case "Microsoft Translator":
+          final key = await state.storage.read(key: 'apiKey2');
+          return await translateMicrosoft(recognized, key!);
+        case "DeepL":
+          final key = await state.storage.read(key: 'apiKey2');
+          return await translateDeepL(recognized, key!);
+        case "LibreTranslate":
+          return await translateLibre(recognized);
       }
+
+
+      return result;
     }
     return null;
   }
@@ -109,7 +102,17 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ),
                       MenuItemButton(
                         onPressed: () {
-
+                          showDialog(context: context,
+                            builder: (BuildContext context) {
+                              return Dialog(
+                                child: SizedBox(
+                                  height: 600,
+                                  width: 800,
+                                  child: VtoDGallery(paths: const [], ref: ref)
+                                ),
+                              );
+                            }
+                          );
                         },
                         child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
                       )
@@ -157,7 +160,48 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
                       ),
                       MenuItemButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          List<String> path = [];
+                          for (var i = state.curIndex; i < (state.curIndex + state.curSize); i++ ) {
+                            path.add(state.images[i].path);
+                          }
+
+                          var result = await saveImage(path, ref);
+
+                          if (!mounted) return;
+
+                          if (result != "failed") {
+                            showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    backgroundColor: Colors.grey[850],
+                                    shadowColor: Colors.black,
+                                    content: const Text("저장 완료"),
+                                    actions: [
+                                      ElevatedButton(
+                                          onPressed: () async {
+                                            if (Platform.isWindows) {
+                                              await Process.run('explorer', [result]);
+                                            }
+
+                                            if (!mounted) return;
+
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text("위치 열기")
+                                      ),
+                                      ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text("확인")
+                                      )
+                                    ],
+                                  );
+                                }
+                            );
+                          }
 
                         },
                         child: const MenuAcceleratorLabel("보이는 대로 저장 (S)"),
@@ -200,7 +244,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                 ],
 
-                child: const MenuAcceleratorLabel("이미지 (I)"),
+                child: const MenuAcceleratorLabel("도구 (F)"),
               ),
 
               // 옵션
