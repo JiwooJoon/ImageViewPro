@@ -9,6 +9,7 @@ import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/widget/OptionWindow.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:another_flushbar/flushbar.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
   const DeskTopMenuBar({super.key});
@@ -102,17 +103,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ),
                       MenuItemButton(
                         onPressed: () {
-                          showDialog(context: context,
-                            builder: (BuildContext context) {
-                              return Dialog(
-                                child: SizedBox(
-                                  height: 600,
-                                  width: 800,
-                                  child: VtoDGallery(paths: const [], ref: ref)
-                                ),
-                              );
-                            }
-                          );
+
                         },
                         child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
                       )
@@ -155,6 +146,34 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ),
                       MenuItemButton(
                         onPressed: () {
+                          if (state.images.isNotEmpty) {
+                            showDialog(context: context,
+                                barrierDismissible: false,
+                                builder: (BuildContext context) {
+
+
+                                  return Dialog(
+                                    insetAnimationDuration: const Duration(milliseconds: 500),
+                                    insetAnimationCurve: Curves.fastEaseInToSlowEaseOut,
+                                    child: SizedBox(
+                                        height: 600,
+                                        width: 800,
+                                        child: VtoDGallery(images: state.images,)
+                                    ),
+                                  );
+                                }
+                            );
+                          } else {
+
+                            Flushbar(
+                              message: "먼저 이미지를 가져오세요.",
+                              duration: const Duration(seconds: 2),
+                              flushbarPosition: FlushbarPosition.TOP,
+                              margin: const EdgeInsets.all(20),
+                              borderRadius: BorderRadius.circular(10),
+                              backgroundColor: Colors.grey.shade500,
+                            ).show(context);
+                          }
 
                         },
                         child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),

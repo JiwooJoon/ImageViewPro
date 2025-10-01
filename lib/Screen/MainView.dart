@@ -15,6 +15,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
@@ -283,6 +284,7 @@ class _MainView extends ConsumerState<MainView> {
                               debugPrint("${file.name}은 이미지 파일!");
 
                               ui.Image image = await getImageSize(file.path);
+                              String name = p.basenameWithoutExtension(file.path);
 
 
                               ref.read(stateProvider.notifier).addImage(
@@ -290,6 +292,7 @@ class _MainView extends ConsumerState<MainView> {
                                     height: image.height.toDouble(),
                                     width: image.width.toDouble(),
                                     path: file.path,
+                                    name: name
                                   )
                               );
 

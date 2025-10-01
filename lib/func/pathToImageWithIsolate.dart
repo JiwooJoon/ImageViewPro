@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:exif/exif.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 
 import '../model/ImageModel.dart';
 
@@ -33,11 +34,13 @@ Future<ImageModel> pathToModel(String path) async {
   );
   final frame = await codec.getNextFrame();
   final image = frame.image;
+  final name = p.basenameWithoutExtension(path);
 
   return ImageModel(
     height: image.height.toDouble(),
     width: image.width.toDouble(),
     path: path,
+    name: name
   );
 }
 
