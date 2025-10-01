@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:googleapis/drive/v2.dart' as drive;
 import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
@@ -27,7 +28,10 @@ class StateProv extends StateNotifier<StateModel> {
       storage: const FlutterSecureStorage(),
       recognizer: GoogleVisionOcr(),
       recognizedText: [],
-      options: {},
+      options: {
+        "clientId" : "787172715400-h62aut1sru64u2ioisdmglv6u88g628v.apps.googleusercontent.com",
+        "scope" : [drive.DriveApi.driveScope],
+      },
     )
   );
 
