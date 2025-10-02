@@ -1,11 +1,16 @@
 import 'dart:io';
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/driveFunction.dart';
+import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/widget/LoadingOverlay.dart';
 
-class VtoDGallery extends StatefulWidget {
+class VtoDGallery extends ConsumerStatefulWidget {
   const VtoDGallery({
     super.key,
     required this.images,
@@ -14,20 +19,22 @@ class VtoDGallery extends StatefulWidget {
   final List<ImageModel> images;
 
   @override
-  State<VtoDGallery> createState() => _VtoDGallery();
+  ConsumerState<VtoDGallery> createState() => _VtoDGallery();
 }
 
-class _VtoDGallery extends State<VtoDGallery> {
+class _VtoDGallery extends ConsumerState<VtoDGallery> {
 
   late List<bool> _choices = List.filled(widget.images.length, true);
   late final List<bool> _hoverOn = List.filled(widget.images.length, false);
 
   bool? _everyBoxChecked = true;
-  bool? _confrontBoxChecked = false;
 
   late int _curImage = 0;
   late final TextEditingController _imageNameController = TextEditingController(
     text: widget.images[_curImage].name ?? " "
+  );
+  late final TextEditingController _folderNameController = TextEditingController(
+      text: "ByLaL"
   );
 
   @override
@@ -38,12 +45,14 @@ class _VtoDGallery extends State<VtoDGallery> {
   @override
   void dispose() {
     _imageNameController.dispose();
+    _folderNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext ctx) {
-
+    final state = ref.watch(stateProvider);
+    final isLoading = ref.watch(loadingProvider);
 
     List<Widget> tiles = [];
     // 이미지의 타일들..
@@ -170,22 +179,21 @@ class _VtoDGallery extends State<VtoDGallery> {
                             width: 5,
                           ),
                           const Text("전체 선택"),
-                          Checkbox(
-                            value: _confrontBoxChecked,
-                            onChanged: (v) {
+                          TextButton.icon(
+                            onPressed: () {
                               setState(() {
-                                _confrontBoxChecked = v;
                                 _choices = _choices.map(
-                                  (item) => !item
+                                        (item) => !item
                                 ).toList();
                               });
-
                             },
-                          ),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          const Text("반전 선택"),
+                            icon: const Icon(Icons.gif_box_outlined),
+                            label: const Text("반전 선택"),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(100, 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                          )
 
                         ],
                       )
@@ -232,11 +240,135 @@ class _VtoDGallery extends State<VtoDGallery> {
                               borderRadius: BorderRadius.all(Radius.zero)
                           ),
                         ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // 저장 버튼
+                      OutlinedButton.icon(
+                        onPressed: () async {
+
+                          await showDialog(
+                            context: context,
+                            builder: (ctx) {
+                              return AlertDialog(
+                                title: const Text(
+                                  "이미지 업로드"
+                                ),
+                                content: Center(
+                                  child: Column(
+                                    children: [
+                                      TextField(
+                                        controller: _folderNameController,
+                                        decoration: const InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.grey,
+                                          border: const OutlineInputBorder(
+                                              borderRadius: BorderRadius.all(Radius.zero)
+                                          ),
+                                        ),
+                                      ),
+                                      const Text(
+                                        "저장될 폴더의 이름입니다."
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      List<ImageModel> savedImages = [];
+
+                                      for(var i = 0; i < widget.images.length; i++) {
+                                        if (_choices[i] == true) {
+                                          savedImages.add(widget.images[i]);
+                                        }
+                                      }
+
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        if (ctx.mounted) {
+                                          Flushbar(
+                                            message: "${savedImages.length.toString()}개의 이미지가 업로드될 예정입니다",
+                                            duration: const Duration(seconds: 2),
+                                            flushbarPosition: FlushbarPosition.TOP,
+                                            margin: const EdgeInsets.all(20),
+                                            borderRadius: BorderRadius.circular(10),
+                                            backgroundColor: Colors.grey.shade500,
+                                          ).show(ctx);
+                                        }
+                                      });
+
+                                      uploadFile(state.options, state.storage, savedImages, "byLaL", ctx);
+                                      Navigator.of(ctx).pop();
+                                    }, child: Text("업로드"),
+                                  )
+                                ],
+                              );
+                            }
+                          );
+
+                          Navigator.of(ctx).pop();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: Colors.grey.shade800,
+                            width: 3,
+                            style: BorderStyle.solid
+                          )
+                        ),
+                        icon: Icon(
+                          Icons.drive_file_move_outline,
+                          color: Colors.grey[750],
+                          size: 25,
+                        ),
+                        label:Text(
+                          "저장",
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800
+                          ),
+                        )
+                      ),
+
+                      const SizedBox(
+                        height: 40,
                       )
+                      ,
+                      // 취소 버튼
+                      OutlinedButton.icon(
+                          onPressed: () async {
+                            Navigator.of(ctx).pop();
+                          },
+                          style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                  color: Colors.grey.shade800,
+                                  width: 3,
+                                  style: BorderStyle.solid
+                              )
+                          ),
+                          icon: Icon(
+                            Icons.cancel_presentation,
+                            color: Colors.grey[750],
+                            size: 25,
+                          ),
+                          label:Text(
+                            "취소",
+                            style: TextStyle(
+                                color: Colors.grey[800],
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800
+                            ),
+                          )
+                      )
+
                     ],
                   ),
                 ),
               ),
+
+              if (isLoading)
+                const LoadingOverlay(msg: "저장중..")
             ],
           )
     );

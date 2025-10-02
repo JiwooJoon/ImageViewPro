@@ -50,8 +50,11 @@ dependencies:
   url_launcher: ^6.3.2
   google_sign_in: ^7.2.0
   extension_google_sign_in_as_googleapis_auth: ^3.0.0
-  googleapis_auth: ^2.0.0
+  googleapis_auth: ^1.5.0
   another_flushbar: ^1.12.32
+  flutter_appauth: ^10.0.0
+  flutter_dotenv: ^6.0.0
+
 
 
 dev_dependencies:
@@ -80,6 +83,7 @@ flutter:
   assets:
     - assets/images/logo_comp.png
     - config/option.json
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

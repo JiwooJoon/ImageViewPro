@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:exif/exif.dart';
 import 'package:file_picker/file_picker.dart';
@@ -12,10 +13,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:googleapis/drive/v2.dart' as drive;
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
@@ -70,8 +73,8 @@ class _MainView extends ConsumerState<MainView> {
 
   @override
   void initState() {
-    super.initState();
 
+    super.initState();
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
   }
 
@@ -87,24 +90,35 @@ class _MainView extends ConsumerState<MainView> {
     final bool isDeskTop = Platform.isWindows;
     final isLoading = ref.watch(loadingProvider);
 
+    state.options['clientId'] = "787172715400-1i0fmjjlv6hsulsii8dsjrhaulqn9foa.apps.googleusercontent.com";
+    state.options['scope'] = [drive.DriveApi.driveScope];
+
     _loadOpt();
 
     // 값이 바뀔 때..
     ref.listen(stateProvider, (previous, next) {
 
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       // 현재 줌 크기
       if (previous!.curZoom < next.curZoom) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            CustomSnackBar(
-              content: Text("확대 : ${next.curZoom}"),
-            ));
-      } else if (previous!.curZoom > next.curZoom)  {
-        ScaffoldMessenger.of(context).showSnackBar(
-            CustomSnackBar(
-              content: Text("축소 : ${next.curZoom}"),
-            ));
+        Flushbar(
+          message: "확대 : ${next.curZoom}",
+          duration: const Duration(seconds: 1),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
+
+      } else if (previous.curZoom > next.curZoom)  {
+        Flushbar(
+          message: "축소 : ${next.curZoom}",
+          duration: const Duration(seconds: 1),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
       }
 
       if (previous.curIndex != next.curIndex) {
@@ -112,6 +126,21 @@ class _MainView extends ConsumerState<MainView> {
           CustomSnackBar(content: Text("${next.curIndex} / ${state.images.length}"))
         );
       }
+    });
+
+    ref.listen(uploadingProcessProvider, (previous, next) {
+
+      if (previous != next) {
+        Flushbar(
+          message: next,
+          duration: const Duration(seconds: 2),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
+      }
+
     });
 
     void convertSizePlusOrMinus({required bool isPlus}) {
@@ -617,7 +646,13 @@ class _MainView extends ConsumerState<MainView> {
           )
       ),
         if (isLoading)
+          const ModalBarrier(
+            dismissible: false,
+            color: Colors.black38,
+          ),
+        if (isLoading)
           const LoadingOverlay(msg: "로딩 중..",)
+
     ]
   );
 

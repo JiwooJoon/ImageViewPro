@@ -15,6 +15,7 @@ import 'func/visonOcr.dart';
 
 
 final loadingProvider = StateProvider<bool>((ref) => false);
+final uploadingProcessProvider = StateProvider<String>((ref) => "");
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
