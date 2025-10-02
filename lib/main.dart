@@ -16,6 +16,7 @@ import 'func/visonOcr.dart';
 
 final loadingProvider = StateProvider<bool>((ref) => false);
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
+final uploadGProvider = StateProvider<bool>((ref) => false);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
@@ -100,6 +101,7 @@ void main(List<String> args) async {
     runApp(
         ProviderScope(
             child: MaterialApp(
+              // showPerformanceOverlay: true,
               theme: ThemeData(),
               home: const MainView(),
             )

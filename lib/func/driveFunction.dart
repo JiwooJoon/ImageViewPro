@@ -10,6 +10,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:image_view_pro/func/googleLogin.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:path/path.dart' as p;
 
 // 드라이브의 파일목록 반환
 // 폴더와 이미지 파일만 분류한다.
@@ -47,8 +48,9 @@ Future<void> uploadFile(Map<String, dynamic> options, FlutterSecureStorage stora
     for(var image in images) {
         final file = File(image.path);
 
+
         final driveFile = drive.File();
-        driveFile.name = image.name;
+        driveFile.name = p.basenameWithoutExtension(image.path);
         driveFile.parents = [folderId!];
 
         var media = drive.Media(

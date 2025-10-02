@@ -17,17 +17,15 @@ import 'package:googleapis/drive/v2.dart' as drive;
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
+import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/window_info.dart';
-import 'package:image_view_pro/widget/CustomSnackBar.dart';
 import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
-import '../model/stateModel.dart';
 import '../widget/ControllerButton.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 
@@ -89,6 +87,7 @@ class _MainView extends ConsumerState<MainView> {
     final state = ref.watch(stateProvider);
     final bool isDeskTop = Platform.isWindows;
     final isLoading = ref.watch(loadingProvider);
+    final isUploading = ref.watch(uploadGProvider);
 
     state.options['clientId'] = "787172715400-1i0fmjjlv6hsulsii8dsjrhaulqn9foa.apps.googleusercontent.com";
     state.options['scope'] = [drive.DriveApi.driveScope];
@@ -101,30 +100,13 @@ class _MainView extends ConsumerState<MainView> {
 
       // 현재 줌 크기
       if (previous!.curZoom < next.curZoom) {
-        Flushbar(
-          message: "확대 : ${next.curZoom}",
-          duration: const Duration(seconds: 1),
-          flushbarPosition: FlushbarPosition.TOP,
-          margin: const EdgeInsets.all(20),
-          borderRadius: BorderRadius.circular(10),
-          backgroundColor: Colors.grey.shade500,
-        ).show(context);
+
 
       } else if (previous.curZoom > next.curZoom)  {
-        Flushbar(
-          message: "축소 : ${next.curZoom}",
-          duration: const Duration(seconds: 1),
-          flushbarPosition: FlushbarPosition.TOP,
-          margin: const EdgeInsets.all(20),
-          borderRadius: BorderRadius.circular(10),
-          backgroundColor: Colors.grey.shade500,
-        ).show(context);
+
       }
 
       if (previous.curIndex != next.curIndex) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          CustomSnackBar(content: Text("${next.curIndex} / ${state.images.length}"))
-        );
       }
     });
 
@@ -321,7 +303,6 @@ class _MainView extends ConsumerState<MainView> {
                                     height: image.height.toDouble(),
                                     width: image.width.toDouble(),
                                     path: file.path,
-                                    name: name
                                   )
                               );
 
@@ -482,11 +463,11 @@ class _MainView extends ConsumerState<MainView> {
 
                                               final tempResult = await pathToImages(paths: paths);
 
-                                              ref.read(stateProvider.notifier).addImages(tempResult);
 
 
                                               setState(() {
                                                 if (kDebugMode) {
+                                                  ref.read(stateProvider.notifier).addImages(tempResult);
                                                   print(state.images.toString());
                                                 }
                                               });
@@ -651,7 +632,14 @@ class _MainView extends ConsumerState<MainView> {
             color: Colors.black38,
           ),
         if (isLoading)
-          const LoadingOverlay(msg: "로딩 중..",)
+          const LoadingOverlay(msg: "로딩 중..",),
+        
+        if(isUploading)
+          Positioned(
+            top: 30,
+            right: 20,
+            child: VtoDGallery(images: state.images),
+          )
 
     ]
   );

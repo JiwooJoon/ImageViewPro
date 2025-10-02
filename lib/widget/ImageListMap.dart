@@ -57,7 +57,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
       },
       child: AnimatedOpacity(
         opacity: _isHoveredOnNavi ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 100),
 
         child: ListView.builder(
           scrollDirection: Axis.vertical,
