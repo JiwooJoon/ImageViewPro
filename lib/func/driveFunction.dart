@@ -12,20 +12,23 @@ import 'package:path/path.dart' as p;
 
 // 드라이브의 파일목록 반환
 // 폴더와 이미지 파일만 분류한다.
+Future<List<drive.File>?> getDriveList(
+    Map<String, dynamic> options,
+    FlutterSecureStorage storage, [String? rootName = "root"]) async {
 
-Future<drive.FileList> getDriveList(Map<String, dynamic> options, FlutterSecureStorage storage) async {
   final client = await getAuthClient(options, storage);
+  debugPrint(client.toString());
 
   // DriveApi 인스턴스 생성
   final driveApi = drive.DriveApi(client);
 
   // 구글 드라이브에서 이미지 파일, 폴더 목록 받아오기
   final fileList = await driveApi.files.list(
-    q: "mimeType = 'application/vnd.google-apps.folder' and mimeType contains 'image' and trashed = false and 'root' in parents",
-    $fields: "files(id, name, mimeType, thumbnailLink)" // 필요한 필드들..
+      q: "('$rootName' in parents) and trashed = false and (mimeType = 'application/vnd.google-apps.folder' or mimeType contains 'image/')",
+      $fields: "files(id, name, mimeType, thumbnailLink)" // 필요한 필드들..
   );
 
-  return fileList;
+  return fileList.files;
 }
 
 // 드라이브에 업로드

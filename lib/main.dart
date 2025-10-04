@@ -6,7 +6,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:googleapis/drive/v2.dart' as drive;
 import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 import 'package:image_view_pro/widget/Second_Window.dart';
@@ -17,6 +16,7 @@ import 'func/visonOcr.dart';
 final loadingProvider = StateProvider<bool>((ref) => false);
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final uploadGProvider = StateProvider<bool>((ref) => false);
+final driveGProvider = StateProvider<bool>((ref) => false);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정

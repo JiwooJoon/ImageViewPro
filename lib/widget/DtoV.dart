@@ -6,19 +6,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:image_view_pro/func/driveFunction.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
-import 'package:image_view_pro/widget/LoadingOverlay.dart';
-import 'package:path/path.dart' as p;
 
 class DtoVGallery extends ConsumerStatefulWidget {
   const DtoVGallery({
     super.key,
-    required this.images,
   });
-
-  final List<ImageModel> images;
 
   @override
   ConsumerState<DtoVGallery> createState() => _DtoVGallery();
@@ -26,8 +22,9 @@ class DtoVGallery extends ConsumerStatefulWidget {
 
 class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
-  late List<bool> _choices = List.filled(widget.images.length, true);
-  late final List<bool> _hoverOn = List.filled(widget.images.length, false);
+  List<drive.File>? files = [];
+  late List<bool> _choices = [];
+  late List<bool> _hoverOn = [];
   int _firstIndex = -1;
   int _lastIndex = -1;
 
@@ -37,9 +34,24 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
       text: "ByLaL"
   );
 
+  Future<void> initList() async {
+    final state = ref.read(stateProvider);
+    files = await getDriveList(state.options, state.storage);
+    debugPrint(files.toString());
+
+    if (mounted) {
+      setState(() {
+        _choices = List.filled(files!.length, true);
+        _hoverOn = List.filled(files!.length, false);
+      });
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
+    initList();
   }
 
   @override
@@ -53,119 +65,92 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
     final state = ref.watch(stateProvider);
 
     List<Widget> list = [];
-    // 이미지의 타일들..
-    // if (widget.images.isNotEmpty) {
-    //   for (var i = 0 ; i < widget.images.length; i++) {
-    //     tiles.add(
-    //         GestureDetector(
-    //           onTap: () {
-    //             setState(() {
-    //               _choices[i] = !_choices[i];
-    //             });
-    //           },
-    //           child: MouseRegion(
-    //             cursor: SystemMouseCursors.click,
-    //             onEnter: (_) => setState(() {
-    //               _hoverOn[i] = true;
-    //               _curImage = i;
-    //               _imageNameController.text = widget.images[i].name.toString();
-    //               ref.read(stateProvider.notifier).updateIndex(i);
-    //             }),
-    //             onExit: (_) => setState(() => _hoverOn[i] = false),
-    //             child: AnimatedScale(
-    //               duration: const Duration(milliseconds: 100),
-    //               curve: Curves.bounceInOut,
-    //               scale: _hoverOn[i] ? 1.2 : 1.0,
-    //               child: GridTile(
-    //                   child: Stack(
-    //                     children: [
-    //                       Positioned.fill(
-    //                         child: Container(
-    //                           decoration: BoxDecoration(
-    //                             border: Border.all(
-    //                               color: _choices[i] ? Colors.lightGreenAccent : Colors.grey,
-    //                               width: 5,
-    //                             ),
-    //                           ),
-    //                           child: Image.file(
-    //                             File(widget.images[i].path),
-    //                             fit: BoxFit.cover,
-    //                           ),
-    //                         ),
-    //                       ),
-    //                     ],
-    //                   )
-    //
-    //               ),
-    //             ),
-    //           ),
-    //         )
-    //     );
-    //   }
-    // }
 
     // 리스트 뷰 내용물들
-    if (widget.images.isNotEmpty) {
-      for (var i = 0; i < widget.images.length; i++) {
+    if (files!.isNotEmpty) {
+      for (var i = 0; i < files!.length; i++) {
 
-        final name = p.basenameWithoutExtension(widget.images[i].path);
+        final name = files![i].name;
         list.add(
             Listener(
               behavior: HitTestBehavior.translucent,
-              onPointerDown: (event) {
-                if (HardwareKeyboard.instance.isShiftPressed) {
-                  // 쉬프트 키가 눌린 상태
+              onPointerDown: (event) async {
+                if (files![i].mimeType == "application/vnd.google-apps.folder") {
+                  // 폴더를 누를 시
 
-                  // 첫번째 인덱스가 없으면 처음 시작
-                  if (_firstIndex == -1) {
+
+                  files = await getDriveList(state.options, state.storage, files![i].id);
+                  files!.clear();
+                  debugPrint(files.toString());
+
+                  if (mounted) {
                     setState(() {
-                      _firstIndex = i;
-                      _choices[i] = true;
-                    });
-                  } else {
-                    setState(() {
-                      if (_lastIndex == -1) {
-                        _lastIndex = i;
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = true;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = true;
-                          }
-                        }
-                      } else {
-
-                        // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = false;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = false;
-                          }
-                        }
-                        _lastIndex = i;
-
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = true;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = true;
-                          }
-                        }
-                      }
+                      _choices = List.filled(files!.length, true);
+                      _hoverOn = List.filled(files!.length, false);
                     });
                   }
-                }
-                else {
-                  setState(() {
-                    _choices[i] = true;
-                  });
+
+                } else {
+                  if (HardwareKeyboard.instance.isShiftPressed) {
+                    // 쉬프트 키가 눌린 상태
+
+                    // 첫번째 인덱스가 없으면 처음 시작
+                    if (_firstIndex == -1) {
+                      setState(() {
+                        _firstIndex = i;
+                        _choices[i] = true;
+                      });
+                    } else {
+
+                      // 첫번째 인덱스가 있다면
+                      setState(() {
+                        // 이전에 눌린 것이 없다면
+                        if (_lastIndex == -1) {
+                          _lastIndex = i;
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = true;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = true;
+                            }
+                          }
+                        } else {
+
+                          // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = false;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = false;
+                            }
+                          }
+                          _lastIndex = i;
+
+
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = true;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = true;
+                            }
+                          }
+                        }
+                      });
+                    }
+                  }
+                  else {
+                    setState(() {
+                      _firstIndex = i;
+                      _lastIndex = -1;
+                      _choices[i] = !_choices[i];
+                    });
+                  }
                 }
               },
               child: MouseRegion(
@@ -181,23 +166,9 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   scale: _hoverOn[i] ? 1.2 : 1.0,
                   child: ListTile(
                       minTileHeight: 2,
-                      // title: AnimatedDefaultTextStyle(
-                      //   duration: const Duration(milliseconds: 100),
-                      //   curve: Curves.easeOut,
-                      //   style: TextStyle(
-                      //     fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
-                      //     color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
-                      //   ),
-                      //   child: Text(
-                      //     name,
-                      //     maxLines: 1,
-                      //     overflow: TextOverflow.ellipsis,
-                      //
-                      //   ),
-                      // ),
 
                       subtitle: Text(
-                        name,
+                        name!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -234,7 +205,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
             children: [
               const SizedBox(height: 20,),
               Text(
-                "업로드",
+                "드라이브 갤러리",
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -244,14 +215,42 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               const SizedBox(height: 20,),
 
               Container(
-                height: 420,
+                height: 200,
                 width: 200,
                 decoration: BoxDecoration(
                     color: Colors.grey[800],
                     border: BoxBorder.all(),
                     borderRadius: BorderRadius.circular(10)
                 ),
-                child: widget.images.isNotEmpty ?
+                child: files!.isNotEmpty ?
+                  Image.network(
+                    files![state.curIndex].thumbnailLink.toString(),
+                    fit: BoxFit.contain,
+                  ) : Center(
+                    child: Text(
+                      "이미지 없음",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    )
+                )
+                ,
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+
+              Container(
+                height: 250,
+                width: 200,
+                decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    border: BoxBorder.all(),
+                    borderRadius: BorderRadius.circular(10)
+                ),
+                child: files!.isNotEmpty ?
                 Material(
                   child: ListView(
                     children: list,
@@ -268,30 +267,21 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                 )
               ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Material(
-                    child: Checkbox(
-                    value: _everyBoxChecked,
-                    onChanged: (v) {
-                      setState(() {
-                        _everyBoxChecked = v;
-                        _choices = List.filled(_choices.length, v!);
-                      });
-                    
-                    },
-                                    ),
-                  ),
-                  Text(
-                      "전체 선택",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[900],
-                      ),
-                  ),
-                ],
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    setState(() {
+                      _everyBoxChecked = !_everyBoxChecked!;
+                      _choices = List.filled(_choices.length, _everyBoxChecked!);
+                    });
+                  });
+                },
+                icon: Icon(_everyBoxChecked == true ? Icons.check_box_outline_blank : Icons.check_box),
+                label: Text(_everyBoxChecked == true ? "전체 선택 해제" : "전체 선택"),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(100, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
               ),
               TextButton.icon(
                 onPressed: () {
@@ -314,89 +304,12 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               ),
 
               // 기능 버튼들
-              const SizedBox(height: 40),
+              const SizedBox(height: 25),
 
               // 저장 버튼
               OutlinedButton.icon(
                   onPressed: () async {
 
-                    await showDialog(
-                      context: context,
-                      builder: (ctx) {
-                        return Dialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: SizedBox(
-                            height: 150,
-                            width: 400,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text("이미지 업로드", style: TextStyle(fontSize: 20)),
-                                TextField(
-                                  controller: _folderNameController,
-                                  decoration: const InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.grey,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.all(Radius.zero),
-                                    ),
-                                  ),
-                                ),
-                                const Text("저장될 폴더의 이름입니다."),
-                                const SizedBox(height: 15,),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        List<ImageModel> savedImages = [];
-
-                                        for(var i = 0; i < widget.images.length; i++) {
-                                          if (_choices[i] == true) {
-                                            savedImages.add(widget.images[i]);
-                                          }
-                                        }
-
-                                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                                          if (ctx.mounted) {
-                                            Flushbar(
-                                              message: "${savedImages.length.toString()}개의 이미지가 업로드될 예정입니다",
-                                              duration: const Duration(seconds: 2),
-                                              flushbarPosition: FlushbarPosition.TOP,
-                                              margin: const EdgeInsets.all(20),
-                                              borderRadius: BorderRadius.circular(10),
-                                              backgroundColor: Colors.grey.shade500,
-                                            ).show(ctx);
-                                          }
-                                        });
-
-                                        uploadFile(state.options, state.storage, savedImages, "byLaL", ctx);
-
-                                        Navigator.of(ctx).pop();
-
-
-                                      },
-                                      child: const Text("업로드"),
-                                    ),
-                                    const SizedBox(width: 20,),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                      },
-                                      child: const Text("취소"),
-                                    ),
-                                    const SizedBox(width: 10,),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-
-
-                    ref.read(uploadGProvider.notifier).state = false;
                   },
                   style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -421,13 +334,13 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               ),
 
               const SizedBox(
-                height: 40,
+                height: 25,
               )
               ,
               // 취소 버튼
               OutlinedButton.icon(
                   onPressed: () async {
-                    ref.read(uploadGProvider.notifier).state = false;
+                    ref.read(driveGProvider.notifier).state = false;
                   },
                   style: OutlinedButton.styleFrom(
                       side: BorderSide(

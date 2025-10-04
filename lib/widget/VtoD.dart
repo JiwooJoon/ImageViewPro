@@ -53,56 +53,6 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
     final state = ref.watch(stateProvider);
 
     List<Widget> list = [];
-    // 이미지의 타일들..
-    // if (widget.images.isNotEmpty) {
-    //   for (var i = 0 ; i < widget.images.length; i++) {
-    //     tiles.add(
-    //         GestureDetector(
-    //           onTap: () {
-    //             setState(() {
-    //               _choices[i] = !_choices[i];
-    //             });
-    //           },
-    //           child: MouseRegion(
-    //             cursor: SystemMouseCursors.click,
-    //             onEnter: (_) => setState(() {
-    //               _hoverOn[i] = true;
-    //               _curImage = i;
-    //               _imageNameController.text = widget.images[i].name.toString();
-    //               ref.read(stateProvider.notifier).updateIndex(i);
-    //             }),
-    //             onExit: (_) => setState(() => _hoverOn[i] = false),
-    //             child: AnimatedScale(
-    //               duration: const Duration(milliseconds: 100),
-    //               curve: Curves.bounceInOut,
-    //               scale: _hoverOn[i] ? 1.2 : 1.0,
-    //               child: GridTile(
-    //                   child: Stack(
-    //                     children: [
-    //                       Positioned.fill(
-    //                         child: Container(
-    //                           decoration: BoxDecoration(
-    //                             border: Border.all(
-    //                               color: _choices[i] ? Colors.lightGreenAccent : Colors.grey,
-    //                               width: 5,
-    //                             ),
-    //                           ),
-    //                           child: Image.file(
-    //                             File(widget.images[i].path),
-    //                             fit: BoxFit.cover,
-    //                           ),
-    //                         ),
-    //                       ),
-    //                     ],
-    //                   )
-    //
-    //               ),
-    //             ),
-    //           ),
-    //         )
-    //     );
-    //   }
-    // }
 
     // 리스트 뷰 내용물들
     if (widget.images.isNotEmpty) {
@@ -110,107 +60,116 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
 
         final name = p.basenameWithoutExtension(widget.images[i].path);
         list.add(
-            Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: (event) {
-                if (HardwareKeyboard.instance.isShiftPressed) {
-                  // 쉬프트 키가 눌린 상태
+            Focus(
+              autofocus: true, // 청므부터 포커스 주기
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (event) {
+                  if (HardwareKeyboard.instance.isShiftPressed) {
+                    // 쉬프트 키가 눌린 상태
 
-                  // 첫번째 인덱스가 없으면 처음 시작
-                  if (_firstIndex == -1) {
+                    // 첫번째 인덱스가 없으면 처음 시작
+                    if (_firstIndex == -1) {
+                      setState(() {
+                        _firstIndex = i;
+                        _choices[i] = true;
+                      });
+                    } else {
+
+                      // 첫번째 인덱스가 있다면
+                      setState(() {
+                        // 이전에 눌린 것이 없다면
+                        if (_lastIndex == -1) {
+                          _lastIndex = i;
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = true;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = true;
+                            }
+                          }
+                        } else {
+
+                          // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = false;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = false;
+                            }
+                          }
+                          _lastIndex = i;
+
+
+                          if (_firstIndex <= _lastIndex) {
+                            for (var j = _firstIndex; j <= _lastIndex; j++) {
+                              _choices[j] = true;
+                            }
+                          } else if (_firstIndex > _lastIndex) {
+                            for (var j = _firstIndex; j >= _lastIndex; j--) {
+                              _choices[j] = true;
+                            }
+                          }
+                        }
+                      });
+                    }
+                  }
+                  else {
                     setState(() {
                       _firstIndex = i;
-                      _choices[i] = true;
-                    });
-                  } else {
-                    setState(() {
-                      if (_lastIndex == -1) {
-                        _lastIndex = i;
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = true;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = true;
-                          }
-                        }
-                      } else {
-
-                        // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = false;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = false;
-                          }
-                        }
-                        _lastIndex = i;
-
-                        if (_firstIndex <= _lastIndex) {
-                          for (var j = _firstIndex; j <= _lastIndex; j++) {
-                            _choices[i] = true;
-                          }
-                        } else if (_firstIndex > _lastIndex) {
-                          for (var j = _lastIndex; j >= _firstIndex; j--) {
-                            _choices[i] = true;
-                          }
-                        }
-                      }
+                      _lastIndex = -1;
+                      _choices[i] = !_choices[i];
                     });
                   }
-                }
-                else {
-                  setState(() {
-                    _choices[i] = true;
-                  });
-                }
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                onEnter: (_) => setState(() {
-                  _hoverOn[i] = true;
-                  ref.read(stateProvider.notifier).updateIndex(i);
-                }),
-                onExit: (_) => setState(() => _hoverOn[i] = false),
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 100),
-                  curve: Curves.linear,
-                  scale: _hoverOn[i] ? 1.2 : 1.0,
-                  child: ListTile(
-                      minTileHeight: 2,
-                      // title: AnimatedDefaultTextStyle(
-                      //   duration: const Duration(milliseconds: 100),
-                      //   curve: Curves.easeOut,
-                      //   style: TextStyle(
-                      //     fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
-                      //     color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
-                      //   ),
-                      //   child: Text(
-                      //     name,
-                      //     maxLines: 1,
-                      //     overflow: TextOverflow.ellipsis,
-                      //
-                      //   ),
-                      // ),
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  onEnter: (_) => setState(() {
+                    _hoverOn[i] = true;
+                    ref.read(stateProvider.notifier).updateIndex(i);
+                  }),
+                  onExit: (_) => setState(() => _hoverOn[i] = false),
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.linear,
+                    scale: _hoverOn[i] ? 1.2 : 1.0,
+                    child: ListTile(
+                        minTileHeight: 2,
+                        // title: AnimatedDefaultTextStyle(
+                        //   duration: const Duration(milliseconds: 100),
+                        //   curve: Curves.easeOut,
+                        //   style: TextStyle(
+                        //     fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
+                        //     color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
+                        //   ),
+                        //   child: Text(
+                        //     name,
+                        //     maxLines: 1,
+                        //     overflow: TextOverflow.ellipsis,
+                        //
+                        //   ),
+                        // ),
 
-                      subtitle: Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
-                            color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
-                            fontSize: 15
+                        subtitle: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
+                              color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
+                              fontSize: 15
+                          ),
                         ),
                       ),
-                    ),
 
+                    ),
                   ),
                 ),
-              ),
+            ),
         );
       }
     }
@@ -314,7 +273,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
               ),
 
               // 기능 버튼들
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
               // 저장 버튼
               OutlinedButton.icon(
@@ -421,7 +380,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
               ),
 
               const SizedBox(
-                height: 40,
+                height: 25,
               )
               ,
               // 취소 버튼

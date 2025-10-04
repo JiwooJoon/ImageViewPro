@@ -17,6 +17,7 @@ import 'package:googleapis/drive/v2.dart' as drive;
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
+import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
 
@@ -88,6 +89,7 @@ class _MainView extends ConsumerState<MainView> {
     final bool isDeskTop = Platform.isWindows;
     final isLoading = ref.watch(loadingProvider);
     final isUploading = ref.watch(uploadGProvider);
+    final isDriving = ref.watch(driveGProvider);
 
     state.options['clientId'] = "787172715400-1i0fmjjlv6hsulsii8dsjrhaulqn9foa.apps.googleusercontent.com";
     state.options['scope'] = [drive.DriveApi.driveScope];
@@ -639,6 +641,13 @@ class _MainView extends ConsumerState<MainView> {
             top: 30,
             right: 20,
             child: VtoDGallery(images: state.images),
+          ),
+
+        if(isDriving)
+          Positioned(
+            top: 30,
+            right: 20,
+            child: DtoVGallery(),
           )
 
     ]

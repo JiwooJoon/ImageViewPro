@@ -122,7 +122,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ),
                       MenuItemButton(
                         onPressed: () {
-
+                          ref.read(driveGProvider.notifier).state = true;
                         },
                         child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
                       )
