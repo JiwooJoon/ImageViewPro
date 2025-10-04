@@ -266,7 +266,42 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   )
                 )
               ),
-
+              const SizedBox(
+                height: 10,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        setState(() {
+                        });
+                      });
+                    },
+                    icon: const Icon(Icons.keyboard_double_arrow_up),
+                    label: const Text("최상위로"),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(100, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        setState(() {
+                        });
+                      });
+                    },
+                    icon: const Icon(Icons.keyboard_arrow_up),
+                    label: const Text("위로"),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(100, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                  ),
+                ],
+              ),
               TextButton.icon(
                 onPressed: () {
                   setState(() {
@@ -306,10 +341,30 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               // 기능 버튼들
               const SizedBox(height: 25),
 
-              // 저장 버튼
+              // 가져오기 버튼
               OutlinedButton.icon(
                   onPressed: () async {
+                    List<drive.File> list = [];
 
+                    for(var i = 0; i < files!.length; i++) {
+                      if (_choices[i] == true) {
+                        list.add(files![i]);
+                      }
+                    }
+
+                    downloadFilesStream(state.options, state.storage, state.images, ctx, list, ref);
+
+
+                    Flushbar(
+                      message: "${list.length.toString()}개의 이미지를 가져오는 중입니다..",
+                      duration: const Duration(seconds: 2),
+                      flushbarPosition: FlushbarPosition.TOP,
+                      margin: const EdgeInsets.all(20),
+                      borderRadius: BorderRadius.circular(10),
+                      backgroundColor: Colors.grey.shade500,
+                    ).show(ctx);
+
+                    ref.read(driveGProvider.notifier).state = false;
                   },
                   style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -324,7 +379,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     size: 25,
                   ),
                   label:Text(
-                    "저장",
+                    "가져오기",
                     style: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 20,

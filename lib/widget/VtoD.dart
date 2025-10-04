@@ -12,6 +12,8 @@ import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
 import 'package:path/path.dart' as p;
 
+import '../func/saveImages.dart';
+
 class VtoDGallery extends ConsumerStatefulWidget {
   const VtoDGallery({
     super.key,
@@ -275,7 +277,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
               // 기능 버튼들
               const SizedBox(height: 20),
 
-              // 저장 버튼
+              // 업로드 버튼
               OutlinedButton.icon(
                   onPressed: () async {
 
@@ -370,7 +372,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
                     size: 25,
                   ),
                   label:Text(
-                    "저장",
+                    "드라이브에 저장",
                     style: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 20,
@@ -380,9 +382,92 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
               ),
 
               const SizedBox(
-                height: 25,
-              )
-              ,
+                height: 10,
+              ),
+
+              // 저장 버튼
+              OutlinedButton.icon(
+                  onPressed: () async {
+
+                    await showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        return Dialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          child: SizedBox(
+                            height: 150,
+                            width: 400,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text("이미지 업로드", style: TextStyle(fontSize: 20)),
+                                TextField(
+                                  controller: _folderNameController,
+                                  decoration: const InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.grey,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(Radius.zero),
+                                    ),
+                                  ),
+                                ),
+                                const Text("저장될 폴더의 이름입니다."),
+                                const SizedBox(height: 15,),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        var result = await saveImage(path, ref);
+                                      },
+                                      child: const Text("저장"),
+                                    ),
+                                    const SizedBox(width: 20,),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                      },
+                                      child: const Text("취소"),
+                                    ),
+                                    const SizedBox(width: 10,),
+                                  ],
+                                )
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+
+
+                    ref.read(uploadGProvider.notifier).state = false;
+                  },
+                  style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: Colors.grey.shade800,
+                          width: 3,
+                          style: BorderStyle.solid
+                      )
+                  ),
+                  icon: Icon(
+                    Icons.drive_file_move_outline,
+                    color: Colors.grey[750],
+                    size: 25,
+                  ),
+                  label:Text(
+                    "드라이브에 저장",
+                    style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800
+                    ),
+                  )
+              ),
+
+              const SizedBox(
+                height: 10,
+              ),
+
               // 취소 버튼
               OutlinedButton.icon(
                   onPressed: () async {

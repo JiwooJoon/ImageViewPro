@@ -5,10 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_view_pro/main.dart';
 
-// 로직
+
+// 이미지 저장
+
+
+
+// 보이는대로 저장
 // 이미지 리스트 생성 해당 리스트로 길이계산
 // 캔버스에 이미지들을 그린후 캔버스채로 저장
-
 Future<String> saveImage(List<String> paths, WidgetRef ref) async {
   List<img.Image> images = [];
 
