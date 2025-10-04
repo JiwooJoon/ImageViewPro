@@ -4,11 +4,9 @@ import 'dart:io';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:image_view_pro/func/googleLogin.dart';
-import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:path/path.dart' as p;
 

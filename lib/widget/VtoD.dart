@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
@@ -27,6 +28,8 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
 
   late List<bool> _choices = List.filled(widget.images.length, true);
   late final List<bool> _hoverOn = List.filled(widget.images.length, false);
+  int _firstIndex = -1;
+  int _lastIndex = -1;
 
   bool? _everyBoxChecked = true;
 
@@ -107,11 +110,63 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
 
         final name = p.basenameWithoutExtension(widget.images[i].path);
         list.add(
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _choices[i] = !_choices[i];
-                });
+            Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (event) {
+                if (HardwareKeyboard.instance.isShiftPressed) {
+                  // 쉬프트 키가 눌린 상태
+
+                  // 첫번째 인덱스가 없으면 처음 시작
+                  if (_firstIndex == -1) {
+                    setState(() {
+                      _firstIndex = i;
+                      _choices[i] = true;
+                    });
+                  } else {
+                    setState(() {
+                      if (_lastIndex == -1) {
+                        _lastIndex = i;
+                        if (_firstIndex <= _lastIndex) {
+                          for (var j = _firstIndex; j <= _lastIndex; j++) {
+                            _choices[i] = true;
+                          }
+                        } else if (_firstIndex > _lastIndex) {
+                          for (var j = _lastIndex; j >= _firstIndex; j--) {
+                            _choices[i] = true;
+                          }
+                        }
+                      } else {
+
+                        // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
+                        if (_firstIndex <= _lastIndex) {
+                          for (var j = _firstIndex; j <= _lastIndex; j++) {
+                            _choices[i] = false;
+                          }
+                        } else if (_firstIndex > _lastIndex) {
+                          for (var j = _lastIndex; j >= _firstIndex; j--) {
+                            _choices[i] = false;
+                          }
+                        }
+                        _lastIndex = i;
+
+                        if (_firstIndex <= _lastIndex) {
+                          for (var j = _firstIndex; j <= _lastIndex; j++) {
+                            _choices[i] = true;
+                          }
+                        } else if (_firstIndex > _lastIndex) {
+                          for (var j = _lastIndex; j >= _firstIndex; j--) {
+                            _choices[i] = true;
+                          }
+                        }
+                      }
+                    });
+                  }
+                }
+                else {
+                  setState(() {
+                    _choices[i] = true;
+                  });
+                }
               },
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
