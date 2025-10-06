@@ -12,6 +12,7 @@ import 'package:image_view_pro/func/googleLogin.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/model/stateModel.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -30,16 +31,37 @@ Future<List<drive.File>?> getDriveList(
   // 구글 드라이브에서 이미지 파일, 폴더 목록 받아오기
   final fileList = await driveApi.files.list(
       q: "('$rootName' in parents) and trashed = false and (mimeType = 'application/vnd.google-apps.folder' or mimeType contains 'image/')",
-      $fields: "files(id, name, mimeType, thumbnailLink)" // 필요한 필드들..
+      $fields: "files(id, name, mimeType, thumbnailLink, parents)" // 필요한 필드들..
   );
 
   return fileList.files;
+}
+// 부모 폴더 객체를 반환 반환
+Future<drive.File?> getParentFolder(
+    Map<String, dynamic> options,
+    FlutterSecureStorage storage, String parentFolderId) async {
+
+  final client = await getAuthClient(options, storage);
+
+  // DriveApi 인스턴스 생성
+  final driveApi = drive.DriveApi(client);
+
+
+  drive.File culFolder0 = await driveApi.files.get(
+    parentFolderId,
+    $fields: 'id,name,parents,mimeType'
+  ) as drive.File;
+
+  return culFolder0;
 }
 
 // 드라이브에 업로드
 Future<void> uploadFile(Map<String, dynamic> options,
     FlutterSecureStorage storage, List<ImageModel> images,
     String folderName, BuildContext ctx) async {
+
+  debugPrint(options['clientId']);
+
   final client = await getAuthClient(options, storage);
   var driveApi = drive.DriveApi(client);
 
@@ -144,11 +166,13 @@ Future<List<String>> downloadFiles(Map<String, dynamic> options,
 // 드라이브 파일 다운로드
 // 스트림식 방식으로 하나 다운로드 될 때마다 추가한다.
 // ref 필요...
-Future<void> downloadFilesStream(Map<String, dynamic> options,
-    FlutterSecureStorage storage, List<ImageModel> images,
-    BuildContext ctx, List<drive.File> files, WidgetRef ref) async {
+Future<void>
+downloadFilesStream (Map<String,dynamic> options,
+    BuildContext ctx, List<drive.File> files, StateModel state) async {
 
-  final client = await getAuthClient(options, storage);
+  debugPrint(options['clientId']);
+
+  final client = await getAuthClient(state.options, state.storage);
   var driveApi = drive.DriveApi(client);
 
 
@@ -176,7 +200,7 @@ Future<void> downloadFilesStream(Map<String, dynamic> options,
       await media.stream.pipe(sink);
       await sink.close();
 
-      ref.read(stateProvider).images.add(await pathToModel(savePath));
+      state.images.add(await pathToModel(savePath));
   } catch (e) {
       debugPrint("$e 오류");
     }

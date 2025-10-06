@@ -53,6 +53,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
   @override
   Widget build(BuildContext ctx) {
     final state = ref.watch(stateProvider);
+    ref.read(uploadGProvider.notifier).state = false;
 
     List<Widget> list = [];
 
@@ -389,56 +390,14 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
               OutlinedButton.icon(
                   onPressed: () async {
 
-                    await showDialog(
-                      context: context,
-                      builder: (ctx) {
-                        return Dialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: SizedBox(
-                            height: 150,
-                            width: 400,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text("이미지 업로드", style: TextStyle(fontSize: 20)),
-                                TextField(
-                                  controller: _folderNameController,
-                                  decoration: const InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.grey,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.all(Radius.zero),
-                                    ),
-                                  ),
-                                ),
-                                const Text("저장될 폴더의 이름입니다."),
-                                const SizedBox(height: 15,),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        var result = await saveImage(path, ref);
-                                      },
-                                      child: const Text("저장"),
-                                    ),
-                                    const SizedBox(width: 20,),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                      },
-                                      child: const Text("취소"),
-                                    ),
-                                    const SizedBox(width: 10,),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
+                    List<String> path = [];
+                    for (var i = 0; i < widget.images.length; i++) {
+                      if (_choices[i] == true) {
+                        path.add(widget.images[i].path);
+                      }
+                    }
 
+                    saveImages(path, ref);
 
                     ref.read(uploadGProvider.notifier).state = false;
                   },
@@ -455,7 +414,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
                     size: 25,
                   ),
                   label:Text(
-                    "드라이브에 저장",
+                    "장치에 저장",
                     style: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 20,

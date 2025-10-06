@@ -644,7 +644,7 @@ class _MainView extends ConsumerState<MainView> {
           ),
 
         if(isDriving)
-          Positioned(
+          const Positioned(
             top: 30,
             right: 20,
             child: DtoVGallery(),

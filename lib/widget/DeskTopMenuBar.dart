@@ -186,34 +186,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ),
                       MenuItemButton(
                         onPressed: () {
-                          // if (state.images.isNotEmpty) {
-                          //   showDialog(context: context,
-                          //       barrierDismissible: false,
-                          //       builder: (BuildContext context) {
-                          //
-                          //
-                          //         return Dialog(
-                          //           insetAnimationDuration: const Duration(milliseconds: 500),
-                          //           insetAnimationCurve: Curves.fastEaseInToSlowEaseOut,
-                          //           child: SizedBox(
-                          //               height: 600,
-                          //               width: 800,
-                          //               child: VtoDGallery(images: state.images,)
-                          //           ),
-                          //         );
-                          //       }
-                          //   );
-                          // } else {
-                          //
-                          //   Flushbar(
-                          //     message: "먼저 이미지를 가져오세요.",
-                          //     duration: const Duration(seconds: 2),
-                          //     flushbarPosition: FlushbarPosition.TOP,
-                          //     margin: const EdgeInsets.all(20),
-                          //     borderRadius: BorderRadius.circular(10),
-                          //     backgroundColor: Colors.grey.shade500,
-                          //   ).show(context);
-                          // }
 
                           ref.read(stateProvider.notifier).updateSize(1);
                           ref.read(uploadGProvider.notifier).state = true;

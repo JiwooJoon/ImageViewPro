@@ -17,6 +17,7 @@ final loadingProvider = StateProvider<bool>((ref) => false);
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final uploadGProvider = StateProvider<bool>((ref) => false);
 final driveGProvider = StateProvider<bool>((ref) => false);
+final backGroundProvider = StateProvider<List<String>>((ref) => []);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정

@@ -4,9 +4,39 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_view_pro/main.dart';
+import 'package:path/path.dart' as p;
 
 
-// 이미지 저장
+// 이미지 여러개 저장
+Future<void> saveImages(List<String> paths, WidgetRef ref) async {
+  // 사용자에게 저장할 경로 묻기
+  String? outputPath = await FilePicker.platform.getDirectoryPath(
+    dialogTitle: '저장할 폴더를 선택하세요',
+  );
+
+  if (outputPath == null) {
+    return;
+  }
+
+
+  try {
+    for (final path in paths) {
+        final File originalFile = File(path);
+        if (await originalFile.exists()) {
+          final String fileName = p.basename(path);
+          final String newFilePath = p.join(outputPath, fileName);
+
+          // 파일 복사 시키기
+          await originalFile.copy(newFilePath);
+        } else {
+          debugPrint("File not found : $path");
+        }
+      }
+  } catch (e) {
+    debugPrint("error has occurred whe file Save, $e");
+  }
+
+}
 
 
 

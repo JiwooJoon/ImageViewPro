@@ -22,27 +22,34 @@ class DtoVGallery extends ConsumerStatefulWidget {
 
 class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
-  List<drive.File>? files = [];
-  late List<bool> _choices = [];
-  late List<bool> _hoverOn = [];
+  List<drive.File> files = [];
+  final Map<drive.File, bool> _checkedFiles = {};
+  late List<bool>? _hoverOn = [];
+
+
   int _firstIndex = -1;
   int _lastIndex = -1;
+  int _curIndex = 0;
 
-  bool? _everyBoxChecked = true;
+  drive.File? _curFolder; // 현재 폴더
 
-  late final TextEditingController _folderNameController = TextEditingController(
-      text: "ByLaL"
-  );
+  bool? _everyBoxChecked = false;
+
+
 
   Future<void> initList() async {
     final state = ref.read(stateProvider);
-    files = await getDriveList(state.options, state.storage);
+    ref.read(uploadGProvider.notifier).state = false;
+    files = (await getDriveList(state.options, state.storage))!;
     debugPrint(files.toString());
 
     if (mounted) {
       setState(() {
-        _choices = List.filled(files!.length, true);
-        _hoverOn = List.filled(files!.length, false);
+        _hoverOn = List.filled(files.length, false);
+
+        files.map((file) {
+          _checkedFiles[file] = false;
+        });
       });
     }
   }
@@ -56,39 +63,36 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
   @override
   void dispose() {
-    _folderNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext ctx) {
     final state = ref.watch(stateProvider);
+    late List<Widget> list = [];
 
-    List<Widget> list = [];
 
     // 리스트 뷰 내용물들
-    if (files!.isNotEmpty) {
-      for (var i = 0; i < files!.length; i++) {
+    if (files.isNotEmpty) {
+      for (var i = 0; i < files.length; i++) {
 
-        final name = files![i].name;
+        final name = files[i].name;
         list.add(
             Listener(
               behavior: HitTestBehavior.translucent,
               onPointerDown: (event) async {
-                if (files![i].mimeType == "application/vnd.google-apps.folder") {
+                if (files[i].mimeType == "application/vnd.google-apps.folder") {
+                  _curFolder = files[i];
+                  _curIndex = 0;
+
                   // 폴더를 누를 시
-
-
-                  files = await getDriveList(state.options, state.storage, files![i].id);
-                  files!.clear();
+                  files = (await getDriveList(state.options, state.storage, files[i].id))!;
                   debugPrint(files.toString());
+                  _hoverOn = List.generate(files.length, (_) => false);
 
-                  if (mounted) {
-                    setState(() {
-                      _choices = List.filled(files!.length, true);
-                      _hoverOn = List.filled(files!.length, false);
-                    });
-                  }
+                  setState(() {
+
+                  });
 
                 } else {
                   if (HardwareKeyboard.instance.isShiftPressed) {
@@ -98,7 +102,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     if (_firstIndex == -1) {
                       setState(() {
                         _firstIndex = i;
-                        _choices[i] = true;
+                        _checkedFiles[files[i]] = true;
                       });
                     } else {
 
@@ -109,11 +113,11 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                           _lastIndex = i;
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _choices[j] = true;
+                              _checkedFiles[files[j]] = true;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _choices[j] = true;
+                              _checkedFiles[files[j]] = true;
                             }
                           }
                         } else {
@@ -121,11 +125,11 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                           // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _choices[j] = false;
+                              _checkedFiles[files[j]] = false;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _choices[j] = false;
+                              _checkedFiles[files[j]] = false;
                             }
                           }
                           _lastIndex = i;
@@ -133,47 +137,75 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _choices[j] = true;
+                              _checkedFiles[files[j]] = true;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _choices[j] = true;
+                              _checkedFiles[files[j]] = true;
                             }
                           }
                         }
+
+                        debugPrint(
+                            "checkedFiles : ${_checkedFiles.keys}"
+                        );
                       });
                     }
                   }
                   else {
+                    // 그냥 클릭한 경우
                     setState(() {
                       _firstIndex = i;
                       _lastIndex = -1;
-                      _choices[i] = !_choices[i];
+
+
+                      if (_checkedFiles.containsKey(files[i])) {
+                        _checkedFiles[files[i]] = !_checkedFiles[files[i]]!;
+                      } else {
+                        _checkedFiles[files[i]] = true;
+                      }
+                      debugPrint(
+                          "checkedFiles : ${_checkedFiles.keys}"
+                      );
                     });
                   }
                 }
               },
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
-                onEnter: (_) => setState(() {
-                  _hoverOn[i] = true;
-                  ref.read(stateProvider.notifier).updateIndex(i);
-                }),
-                onExit: (_) => setState(() => _hoverOn[i] = false),
+                onEnter: (_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _hoverOn![i] = true;
+                        _curIndex = i;
+                      });
+                    }
+                  });
+                },
+                onExit: (_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _hoverOn![i] = false;
+                      });
+                    }
+                  });
+                },
                 child: AnimatedScale(
                   duration: const Duration(milliseconds: 100),
                   curve: Curves.linear,
-                  scale: _hoverOn[i] ? 1.2 : 1.0,
+                  scale: (i < _hoverOn!.length && _hoverOn![i]) ? 1.2 : 1.0,
                   child: ListTile(
-                      minTileHeight: 2,
+                      minTileHeight: 1,
 
                       subtitle: Text(
                         name!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
-                            color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
+                            fontWeight: _checkedFiles[files[i]] == true ? FontWeight.bold : FontWeight.normal,
+                            color: _checkedFiles[files[i]] == true ? Colors.lightGreen[700] : Colors.grey[500],
                             fontSize: 15
                         ),
                       ),
@@ -214,6 +246,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               ),
               const SizedBox(height: 20,),
 
+              // 이미지
               Container(
                 height: 200,
                 width: 200,
@@ -222,9 +255,9 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     border: BoxBorder.all(),
                     borderRadius: BorderRadius.circular(10)
                 ),
-                child: files!.isNotEmpty ?
+                child: files.isNotEmpty && _curIndex < files.length && files[_curIndex].mimeType != "application/vnd.google-apps.folder" ?
                   Image.network(
-                    files![state.curIndex].thumbnailLink.toString(),
+                    files[_curIndex].thumbnailLink.toString(),
                     fit: BoxFit.contain,
                   ) : Center(
                     child: Text(
@@ -242,6 +275,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                 height: 20,
               ),
 
+              // 리스트
               Container(
                 height: 250,
                 width: 200,
@@ -250,14 +284,19 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     border: BoxBorder.all(),
                     borderRadius: BorderRadius.circular(10)
                 ),
-                child: files!.isNotEmpty ?
+                child: list.isNotEmpty ?
                 Material(
-                  child: ListView(
-                    children: list,
+                  child: ListView.separated(
+                    itemCount: list.length,
+                    itemBuilder: (BuildContext ctx, int index) {
+                      return list[index];
+                    },
+                    separatorBuilder: (BuildContext ctx, int index) => const Divider(),
                   ),
-                ) : Center(
+                )
+                 : Center(
                   child: Text(
-                      "이미지 없음",
+                      "목록 없음",
                       style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -266,6 +305,8 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   )
                 )
               ),
+
+
               const SizedBox(
                 height: 10,
               ),
@@ -273,11 +314,14 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        setState(() {
-                        });
-                      });
+                    onPressed: () async {
+                      _curIndex = 0;
+                      final topFiles = await getDriveList(state.options, state.storage);
+                      if (mounted) {
+                        files = topFiles!;
+                        _curFolder = null;
+                        _hoverOn= List.filled(files.length, false);
+                      }
                     },
                     icon: const Icon(Icons.keyboard_double_arrow_up),
                     label: const Text("최상위로"),
@@ -287,10 +331,19 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      debugPrint(_curFolder!.parents.toString());
+                      final String parentId = _curFolder!.parents!.first.toString();
+
+                      final newFiles = (await getDriveList(state.options, state.storage, parentId))!;
+                      final newFolder = await getParentFolder(state.options, state.storage, parentId);
                       setState(() {
-                        setState(() {
-                        });
+                        if (mounted) {
+                          _curIndex = 0;
+                          files = newFiles ?? [];
+                          _curFolder = newFolder;
+                          _hoverOn = List.generate(files.length, (_) => false);
+                        }
                       });
                     },
                     icon: const Icon(Icons.keyboard_arrow_up),
@@ -307,12 +360,25 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   setState(() {
                     setState(() {
                       _everyBoxChecked = !_everyBoxChecked!;
-                      _choices = List.filled(_choices.length, _everyBoxChecked!);
+                      // _choices = List.filled(_choices.length, _everyBoxChecked!);
+                      debugPrint(
+                          "everyChecked : $_everyBoxChecked"
+                      );
+
+                      for (var i = 0; i < files.length; i++) {
+                        if (_everyBoxChecked == true) {
+                          _checkedFiles[files[i]] = true;
+                        } else {
+                          _checkedFiles[files[i]] = false;
+                        }
+                      }
+
+
                     });
                   });
                 },
                 icon: Icon(_everyBoxChecked == true ? Icons.check_box_outline_blank : Icons.check_box),
-                label: Text(_everyBoxChecked == true ? "전체 선택 해제" : "전체 선택"),
+                label: Text(_everyBoxChecked == true ? "전체 해제" : "전체 선택"),
                 style: TextButton.styleFrom(
                   minimumSize: const Size(100, 40),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -321,9 +387,13 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               TextButton.icon(
                 onPressed: () {
                   setState(() {
-                    _choices = _choices.map(
-                            (item) => !item
-                    ).toList();
+                    for (var i = 0; i < files.length; i++) {
+                      if(_checkedFiles.keys.contains(files[i])) {
+                        _checkedFiles[files[i]] = !_checkedFiles[files[i]]!;
+                      } else {
+                        _checkedFiles[files[i]] = true;
+                      }
+                    }
                   });
                 },
                 icon: const Icon(Icons.gif_box_outlined),
@@ -346,13 +416,14 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   onPressed: () async {
                     List<drive.File> list = [];
 
-                    for(var i = 0; i < files!.length; i++) {
-                      if (_choices[i] == true) {
-                        list.add(files![i]);
+                    for(var i = 0; i < files.length; i++) {
+                      if (_checkedFiles[files[i]] == true) {
+                        list.add(files[i]);
                       }
                     }
+                    debugPrint(state.options['clientId']);
 
-                    downloadFilesStream(state.options, state.storage, state.images, ctx, list, ref);
+                    downloadFilesStream(state.options, ctx, list, state);
 
 
                     Flushbar(
