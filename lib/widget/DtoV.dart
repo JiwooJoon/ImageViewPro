@@ -23,7 +23,7 @@ class DtoVGallery extends ConsumerStatefulWidget {
 class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
   List<drive.File> files = [];
-  final Map<drive.File, bool> _checkedFiles = {};
+  final Map<String, bool> _checkedFiles = {};
   late List<bool>? _hoverOn = [];
 
 
@@ -48,7 +48,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
         _hoverOn = List.filled(files.length, false);
 
         files.map((file) {
-          _checkedFiles[file] = false;
+          _checkedFiles[file.id.toString()] = false;
         });
       });
     }
@@ -102,7 +102,7 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                     if (_firstIndex == -1) {
                       setState(() {
                         _firstIndex = i;
-                        _checkedFiles[files[i]] = true;
+                        _checkedFiles[files[i].id!] = true;
                       });
                     } else {
 
@@ -113,11 +113,11 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                           _lastIndex = i;
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _checkedFiles[files[j]] = true;
+                              _checkedFiles[files[j].id!] = true;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _checkedFiles[files[j]] = true;
+                              _checkedFiles[files[j].id!] = true;
                             }
                           }
                         } else {
@@ -125,11 +125,11 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                           // 이미 이전에 눌린 버튼이 있다면 이전 꺼는 null로 함
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _checkedFiles[files[j]] = false;
+                              _checkedFiles[files[j].id!] = false;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _checkedFiles[files[j]] = false;
+                              _checkedFiles[files[j].id!] = false;
                             }
                           }
                           _lastIndex = i;
@@ -137,11 +137,11 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
                           if (_firstIndex <= _lastIndex) {
                             for (var j = _firstIndex; j <= _lastIndex; j++) {
-                              _checkedFiles[files[j]] = true;
+                              _checkedFiles[files[j].id!] = true;
                             }
                           } else if (_firstIndex > _lastIndex) {
                             for (var j = _firstIndex; j >= _lastIndex; j--) {
-                              _checkedFiles[files[j]] = true;
+                              _checkedFiles[files[j].id!] = true;
                             }
                           }
                         }
@@ -159,13 +159,17 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                       _lastIndex = -1;
 
 
-                      if (_checkedFiles.containsKey(files[i])) {
-                        _checkedFiles[files[i]] = !_checkedFiles[files[i]]!;
+                      if (_checkedFiles.containsKey(files[i].id)) {
+                        if (_checkedFiles[files[i].id!] == true) {
+                          _checkedFiles[files[i].id!] = false;
+                        } else {
+                          _checkedFiles[files[i].id!] = true;
+                        }
                       } else {
-                        _checkedFiles[files[i]] = true;
+                        _checkedFiles[files[i].id!] = true;
                       }
                       debugPrint(
-                          "checkedFiles : ${_checkedFiles.keys}"
+                          "checkedFiles : ${_checkedFiles.keys} : ${_checkedFiles.values}"
                       );
                     });
                   }
@@ -204,8 +208,8 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontWeight: _checkedFiles[files[i]] == true ? FontWeight.bold : FontWeight.normal,
-                            color: _checkedFiles[files[i]] == true ? Colors.lightGreen[700] : Colors.grey[500],
+                            fontWeight: _checkedFiles[files[i].id] == true ? FontWeight.bold : FontWeight.normal,
+                            color: _checkedFiles[files[i].id] == true ? Colors.lightGreen[700] : Colors.grey[500],
                             fontSize: 15
                         ),
                       ),
@@ -367,9 +371,9 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
                       for (var i = 0; i < files.length; i++) {
                         if (_everyBoxChecked == true) {
-                          _checkedFiles[files[i]] = true;
+                          _checkedFiles[files[i].id!] = true;
                         } else {
-                          _checkedFiles[files[i]] = false;
+                          _checkedFiles[files[i].id!] = false;
                         }
                       }
 
@@ -389,9 +393,9 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
                   setState(() {
                     for (var i = 0; i < files.length; i++) {
                       if(_checkedFiles.keys.contains(files[i])) {
-                        _checkedFiles[files[i]] = !_checkedFiles[files[i]]!;
+                        _checkedFiles[files[i].id!] = !_checkedFiles[files[i]]!;
                       } else {
-                        _checkedFiles[files[i]] = true;
+                        _checkedFiles[files[i].id!] = true;
                       }
                     }
                   });
@@ -414,13 +418,8 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
               // 가져오기 버튼
               OutlinedButton.icon(
                   onPressed: () async {
-                    List<drive.File> list = [];
+                    final list = files.where((f) => _checkedFiles[f.id!] == true).toList();
 
-                    for(var i = 0; i < files.length; i++) {
-                      if (_checkedFiles[files[i]] == true) {
-                        list.add(files[i]);
-                      }
-                    }
                     debugPrint(state.options['clientId']);
 
                     downloadFilesStream(state.options, ctx, list, state);

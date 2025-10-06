@@ -89,3 +89,35 @@ Future<AutoRefreshingAuthClient> getAuthClient(Map<String,dynamic> options, Flut
 
   return client;
 }
+
+// 로그인 후 토큰 저장하기..
+Future<String> loginAndSave(Map<String,dynamic> options, FlutterSecureStorage storage) async {
+
+  await dotenv.load(fileName: ".env");
+
+  // 클라이언트 아이디 생성 (clientSecret 자리는 빈 문자열로 둡니다.)
+  final clientId = ClientId(
+      options["clientId"],
+      dotenv.env['CLIENT_SECRET']
+  );
+
+  // clientViaUserConsent 함수를 사용하여 인증을 시도합니다.
+  final client = await clientViaUserConsent(
+    clientId,
+    options["scope"],
+        (url) async {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    },
+  );
+
+  await saveCred(client.credentials, storage);
+
+  final savedCreds = await loadCred(storage);
+
+  if (savedCreds != null) {
+    return "Success";
+  } else {
+    return "failed";
+  }
+
+}

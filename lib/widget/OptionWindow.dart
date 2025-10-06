@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/googleLogin.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,6 +27,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
   ];
 
   String? _selectedValue;
+  String? _cred;
 
   @override
   void dispose() {
@@ -39,7 +42,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
     super.initState();
 
     final state = ref.read(stateProvider);
-    _loadApiKey(state);
+    _loadKeys(state);
     _loadSelectedValue();
 
   }
@@ -58,9 +61,10 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
 
 
 
-  Future<void> _loadApiKey(StateModel state) async {
+  Future<void> _loadKeys(StateModel state) async {
     final apiKey = await state.storage.read(key: 'apiKey');
     final apiKey2 = await state.storage.read(key: 'apiKey');
+    _cred = await state.storage.read(key: "cred");
 
     if (!mounted) return;
 
@@ -149,7 +153,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 25,),
+                    const SizedBox(height: 10,),
                     // ai 지정
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,6 +239,72 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                               ),
                             ],
                           ),
+                      ],
+                    ),
+                    const SizedBox(height: 10,),
+
+                    // 로그인 설정
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "구글 로그인 설정",
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () async {
+                            if (_cred == null) {
+                              final result = await loginAndSave(state.options, state.storage);
+
+                              if (result == "Success") {
+                                if (mounted) {
+                                  Flushbar(
+                                    message: "로그인 저장 성공!",
+                                    duration: const Duration(seconds: 2),
+                                    flushbarPosition: FlushbarPosition.TOP,
+                                    margin: const EdgeInsets.all(20),
+                                    borderRadius: BorderRadius.circular(10),
+                                    backgroundColor: Colors.grey.shade500,
+                                  ).show(ctx);
+                                }
+                              } else {
+                                if (mounted) {
+                                  Flushbar(
+                                    message: "로그인 저장 실패",
+                                    duration: const Duration(seconds: 2),
+                                    flushbarPosition: FlushbarPosition.TOP,
+                                    margin: const EdgeInsets.all(20),
+                                    borderRadius: BorderRadius.circular(10),
+                                    backgroundColor: Colors.grey.shade500,
+                                  ).show(ctx);
+                                }
+                              }
+                            } else {
+                              await state.storage.delete(key: "cred");
+                              if (mounted) {
+                                Flushbar(
+                                  message: "로그인 토큰을 제거했습니다. 다음부터는 로그인이 필요합니다.",
+                                  duration: const Duration(seconds: 2),
+                                  flushbarPosition: FlushbarPosition.TOP,
+                                  margin: const EdgeInsets.all(20),
+                                  borderRadius: BorderRadius.circular(10),
+                                  backgroundColor: Colors.grey.shade500,
+                                ).show(ctx);
+                              }
+                            }
+
+                            setState(() {
+
+                            });
+                          },
+                          child: Text(
+                           _cred == null ? "로그인" : "로그아웃"
+                          )
+                        )
                       ],
                     )
 
