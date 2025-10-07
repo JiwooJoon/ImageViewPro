@@ -3,6 +3,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_view_pro/Screen/TranslatedView.dart';
+import 'package:image_view_pro/widget/SimpleImageEditor.dart';
 
 class SecondaryWindowApp extends StatelessWidget {
   final int windowId;
@@ -69,7 +70,15 @@ class _SecondaryWindowState extends State<_SecondaryWindow> {
           body: TranslatedView(recognized: widget.result),
         ),
       );
-    } else {
+    } else if (widget.windowName == "editor") {
+      return MaterialApp(
+        title: "이미지 에디터",
+        home: SimpleImageEditor(
+          imagePath: widget.result,
+        ),
+      );
+    }
+    else {
       return Scaffold(
         appBar: AppBar(
           title: Text(widget.windowName),

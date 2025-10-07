@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 
@@ -39,6 +41,7 @@ class StateModel {
     GoogleVisionOcr? recognizer,
     List<String>? recognizedText,
     FlutterSecureStorage? storage,
+    ListQueue<String>? curViewImages,
     Map<String, dynamic>? options,
   }) {
     return StateModel(

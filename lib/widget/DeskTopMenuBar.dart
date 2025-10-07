@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 import 'package:image_view_pro/func/saveImages.dart';
 import 'package:image_view_pro/func/translate.dart';
@@ -22,6 +24,7 @@ class DeskTopMenuBar extends ConsumerStatefulWidget {
 }
 
 class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
+  Uint8List? imageByte;
 
   Future<String?> startProcess() async {
 
@@ -249,7 +252,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                 child: const MenuAcceleratorLabel("파일 (F)"),
               ),
 
-              // 이미지
+              // 도구
               SubmenuButton(
                 menuChildren: [
                   // 세로 / 가로
@@ -259,13 +262,46 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     },
                     child: MenuAcceleratorLabel(state.direction ? "가로 (V)" : "세로 (H)"),
                   ),
-                  // 추가로 열기
+                  // 보기 모드
                   MenuItemButton(
                     onPressed: () {
 
                     },
                     child: MenuAcceleratorLabel(state.watchMode ? "끊어 보기 (S)" : "이어 보기 (S)"),
                   ),
+
+                  // 이미지 에디터
+                  MenuItemButton(
+                    onPressed: () async {
+                      imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
+
+                      if (!Platform.isMacOS) {
+
+                        showDialog(
+                          fullscreenDialog: true,
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                              insetPadding: EdgeInsets.zero,
+                              child: ImageEditor(
+                                image: imageByte,
+                              ),
+                            );
+                          }
+                        );
+                      }
+                    },
+                    child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
+                  ),
+
+                  // 일괄 변환기
+                  MenuItemButton(
+                    onPressed: () {
+
+                    },
+                    child: const MenuAcceleratorLabel("일괄 변환기(A)"),
+                  ),
+
                   // 인식
                   MenuItemButton(
                     onPressed: () async {
@@ -280,6 +316,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                 child: const MenuAcceleratorLabel("도구 (F)"),
               ),
+
 
               // 옵션
               SubmenuButton(

@@ -20,6 +20,7 @@ Future<dynamic> handleMethodCall(MethodCall call, int fromWindowId) async {
 Future<void> createWindow({required String windowName, required List<WindowInfo> windows, required String? data}) async {
   try {
     final name = windowName;
+    // window의 name은 main부분에서 시작할 때 창을 구별하게 한다.
     final windowConfig = {
       'name' : name,
       'data' : data,

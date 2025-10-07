@@ -2,19 +2,14 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:exif/exif.dart';
 import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
 
 import '../model/ImageModel.dart';
 
 Future<Map<String, dynamic>> readImageMeta(String path) async {
   final bytes = await File(path).readAsBytes(); // 직접 읽기
-  final exif = await readExifFromBytes(bytes).catchError((_) => <String, IfdTag>{});
   return {
     'bytes': bytes,
-    'exif': exif,
   };
 }
 
@@ -29,8 +24,8 @@ Future<ImageModel> pathToModel(String path) async {
   // 디코딩 작업은 오직 메인 isolate에서만 가능함
   final codec = await ui.instantiateImageCodec(
       bytes,
-    targetHeight: 50,
-    targetWidth: 50
+    targetHeight: 20,
+    targetWidth: 20
   );
   final frame = await codec.getNextFrame();
   final image = frame.image;

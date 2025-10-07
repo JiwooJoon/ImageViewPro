@@ -38,11 +38,6 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
     }
 
 
-    // if (_imageModels.isEmpty) {
-    //   return const SizedBox();
-    // }
-
-
 
     return MouseRegion(
       onEnter: (e) {

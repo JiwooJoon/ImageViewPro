@@ -54,6 +54,9 @@ dependencies:
   another_flushbar: ^1.12.32
   flutter_appauth: ^10.0.0
   flutter_dotenv: ^6.0.0
+  image_editor: ^1.6.0
+  image_editor_plus: ^1.0.8
+  flutter_context_menu: ^0.3.0
 
 
 
