@@ -84,7 +84,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/logo_comp.png
+    - assets/images/back_attach2.png
+    - assets/images/back_detach2.png
+    - assets/images/front_attach2.png
+    - assets/images/front_detach2.png
     - config/option.json
     - .env
 

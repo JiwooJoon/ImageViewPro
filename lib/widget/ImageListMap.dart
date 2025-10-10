@@ -24,7 +24,22 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
 
   List<ImageModel> _imageModels = [];
   List<bool> _hoverStates = [];
-  bool _isHoveredOnNavi = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToIndex(int index) {
+    final double offset = index * 100;
+    _scrollController.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeInOut
+    );
+  }
 
 
   @override
@@ -34,68 +49,84 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
 
     if (_hoverStates.length != _imageModels.length) {
       _hoverStates = List.generate(state.images.length, (_) => false);
-      _isHoveredOnNavi = true;
     }
 
 
 
-    return MouseRegion(
-      onEnter: (e) {
-        setState(() {
-          _isHoveredOnNavi = true;
-        });
-      },
-      onExit: (e) {
-        setState(() {
-          _isHoveredOnNavi = false;
-        });
-      },
+    return RawScrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        radius: const Radius.circular(8),
+        thickness: 10,
+        trackColor: Colors.grey.shade900,
+        thumbColor: Colors.black.withOpacity(0.5),
+        child: MouseRegion(
       child: AnimatedOpacity(
-        opacity: _isHoveredOnNavi ? 1.0 : 0.0,
+        opacity: 1.0,
         duration: const Duration(milliseconds: 100),
 
-        child: ListView.builder(
-          scrollDirection: Axis.vertical,
-          itemCount: _imageModels.length,
-          itemBuilder: (context, index) {
-            return
-              Padding(
-                    padding: const EdgeInsets.only(left: 5.0, top: 10.0, bottom: 10.0),
-                    child: MouseRegion(
-                      onEnter: (e) {
-                        setState(() {
-                          _hoverStates[index] = true;
-                        });
-                      },
-                      onExit: (e) {
-                        setState(() {
-                          _hoverStates[index] = false;
-                        });
-                      },
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () {
-                          ref.read(stateProvider.notifier).updateIndex(index);
-                        },
-                        child: AnimatedScale(
-                          alignment: Alignment.center,
-                          scale: _hoverStates[index] ? 1.5 : 1.0,
-                          duration: const Duration(milliseconds: 100),
-                          child: AnimatedOpacity(
-                            opacity: _hoverStates[index] ? 1.0 : 0.2,
-                            duration: const Duration(milliseconds: 200),
-                            child: Image.file(
-                              File(_imageModels[index].path),
-                              width: 100,
-                              height: 50,
-                              fit: BoxFit.cover
-                            ),
-                          ),
-                        ),
+        child: Container(
+          color: Colors.grey.withOpacity(0.3),
+          child: ListView.builder(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: _imageModels.length,
+              itemBuilder: (context, index) {
+                return
+                  Draggable <ImageModel>(
+                    data: _imageModels[index],
+                    feedback: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: BoxBorder.all(
+                          color: Colors.greenAccent,
+                          width: 3,
+                        )
+                      ),
+                      child: Image.file(
+                        File(_imageModels[index].path),
+                        width: 100,
+                        height: 50,
                       ),
                     ),
-              );
-          }
+                    child: Padding(
+                          padding: const EdgeInsets.only(left: 5.0, top: 10.0, bottom: 10.0),
+                          child: MouseRegion(
+                            onEnter: (e) {
+                              setState(() {
+                                _hoverStates[index] = true;
+                              });
+                            },
+                            onExit: (e) {
+                              setState(() {
+                                _hoverStates[index] = false;
+                              });
+                            },
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              // 클릭시
+                              onTap: () {
+                                ref.read(stateProvider.notifier).updateIndex(index);
+                                _scrollToIndex(index);
+                              },
+                              child: AnimatedOpacity(
+                                  opacity: _hoverStates[index] ? 1.0 : 0.7,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Image.file(
+                                    File(_imageModels[index].path),
+                                    width: 75,
+                                    height: 25,
+                                    fit: BoxFit.scaleDown,
+                                    colorBlendMode: BlendMode.color,
+                                    color: index == state.curIndex ? Colors.lightGreen.withOpacity(0.5) : Colors.transparent,
+                                  ),
+                                ),
+                            ),
+                          ),
+                    ),
+                  );
+              }
+            ),
+          ),
         ),
       ),
     );

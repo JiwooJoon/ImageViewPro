@@ -147,8 +147,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                           final tempResult = await pathToImages(paths: paths);
 
-
-
                           setState(() {
                             ref.read(stateProvider.notifier).addImages(tempResult);
                             debugPrint(state.images.toString());
@@ -157,12 +155,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         },
                         child: const MenuAcceleratorLabel("파일/폴더에서.. (F)"),
                       ),
-                      MenuItemButton(
-                        onPressed: () {
-
-                        },
-                        child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
-                      )
                     ],
                     child: const MenuAcceleratorLabel("이미지 추가 (A)"),
                   ),
@@ -172,6 +164,8 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                       setState(() {
                         ref.read(stateProvider).images.clear();
+                        ref.read(frontImageProvider.notifier).state = "";
+                        ref.read(backImageProvider.notifier).state = "";
                         debugPrint(state.images.toString());
                       });
 

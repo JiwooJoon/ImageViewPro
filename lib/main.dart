@@ -19,6 +19,11 @@ final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final uploadGProvider = StateProvider<bool>((ref) => false);
 final driveGProvider = StateProvider<bool>((ref) => false);
 final backGroundProvider = StateProvider<List<String>>((ref) => []);
+final frontImageProvider = StateProvider<String>((ref) => "");
+final backImageProvider = StateProvider<String>((ref) => "");
+final viewModeProvider = StateProvider<BoxFit>((ref) => BoxFit.contain);
+final lookModeProvider = StateProvider<String>((ref) => "Cut");
+final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정

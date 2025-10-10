@@ -48,6 +48,9 @@
 //   bool isHoverOnMenubar = true;
 //   bool isHoverOnNavi = true;
 //
+//   bool _isMovingOnLeft = false;
+//   bool _isMovingOnRight = false;
+//
 //   final List<WindowInfo> _windows = [];
 //
 //   Future<ui.Image> getImageSize(String path) async {
@@ -225,409 +228,506 @@
 //
 //
 //     return Stack(
-//         children: [Scaffold(
-//             backgroundColor: Colors.grey.shade900,
+//         children: [
+//           Scaffold(
+//               backgroundColor: Colors.grey.shade900,
 //
-//             body: Stack(
-//                 children: [
+//               body: Stack(
+//                   children: [
 //
-//
-//                   // 메인 화면
-//                   if (state.images.isEmpty)
-//                     DropTarget(
-//                         onDragEntered: (detail) {
-//                           setState(() {
-//                             isDragging = true;
-//                           });
-//                         },
-//
-//                         onDragExited: (detail) {
-//                           setState(() {
-//                             isDragging = false;
-//                           });
-//                         },
-//
-//                         onDragDone: (details) async {
-//                           isDragging = false;
-//                           if (details.files.isEmpty) return;
-//
-//                           // 드랍한 파일이 한개 인가
-//                           if (details.files.length == 1) {
-//                             final file = details.files.first;
-//
-//                             final entity = FileSystemEntity.typeSync(file.path);
-//
-//                             // 폴더를 드랍했다면
-//                             if (entity == FileSystemEntityType.directory) {
-//                               ref.read(loadingProvider.notifier).state = true;
-//
-//                               try {
-//                                 debugPrint("${file.name}은 폴더.");
-//
-//                                 List<String> paths = await getDirectoryPaths(file.path);
-//                                 debugPrint(paths.toString());
-//
-//                                 const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-//
-//                                 List<String> iPaths = paths
-//                                     .where((path) =>
-//                                     imageExtensions.any((e) => path.endsWith(e))
-//                                 ).toList();
-//                                 debugPrint(iPaths.toString());
-//
-//                                 final tempResult = await pathToImages(paths: iPaths);
-//                                 debugPrint("temResult : ${tempResult.toString()}");
-//
-//                                 ref.read(stateProvider.notifier).addImages(tempResult);
-//
-//                                 debugPrint(tempResult.toString());
-//                               } on Exception catch (e) {
-//                                 // TODO
-//                               } finally {
-//                                 ref.read(loadingProvider.notifier).state = false;
-//                               }
-//
-//
-//                             } else if (entity == FileSystemEntityType.file) {
-//                               // 이미지 확인
-//                               const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-//                               final ext = file.path.toLowerCase();
-//
-//                               if (imageExtensions.any((e) => ext.endsWith(e))) {
-//                                 debugPrint("${file.name}은 이미지 파일!");
-//
-//                                 ui.Image image = await getImageSize(file.path);
-//                                 String name = p.basenameWithoutExtension(file.path);
-//
-//
-//                                 ref.read(stateProvider.notifier).addImage(
-//                                     ImageModel(
-//                                       height: image.height.toDouble(),
-//                                       width: image.width.toDouble(),
-//                                       path: file.path,
-//                                     )
-//                                 );
-//
-//                                 setState(() {
-//                                 });
-//
-//                               } else {
-//
-//                               }
-//                             }
-//                           } else {
-//                             List<String> paths = details.files.map((file) => file.path).toList();
-//
-//                             final tempResult = await pathToImages(paths: paths);
-//
-//                             ref.read(stateProvider.notifier).addImages(tempResult);
-//
-//                             setState(() {
-//                               debugPrint(tempResult.toString());
-//                             });
-//                           }
-//
-//                           setState(() {
-//                           });
-//                         },
-//
+//                     if (_isMovingOnLeft)
+//                       Positioned(
+//                         left: 0,
 //                         child: Container(
-//                           height: MediaQuery.of(context).size.height,
-//                           width: MediaQuery.of(context).size.width,
-//                           color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
-//                           child: Center(
-//                             child: isDragging
-//                                 ? const Center(
-//                               child: Column(
-//                                 mainAxisAlignment: MainAxisAlignment.center,
-//                                 children: [
-//                                   Icon(Icons.image, size: 100,),
-//                                   Text("화면에 끌어와주세요.",
-//                                     style: TextStyle(
-//                                         fontWeight: FontWeight.w900, color: Colors.blueAccent,
-//                                         fontSize: 50
-//                                     ),
-//                                   )
-//                                 ],
-//                               ),
-//                             )
-//                                 : const SizedBox.shrink(),
-//                           ),
-//                         )
-//                     ),
-//                   Positioned.fill(
-//                     child: FocusableActionDetector(
-//                       autofocus: true,
-//                       shortcuts: const <ShortcutActivator, Intent>{},
-//                       actions: const <Type, Action<Intent>>{},
-//                       child: Listener(
-//                         onPointerSignal: (PointerSignalEvent event) {
-//                           // 마우스 휠 이벤트인지 확인
-//                           if (event is PointerScrollEvent) {
-//                             // 컨트롤 키 확인
-//                             if (HardwareKeyboard.instance.isControlPressed) {
-//                               // 스크롤 방향에 따라서 확인
-//                               if (kDebugMode) {
-//                                 print("scrolled.");
-//                               }
-//
-//                               setState(() {
-//                                 if (kDebugMode) {
-//                                   print(state.curZoom);
-//                                 }
-//                                 if (event.scrollDelta.dy < 0) {
-//                                   if (state.curZoom < 2.0) {
-//                                     ref.read(stateProvider.notifier).updateZoom(state.curZoom + 0.05);
-//                                   } else {
-//                                     ref.read(stateProvider.notifier).updateZoom(2.0);
-//                                   }
-//                                 } else {
-//                                   if (state.curZoom > 0.05) {
-//                                     ref.read(stateProvider.notifier).updateZoom(state.curZoom - 0.05);
-//                                   } else {
-//                                     ref.read(stateProvider.notifier).updateZoom(0.05);
-//                                   }
-//                                 }
-//                               });
-//                             } else {
-//                               // 컨트롤 키가 안눌렸다면
-//                               setState(() {
-//                                 isOrderWatched = true;
-//
-//                                 if (event.scrollDelta.dy > 0) {
-//                                   if (state.curIndex < (state.images.length + state.curSize) - 2) {
-//                                     convertIndexPlusOrMinus(isPlus: true);
-//                                   } else {
-//                                     if (kDebugMode) {
-//                                       print("탑에 도달했습니다.");
-//                                     }
-//                                   }
-//                                 } else {
-//                                   if (state.curIndex > 0) {
-//                                     convertIndexPlusOrMinus(isPlus: false);
-//                                   } else {
-//                                     if (kDebugMode) {
-//                                       print("바텀에 도달했습니다.");
-//                                     }
-//                                   }
-//                                 }
-//
-//                                 _orderTimer?.cancel();
-//
-//                                 _orderTimer = Timer(const Duration(seconds: 2), () {
-//                                   setState(() {
-//                                     if (mounted) {
-//                                       isOrderWatched = false;
-//                                     }
-//                                   });
-//                                 });
-//                               });
-//                             }
-//                           }
-//                         },
-//                         child: Stack(
-//
-//                           children: [
-//
-//
-//
-//
-//                             // 이미지 컨테이너, 파일 불러오기
-//                             Positioned(
-//                               top: 0,
-//                               bottom: 0,
-//                               left: 0,
-//                               right: 0,
-//
-//                               child: Container(
-//                                 alignment: Alignment.center,
-//
-//                                 child: Row(
-//                                     mainAxisAlignment: MainAxisAlignment.center,
-//                                     crossAxisAlignment: CrossAxisAlignment.center,
-//                                     children: [
-//                                       if (state.images.isEmpty)
-//                                         Center(
-//                                           child: MouseRegion(
-//                                             cursor: SystemMouseCursors.click,
-//                                             child: GestureDetector(
-//
-//                                               onTap: () async {
-//                                                 // 파일 불러오기
-//                                                 FilePickerResult? result = await FilePicker.platform.pickFiles(
-//                                                     allowMultiple: true
-//                                                 );
-//                                                 if (kDebugMode) {
-//                                                   print(result);
-//                                                 }
-//
-//                                                 List<String?> paths = result!.paths;
-//
-//                                                 final tempResult = await pathToImages(paths: paths);
-//
-//
-//
-//                                                 setState(() {
-//                                                   if (kDebugMode) {
-//                                                     ref.read(stateProvider.notifier).addImages(tempResult);
-//                                                     print(state.images.toString());
-//                                                   }
-//                                                 });
-//                                               },
-//                                               child: const Text('이미지, 혹은 디렉터리를 새로 가져와주세요.',
-//                                                 style: TextStyle(
-//                                                     color: Colors.grey
-//                                                 ),),
-//                                             ),
-//                                           ),
-//                                         )
-//                                       else
-//
-//                                         Center(
-//                                           child: InteractiveViewer(
-//                                             minScale: 0.5,
-//                                             maxScale: 2.0,
-//                                             panEnabled: true, // 드래그 이동 가능
-//                                             scaleEnabled: false, // 줌인/줌아웃 가능
-//                                             boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
-//                                             alignment: Alignment.center, // 확대/축소 기준을 중앙으로
-//                                             clipBehavior: Clip.none,
-//                                             child: SizedBox(
-//                                               width: MediaQuery.of(context).size.width,
-//                                               height: MediaQuery.of(context).size.height,
-//                                               child: Transform.scale(
-//                                                 scale: state.curZoom,
-//                                                 alignment: Alignment.center,
-//                                                 child: Row(
-//                                                   mainAxisSize: MainAxisSize.min,
-//                                                   mainAxisAlignment: MainAxisAlignment.center,
-//                                                   // crossAxisAlignment: CrossAxisAlignment.center,
-//                                                   children: [
-//                                                     for (int i = state.curIndex;
-//                                                     i < state.curIndex + state.curSize && i < state.images.length;
-//                                                     i++)
-//                                                       Expanded(
-//                                                         child: Image.file(
-//                                                           File(state.images[i].path),
-//                                                           fit: BoxFit.contain,
-//                                                         ),
-//                                                       )
-//                                                   ],
-//                                                 ),
-//
-//
-//                                               ),
-//                                             ),
-//                                           ),
-//                                         )
-//
-//
-//                                     ]
+//                             height: MediaQuery.of(context).size.height,
+//                             width: MediaQuery.of(context).size.width * 0.5,
+//                             color: Colors.grey[800]?.withOpacity(0.9),
+//                             child: Padding(
+//                               padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.2, top: 20),
+//                               child: Text(
+//                                 "왼쪽에 놓기",
+//                                 style: TextStyle(
+//                                     color: Colors.grey[900],
+//                                     fontSize: 30,
+//                                     fontWeight: FontWeight.w900
 //                                 ),
 //                               ),
+//                             )
+//                         ),
+//                       ),
+//
+//                     if (_isMovingOnRight)
+//                       Positioned(
+//                         right: 0,
+//                         child: Container(
+//                             height: MediaQuery.of(context).size.height,
+//                             width: MediaQuery.of(context).size.width * 0.5,
+//                             color: Colors.grey[800]?.withOpacity(0.9),
+//                             child: Padding(
+//                               padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.2, top: 20),
+//                               child: Text(
+//                                 "오른쪽에 놓기",
+//                                 style: TextStyle(
+//                                     color: Colors.grey[900],
+//                                     fontSize: 30,
+//                                     fontWeight: FontWeight.w900
+//                                 ),
+//                               ),
+//                             )
+//                         ),
+//                       ),
+//
+//
+//                     // 메인 화면
+//                     if (state.images.isEmpty)
+//                       DropTarget(
+//                           onDragEntered: (detail) {
+//                             setState(() {
+//                               isDragging = true;
+//                             });
+//                           },
+//
+//                           onDragExited: (detail) {
+//                             setState(() {
+//                               isDragging = false;
+//                             });
+//                           },
+//
+//                           onDragDone: (details) async {
+//                             isDragging = false;
+//                             if (details.files.isEmpty) return;
+//
+//                             // 드랍한 파일이 한개 인가
+//                             if (details.files.length == 1) {
+//                               final file = details.files.first;
+//
+//                               final entity = FileSystemEntity.typeSync(file.path);
+//
+//                               // 폴더를 드랍했다면
+//                               if (entity == FileSystemEntityType.directory) {
+//                                 ref.read(loadingProvider.notifier).state = true;
+//
+//                                 try {
+//                                   debugPrint("${file.name}은 폴더.");
+//
+//                                   List<String> paths = await getDirectoryPaths(file.path);
+//                                   debugPrint(paths.toString());
+//
+//                                   const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+//
+//                                   List<String> iPaths = paths
+//                                       .where((path) =>
+//                                       imageExtensions.any((e) => path.endsWith(e))
+//                                   ).toList();
+//                                   debugPrint(iPaths.toString());
+//
+//                                   final tempResult = await pathToImages(paths: iPaths);
+//                                   debugPrint("temResult : ${tempResult.toString()}");
+//
+//                                   ref.read(stateProvider.notifier).addImages(tempResult);
+//
+//                                   debugPrint(tempResult.toString());
+//                                 } on Exception catch (e) {
+//                                   // TODO
+//                                 } finally {
+//                                   ref.read(loadingProvider.notifier).state = false;
+//                                 }
+//
+//
+//                               } else if (entity == FileSystemEntityType.file) {
+//                                 // 이미지 확인
+//                                 const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+//                                 final ext = file.path.toLowerCase();
+//
+//                                 if (imageExtensions.any((e) => ext.endsWith(e))) {
+//                                   debugPrint("${file.name}은 이미지 파일!");
+//
+//                                   ui.Image image = await getImageSize(file.path);
+//                                   String name = p.basenameWithoutExtension(file.path);
+//
+//
+//                                   ref.read(stateProvider.notifier).addImage(
+//                                       ImageModel(
+//                                         height: image.height.toDouble(),
+//                                         width: image.width.toDouble(),
+//                                         path: file.path,
+//                                       )
+//                                   );
+//
+//                                   setState(() {
+//                                   });
+//
+//                                 } else {
+//
+//                                 }
+//                               }
+//                             } else {
+//                               List<String> paths = details.files.map((file) => file.path).toList();
+//
+//                               final tempResult = await pathToImages(paths: paths);
+//
+//                               ref.read(stateProvider.notifier).addImages(tempResult);
+//
+//                               setState(() {
+//                                 debugPrint(tempResult.toString());
+//                               });
+//                             }
+//
+//                             setState(() {
+//                             });
+//                           },
+//
+//                           child: Container(
+//                             height: MediaQuery.of(context).size.height,
+//                             width: MediaQuery.of(context).size.width,
+//                             color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+//                             child: Center(
+//                               child: isDragging
+//                                   ? const Center(
+//                                 child: Column(
+//                                   mainAxisAlignment: MainAxisAlignment.center,
+//                                   children: [
+//                                     Icon(Icons.image, size: 100,),
+//                                     Text("화면에 끌어와주세요.",
+//                                       style: TextStyle(
+//                                           fontWeight: FontWeight.w900, color: Colors.blueAccent,
+//                                           fontSize: 50
+//                                       ),
+//                                     )
+//                                   ],
+//                                 ),
+//                               )
+//                                   : const SizedBox.shrink(),
 //                             ),
-//                             Positioned(
-//                                 left: 0,
-//                                 right: 0,
-//                                 bottom: 30,
-//                                 child: MouseRegion(
-//                                   onEnter: (event) {
+//                           )
+//                       ),
+//                     Positioned.fill(
+//                       child: DragTarget <ImageModel> (
+//                         onMove: (details) {
+//                           debugPrint("DragTarget : ${details.offset}");
+//                           if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
+//                             _isMovingOnLeft = true;
+//                             _isMovingOnRight = false;
+//                           } else {
+//                             _isMovingOnLeft = false;
+//                             _isMovingOnRight = true;
+//                           }
+//                         },
+//                         onAcceptWithDetails: (details) {
+//                           _isMovingOnLeft = false;
+//                           _isMovingOnRight = false;
+//                           if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
+//                             debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 왼쪽에 놓았습니다.");
+//                             ref.read(frontImageProvider.notifier).state = details.data.path;
+//                           } else {
+//                             debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 오른쪽에 놓았습니다.");
+//                             ref.read(backImageProvider.notifier).state = details.data.path;
+//                           }
+//
+//                           setState(() {
+//
+//                           });
+//                         },
+//                         onLeave: (details) {
+//                           _isMovingOnLeft = false;
+//                           _isMovingOnRight = false;
+//                         },
+//
+//                         builder: (BuildContext context, List<Object?> candidateData, List<dynamic> rejectedData) {
+//                           return FocusableActionDetector(
+//                             autofocus: true,
+//                             shortcuts: const <ShortcutActivator, Intent>{},
+//                             actions: const <Type, Action<Intent>>{},
+//                             child: Listener(
+//                               onPointerSignal: (PointerSignalEvent event) {
+//                                 // 마우스 휠 이벤트인지 확인
+//                                 if (event is PointerScrollEvent) {
+//                                   // 컨트롤 키 확인
+//                                   if (HardwareKeyboard.instance.isControlPressed) {
+//                                     // 스크롤 방향에 따라서 확인
+//                                     if (kDebugMode) {
+//                                       print("scrolled.");
+//                                     }
+//
 //                                     setState(() {
-//                                       isControllerWatched = true;
 //                                       if (kDebugMode) {
-//                                         print(1);
+//                                         print(state.curZoom);
+//                                       }
+//                                       if (event.scrollDelta.dy < 0) {
+//                                         if (state.curZoom < 2.0) {
+//                                           ref.read(stateProvider.notifier).updateZoom(state.curZoom + 0.05);
+//                                         } else {
+//                                           ref.read(stateProvider.notifier).updateZoom(2.0);
+//                                         }
+//                                       } else {
+//                                         if (state.curZoom > 0.05) {
+//                                           ref.read(stateProvider.notifier).updateZoom(state.curZoom - 0.05);
+//                                         } else {
+//                                           ref.read(stateProvider.notifier).updateZoom(0.05);
+//                                         }
 //                                       }
 //                                     });
-//                                   },
-//                                   onExit: (event) {
+//                                   } else {
+//                                     // 컨트롤 키가 안눌렸다면
 //                                     setState(() {
-//                                       isControllerWatched = false;
-//                                       if (kDebugMode) {
-//                                         print(2);
+//                                       isOrderWatched = true;
+//
+//                                       if (event.scrollDelta.dy > 0) {
+//                                         if (state.curIndex < (state.images.length + state.curSize) - 2) {
+//                                           convertIndexPlusOrMinus(isPlus: true);
+//                                         } else {
+//                                           if (kDebugMode) {
+//                                             print("탑에 도달했습니다.");
+//                                           }
+//                                         }
+//                                       } else {
+//                                         if (state.curIndex > 0) {
+//                                           convertIndexPlusOrMinus(isPlus: false);
+//                                         } else {
+//                                           if (kDebugMode) {
+//                                             print("바텀에 도달했습니다.");
+//                                           }
+//                                         }
 //                                       }
+//
+//                                       _orderTimer?.cancel();
+//
+//                                       _orderTimer = Timer(const Duration(seconds: 2), () {
+//                                         setState(() {
+//                                           if (mounted) {
+//                                             isOrderWatched = false;
+//                                           }
+//                                         });
+//                                       });
 //                                     });
-//                                   },
+//                                   }
+//                                 }
+//                               },
+//                               child: Stack(
 //
-//                                   child: Center(
-//                                     child: AnimatedOpacity(
-//                                       opacity: isControllerWatched ? 0.5 : 0.0,
-//                                       duration: const Duration(milliseconds: 600),
-//                                       child: Container(
-//                                         decoration: BoxDecoration(
-//                                             color: Colors.grey,
-//                                             boxShadow: [
-//                                               BoxShadow(
-//                                                   color: Colors.black.withOpacity(0.15),
-//                                                   blurRadius: 3.0,
-//                                                   spreadRadius: 5,
-//                                                   offset: const Offset(0, 5)
-//                                               )
-//                                             ]
-//                                         ),
-//                                         height: MediaQuery.of(context).size.height * 0.1,
-//                                         width: 600,
-//                                         child: Padding(
-//                                           padding: const EdgeInsets.only(left: 30.0, right: 30.0),
-//                                           child: Row(
-//                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                                             children: [
+//                                 children: [
 //
-//                                               // 뒤로 붙이기 버튼
-//                                               ControllerButton(btnCallback: () {
-//                                                 convertSizePlusOrMinus(isPlus: false);
-//                                               }, icon: const Icon(Icons.keyboard_double_arrow_left_sharp, size: 35,),),
 //
-//                                               // 뒤로가기 버튼
-//                                               ControllerButton(btnCallback: () {
-//                                                 convertIndexPlusOrMinus(isPlus: false);
-//                                               }, icon: const Icon(Icons.arrow_back_ios_new, size: 35,),),
-//                                               // 중앙 현재 줌 사이즈
-//                                               Text(
-//                                                 "${(state.curZoom * 100).toInt()}%",
-//                                                 style: const TextStyle(
-//                                                     fontWeight: FontWeight.w500
+//
+//
+//                                   // 이미지 컨테이너, 파일 불러오기
+//                                   Positioned(
+//                                     top: 0,
+//                                     bottom: 0,
+//                                     left: 0,
+//                                     right: 0,
+//
+//                                     child: Container(
+//                                       alignment: Alignment.center,
+//
+//                                       child: Row(
+//                                           mainAxisAlignment: MainAxisAlignment.center,
+//                                           crossAxisAlignment: CrossAxisAlignment.center,
+//                                           children: [
+//                                             if (state.images.isEmpty)
+//                                               Center(
+//                                                 child: MouseRegion(
+//                                                   cursor: SystemMouseCursors.click,
+//                                                   child: GestureDetector(
+//
+//                                                     onTap: () async {
+//                                                       // 파일 불러오기
+//                                                       FilePickerResult? result = await FilePicker.platform.pickFiles(
+//                                                           allowMultiple: true
+//                                                       );
+//                                                       if (kDebugMode) {
+//                                                         print(result);
+//                                                       }
+//
+//                                                       List<String?> paths = result!.paths;
+//
+//                                                       final tempResult = await pathToImages(paths: paths);
+//
+//
+//
+//                                                       setState(() {
+//                                                         if (kDebugMode) {
+//                                                           ref.read(stateProvider.notifier).addImages(tempResult);
+//                                                           print(state.images.toString());
+//                                                         }
+//                                                       });
+//                                                     },
+//                                                     child: const Text('이미지, 혹은 디렉터리를 새로 가져와주세요.',
+//                                                       style: TextStyle(
+//                                                           color: Colors.grey
+//                                                       ),),
+//                                                   ),
 //                                                 ),
-//                                               ),
-//                                               // 앞으로 가기 버튼
-//                                               ControllerButton(btnCallback: () {
-//                                                 convertIndexPlusOrMinus(isPlus: true);
-//                                               }, icon: const Icon(Icons.arrow_forward_ios, size: 35,),),
-//                                               // 앞으로 붙이기
-//                                               ControllerButton(btnCallback: () {
-//                                                 convertSizePlusOrMinus(isPlus: true);
-//                                               }, icon: const Icon(Icons.keyboard_double_arrow_right_sharp, size: 35,),)
-//                                             ],
-//                                           ),
-//                                         ),
+//                                               )
+//                                             else
 //
+//                                               Center(
+//                                                 child: InteractiveViewer(
+//                                                   minScale: 0.5,
+//                                                   maxScale: 2.0,
+//                                                   panEnabled: true, // 드래그 이동 가능
+//                                                   scaleEnabled: false, // 줌인/줌아웃 가능
+//                                                   boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
+//                                                   alignment: Alignment.center, // 확대/축소 기준을 중앙으로
+//                                                   clipBehavior: Clip.none,
+//                                                   child: SizedBox(
+//                                                     width: MediaQuery.of(context).size.width,
+//                                                     height: MediaQuery.of(context).size.height,
+//                                                     child: Transform.scale(
+//                                                       scale: state.curZoom,
+//                                                       alignment: Alignment.center,
+//                                                       child: Flex(
+//                                                         clipBehavior: Clip.none,
+//                                                         mainAxisAlignment: MainAxisAlignment.center,
+//                                                         direction: Axis.horizontal,
+//                                                         spacing: 0,
+//                                                         // crossAxisAlignment: CrossAxisAlignment.center,
+//
+//                                                         children: [
+//                                                           if (ref.read(frontImageProvider) != "")
+//                                                             Expanded(
+//                                                               flex: 1,
+//                                                               child: Image.file(
+//                                                                 File(ref.read(frontImageProvider)),
+//                                                                 fit: BoxFit.contain,
+//                                                               ),
+//                                                             ),
+//                                                           for (int i = state.curIndex;
+//                                                           i < state.curIndex + state.curSize && i < state.images.length;
+//                                                           i++)
+//                                                             Expanded(
+//                                                               flex: 1,
+//                                                               child: Image.file(
+//                                                                 File(state.images[i].path),
+//                                                                 fit: BoxFit.contain,
+//                                                               ),
+//                                                             ),
+//                                                           if (ref.read(backImageProvider) != "")
+//                                                             Expanded(
+//                                                               flex: 1,
+//                                                               child: Image.file(
+//                                                                 File(ref.read(backImageProvider)),
+//                                                                 fit: BoxFit.contain,
+//                                                               ),
+//                                                             ),
+//                                                         ],
+//                                                       ),
+//
+//
+//                                                     ),
+//                                                   ),
+//                                                 ),
+//                                               )
+//
+//
+//                                           ]
 //                                       ),
 //                                     ),
 //                                   ),
-//                                 )
+//                                   // Positioned(
+//                                   //     left: 0,
+//                                   //     right: 0,
+//                                   //     bottom: 30,
+//                                   //     child: MouseRegion(
+//                                   //       onEnter: (event) {
+//                                   //         setState(() {
+//                                   //           isControllerWatched = true;
+//                                   //           if (kDebugMode) {
+//                                   //             print(1);
+//                                   //           }
+//                                   //         });
+//                                   //       },
+//                                   //       onExit: (event) {
+//                                   //         setState(() {
+//                                   //           isControllerWatched = false;
+//                                   //           if (kDebugMode) {
+//                                   //             print(2);
+//                                   //           }
+//                                   //         });
+//                                   //       },
+//                                   //
+//                                   //       child: Center(
+//                                   //         child: AnimatedOpacity(
+//                                   //           opacity: isControllerWatched ? 0.5 : 0.0,
+//                                   //           duration: const Duration(milliseconds: 600),
+//                                   //           child: Container(
+//                                   //             decoration: BoxDecoration(
+//                                   //                 color: Colors.grey,
+//                                   //                 boxShadow: [
+//                                   //                   BoxShadow(
+//                                   //                       color: Colors.black.withOpacity(0.15),
+//                                   //                       blurRadius: 3.0,
+//                                   //                       spreadRadius: 5,
+//                                   //                       offset: const Offset(0, 5)
+//                                   //                   )
+//                                   //                 ]
+//                                   //             ),
+//                                   //             height: MediaQuery.of(context).size.height * 0.1,
+//                                   //             width: 600,
+//                                   //             child: Padding(
+//                                   //               padding: const EdgeInsets.only(left: 30.0, right: 30.0),
+//                                   //               child: Row(
+//                                   //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                                   //                 children: [
+//                                   //
+//                                   //                   // 뒤로 붙이기 버튼
+//                                   //                   ControllerButton(btnCallback: () {
+//                                   //                     convertSizePlusOrMinus(isPlus: false);
+//                                   //                   }, icon: const Icon(Icons.keyboard_double_arrow_left_sharp, size: 35,),),
+//                                   //
+//                                   //                   // 뒤로가기 버튼
+//                                   //                   ControllerButton(btnCallback: () {
+//                                   //                     convertIndexPlusOrMinus(isPlus: false);
+//                                   //                   }, icon: const Icon(Icons.arrow_back_ios_new, size: 35,),),
+//                                   //                   // 중앙 현재 줌 사이즈
+//                                   //                   Text(
+//                                   //                     "${(state.curZoom * 100).toInt()}%",
+//                                   //                     style: const TextStyle(
+//                                   //                         fontWeight: FontWeight.w500
+//                                   //                     ),
+//                                   //                   ),
+//                                   //                   // 앞으로 가기 버튼
+//                                   //                   ControllerButton(btnCallback: () {
+//                                   //                     convertIndexPlusOrMinus(isPlus: true);
+//                                   //                   }, icon: const Icon(Icons.arrow_forward_ios, size: 35,),),
+//                                   //                   // 앞으로 붙이기
+//                                   //                   ControllerButton(btnCallback: () {
+//                                   //                     convertSizePlusOrMinus(isPlus: true);
+//                                   //                   }, icon: const Icon(Icons.keyboard_double_arrow_right_sharp, size: 35,),)
+//                                   //                 ],
+//                                   //               ),
+//                                   //             ),
+//                                   //
+//                                   //           ),
+//                                   //         ),
+//                                   //       ),
+//                                   //     )
+//                                   // ),
+//                                 ],
+//                               ),
 //                             ),
-//                           ],
-//                         ),
+//                           );
+//                         },
 //                       ),
 //                     ),
-//                   ),
-//                   // 이미지 내비게이션
-//                   Positioned(
-//                       top: 5,
-//                       left: 10,
-//                       child: SizedBox(
-//                         width: 100,
-//                         height: MediaQuery.of(context).size.height * 0.6,
-//                         child: const ImageListMap(),
-//                       )
-//                   ),
-//                   // 메뉴바
-//                   const Positioned(
-//                       top: 0,
-//                       child: DeskTopMenuBar()
-//                   ),
-//                 ]
-//             )
-//         ),
+//                     // // 이미지 내비게이션
+//                     // Positioned(
+//                     //     bottom: 10,
+//                     //     left: 0,
+//                     //     child: SizedBox(
+//                     //       width: 400,
+//                     //       height: 100,
+//                     //       child: const ImageListMap(),
+//                     //     )
+//                     // ),
+//                     // 메뉴바
+//                     const Positioned(
+//                         top: 0,
+//                         child: DeskTopMenuBar()
+//                     ),
+//                   ]
+//               )
+//           ),
 //           if (isLoading)
 //             const ModalBarrier(
 //               dismissible: false,
@@ -648,10 +748,12 @@
 //               top: 30,
 //               right: 20,
 //               child: DtoVGallery(),
-//             )
+//             ),
+//
 //
 //         ]
 //     );
 //
 //   }
+//
 // }
