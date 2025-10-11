@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -22,7 +23,7 @@ class FavGallery extends ConsumerStatefulWidget {
 
 class _FavGallery extends ConsumerState<FavGallery> {
 
-  List<String> _paths = [];
+  final List<String> _paths = [];
   final Map<String, bool> _checkedFiles = {};
   late List<bool>? _hoverOn = [];
 
@@ -41,20 +42,18 @@ class _FavGallery extends ConsumerState<FavGallery> {
 
     final appDir = await getApplicationDocumentsDirectory();
     final favDir = Directory("${appDir.path}/fav");
+    final favFile = File("${favDir.path}/favi.json");
+    final favList = await favFile.readAsString();
 
+    // if (await favFile.exists() == false) {
+    //   favFile.writeAsString("");
+    // }
 
-    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-    List<String> tempList = [];
+    final list = jsonDecode(favList);
 
-
-    await for (final file in favDir.list(recursive: true)) {
-      tempList.add(file.path);
+    for (var path in list['fav']) {
+      _paths.add(path);
     }
-
-    _paths = tempList
-        .where((path) =>
-        imageExtensions.any((e) => path.endsWith(e))
-    ).toList();
 
     debugPrint(_paths.toString());
 
@@ -422,7 +421,7 @@ class _FavGallery extends ConsumerState<FavGallery> {
               // 취소 버튼
               OutlinedButton.icon(
                   onPressed: () async {
-                    ref.read(driveGProvider.notifier).state = false;
+                    ref.read(favProvider.notifier).state = false;
                   },
                   style: OutlinedButton.styleFrom(
                       side: BorderSide(

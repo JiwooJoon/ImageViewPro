@@ -27,6 +27,7 @@ final viewModeProvider = StateProvider<BoxFit>((ref) => BoxFit.contain);
 final lookModeProvider = StateProvider<String>((ref) => "Cut");
 final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 final favProvider = StateProvider<bool>((ref) => false);
+final favPathProvider = StateProvider<List<String>>((ref) => []);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정

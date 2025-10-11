@@ -137,20 +137,32 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     menuChildren: [
                       MenuItemButton(
                         onPressed: () async {
-                          // 파일 추가하기
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(
-                              allowMultiple: true
-                          );
-                          debugPrint(result.toString());
+                          if (state.images.isEmpty) {
+                            // 이미지가 비어있는 경우
+                            Flushbar(
+                              message: "먼저 이미지를 가져와야 합니다",
+                              duration: const Duration(seconds: 2),
+                              flushbarPosition: FlushbarPosition.TOP,
+                              margin: const EdgeInsets.all(20),
+                              borderRadius: BorderRadius.circular(10),
+                              backgroundColor: Colors.grey.shade500,
+                            ).show(context);
+                          } else {
+                            // 파일 추가하기
+                            FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                allowMultiple: true
+                            );
+                            debugPrint(result.toString());
 
-                          List<String?> paths = result!.paths;
+                            List<String?> paths = result!.paths;
 
-                          final tempResult = await pathToImages(paths: paths);
+                            final tempResult = await pathToImages(paths: paths);
 
-                          setState(() {
-                            ref.read(stateProvider.notifier).addImages(tempResult);
-                            debugPrint(state.images.toString());
-                          });
+                            setState(() {
+                              ref.read(stateProvider.notifier).addImages(tempResult);
+                              debugPrint(state.images.toString());
+                            });
+                          }
 
                         },
                         child: const MenuAcceleratorLabel("파일/폴더에서.. (F)"),
@@ -184,8 +196,10 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       MenuItemButton(
                         onPressed: () {
 
-                          ref.read(stateProvider.notifier).updateSize(1);
-                          ref.read(uploadGProvider.notifier).state = true;
+                          setState(() {
+                            ref.read(stateProvider.notifier).updateSize(1);
+                            ref.read(uploadGProvider.notifier).state = true;
+                          });
 
                         },
                         child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
@@ -249,21 +263,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
               // 도구
               SubmenuButton(
                 menuChildren: [
-                  // 세로 / 가로
-                  MenuItemButton(
-                    onPressed: () {
-
-                    },
-                    child: MenuAcceleratorLabel(state.direction ? "가로 (V)" : "세로 (H)"),
-                  ),
-                  // 보기 모드
-                  MenuItemButton(
-                    onPressed: () {
-
-                    },
-                    child: MenuAcceleratorLabel(state.watchMode ? "끊어 보기 (S)" : "이어 보기 (S)"),
-                  ),
-
                   // 이미지 에디터
                   MenuItemButton(
                     onPressed: () async {
@@ -300,10 +299,17 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   MenuItemButton(
                     onPressed: () async {
                       final result = await startProcess();
-
                       createWindow(windowName: "translate_window", windows: [], data: result);
                     },
                     child: const MenuAcceleratorLabel("이미지 번역 (O)"),
+                  ),
+
+                  // 즐겨찾기
+                  MenuItemButton(
+                    onPressed: () {
+                      ref.read(favProvider.notifier).state = true;
+                    },
+                    child: const MenuAcceleratorLabel("즐겨찾기(S)"),
                   ),
 
                 ],

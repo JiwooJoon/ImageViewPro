@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
@@ -12,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:googleapis/drive/v2.dart' as drive;
@@ -20,6 +22,7 @@ import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
+import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/HoveredWidget.dart';
 import 'package:image_view_pro/widget/ViewModeDropDown.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
@@ -31,6 +34,7 @@ import 'package:image_view_pro/model/window_info.dart';
 import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
 import 'package:image_view_pro/widget/ImageListMap.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
+import 'package:path_provider/path_provider.dart';
 import '../widget/BottomBar.dart';
 import '../widget/ControllerButton.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
@@ -46,6 +50,7 @@ class _MainView extends ConsumerState<MainView> {
   bool isControllerWatched = true;
   bool isOrderWatched = false;
   Timer? _orderTimer;
+  File? _favFile;
 
   List<String> droppedFiles = [];
   bool isDragging = false;
@@ -58,6 +63,8 @@ class _MainView extends ConsumerState<MainView> {
   bool _isCtrlPressed = false; // 리스트 뷰에서 컨트롤키/일반키 스크롤 구분을 위함
 
   final List<WindowInfo> _windows = [];
+
+
 
   Future<ui.Image> getImageSize(String path) async {
     // 파일 경로에서 바이트 데이터를 읽어온다
@@ -84,10 +91,34 @@ class _MainView extends ConsumerState<MainView> {
 
     super.initState();
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
+    _loadFav();
   }
 
   Future<void> _loadOpt() async {
     ref.read(stateProvider.notifier).updateOption(await loadOpt());
+  }
+
+  Future<void> _loadFav() async {
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final favDir = Directory("${appDir.path}/fav");
+    _favFile = File("${favDir.path}/favi.json");
+    Map<String, List<String>> jsonIn = {
+      "fav" : []
+    };
+    Map<String, String> favList = {};
+
+
+    if (await _favFile!.exists()) {
+      final readedFile = await _favFile!.readAsString();
+      favList = jsonDecode(readedFile);
+    } else {
+      await _favFile!.writeAsString(jsonEncode(jsonIn));
+    }
+
+    final list = jsonDecode(favList['fav']!);
+
+    ref.read(favPathProvider).addAll(list);
   }
 
 
@@ -99,6 +130,7 @@ class _MainView extends ConsumerState<MainView> {
     final isLoading = ref.watch(loadingProvider);
     final isUploading = ref.watch(uploadGProvider);
     final isDriving = ref.watch(driveGProvider);
+    final isFavorite = ref.watch(favProvider);
 
     // 스크롤 모드용
     bool _isCtrlPressed = false;
@@ -631,10 +663,42 @@ class _MainView extends ConsumerState<MainView> {
                                                                 alignment: Alignment.center,
                                                                 transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
                                                                   ..scale(1.0, 1.0, 1.0),
-                                                                child: Image.file(
-                                                                  File(state.images[i].path),
-                                                                  fit: BoxFit.contain,
-                                                                  excludeFromSemantics: false,
+                                                                child: ContextMenuRegion(
+                                                                  contextMenu: ContextMenu(
+                                                                    entries: [
+                                                                      ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                      MenuItem(
+                                                                          label: "즐겨찾기 제거",
+                                                                          icon: Icons.favorite_border,
+                                                                          onSelected: () async {
+                                                                            ref.read(favPathProvider).remove(state.images[i].path);
+                                                                            Map<String, List<String>> jsonIn = {
+                                                                              "fav" : ref.read(favPathProvider)
+                                                                            };
+
+                                                                            await _favFile!.writeAsString(jsonEncode(jsonIn));
+
+                                                                          }
+                                                                      ) :
+                                                                      MenuItem(
+                                                                          label: "즐겨찾기 추가",
+                                                                          icon: Icons.favorite,
+                                                                          onSelected: () async {
+                                                                            ref.read(favPathProvider).add(state.images[i].path);
+                                                                            Map<String, List<String>> jsonIn = {
+                                                                              "fav" : ref.read(favPathProvider)
+                                                                            };
+
+                                                                            await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                          }
+                                                                      )
+                                                                    ]
+                                                                  ),
+                                                                  child: Image.file(
+                                                                    File(state.images[i].path),
+                                                                    fit: BoxFit.contain,
+                                                                    excludeFromSemantics: false,
+                                                                  ),
                                                                 ),
                                                               ),
                                                             ),
@@ -790,8 +854,10 @@ class _MainView extends ConsumerState<MainView> {
                             onPressed: () {
                               if (ref.read(lookModeProvider) == "Long") {
                                 ref.read(lookModeProvider.notifier).state = "Cut";
+                                ref.read(stateProvider.notifier).updateZoom(1.0);
                               } else {
                                 ref.read(lookModeProvider.notifier).state = "Long";
+                                ref.read(stateProvider.notifier).updateZoom(0.6);
                               }
                             },
                             child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
@@ -828,6 +894,13 @@ class _MainView extends ConsumerState<MainView> {
               top: 30,
               right: 20,
               child: DtoVGallery(),
+            ),
+
+          if(isFavorite)
+            const Positioned(
+              top: 30,
+              right: 20,
+              child: FavGallery(),
             ),
 
 

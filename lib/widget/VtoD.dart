@@ -53,7 +53,6 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
   @override
   Widget build(BuildContext ctx) {
     final state = ref.watch(stateProvider);
-    ref.read(uploadGProvider.notifier).state = false;
 
     List<Widget> list = [];
 
@@ -64,7 +63,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
         final name = p.basenameWithoutExtension(widget.images[i].path);
         list.add(
             Focus(
-              autofocus: true, // 청므부터 포커스 주기
+              autofocus: true, // 처음부터 포커스 주기
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (event) {
@@ -142,20 +141,6 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
                     scale: _hoverOn[i] ? 1.2 : 1.0,
                     child: ListTile(
                         minTileHeight: 2,
-                        // title: AnimatedDefaultTextStyle(
-                        //   duration: const Duration(milliseconds: 100),
-                        //   curve: Curves.easeOut,
-                        //   style: TextStyle(
-                        //     fontWeight: _choices[i] ? FontWeight.bold : FontWeight.normal,
-                        //     color: _choices[i] ? Colors.lightGreen[700] : Colors.grey[500],
-                        //   ),
-                        //   child: Text(
-                        //     name,
-                        //     maxLines: 1,
-                        //     overflow: TextOverflow.ellipsis,
-                        //
-                        //   ),
-                        // ),
 
                         subtitle: Text(
                           name,
