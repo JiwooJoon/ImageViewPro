@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 import 'package:image_view_pro/widget/Second_Window.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'func/visonOcr.dart';
 
@@ -24,6 +26,7 @@ final backImageProvider = StateProvider<String>((ref) => "");
 final viewModeProvider = StateProvider<BoxFit>((ref) => BoxFit.contain);
 final lookModeProvider = StateProvider<String>((ref) => "Cut");
 final imageAngleProvider = StateProvider<double>((ref) => 0.0);
+final favProvider = StateProvider<bool>((ref) => false);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
@@ -90,7 +93,11 @@ final stateProvider = StateNotifierProvider<StateProv, StateModel>(
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
+  final appDir = await getApplicationDocumentsDirectory();
+  final favDir = Directory("${appDir.path}/fav");
+  if (await favDir.exists() == false) {
+    await favDir.create();
+  }
 
 
   if (args.firstOrNull == 'multi_window') {
