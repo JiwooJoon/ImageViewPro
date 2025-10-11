@@ -17,16 +17,19 @@ import 'func/visonOcr.dart';
 
 
 final loadingProvider = StateProvider<bool>((ref) => false);
-final uploadingProcessProvider = StateProvider<String>((ref) => "");
+final favProvider = StateProvider<bool>((ref) => false);
 final uploadGProvider = StateProvider<bool>((ref) => false);
 final driveGProvider = StateProvider<bool>((ref) => false);
+final converterProvider = StateProvider<bool>((ref) => false);
+final modalProvider = StateProvider<bool>((ref) => false);
+
+final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final backGroundProvider = StateProvider<List<String>>((ref) => []);
 final frontImageProvider = StateProvider<String>((ref) => "");
 final backImageProvider = StateProvider<String>((ref) => "");
 final viewModeProvider = StateProvider<BoxFit>((ref) => BoxFit.contain);
 final lookModeProvider = StateProvider<String>((ref) => "Cut");
 final imageAngleProvider = StateProvider<double>((ref) => 0.0);
-final favProvider = StateProvider<bool>((ref) => false);
 final favPathProvider = StateProvider<List<String>>((ref) => []);
 
 class StateProv extends StateNotifier<StateModel> {

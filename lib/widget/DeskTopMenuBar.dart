@@ -290,7 +290,8 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   // 일괄 변환기
                   MenuItemButton(
                     onPressed: () {
-
+                      ref.read(modalProvider.notifier).state = true;
+                      ref.read(converterProvider.notifier).state = true;
                     },
                     child: const MenuAcceleratorLabel("일괄 변환기(A)"),
                   ),

@@ -24,6 +24,7 @@ import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/HoveredWidget.dart';
+import 'package:image_view_pro/widget/ImageConverter.dart';
 import 'package:image_view_pro/widget/ViewModeDropDown.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
@@ -63,6 +64,8 @@ class _MainView extends ConsumerState<MainView> {
   bool _isCtrlPressed = false; // 리스트 뷰에서 컨트롤키/일반키 스크롤 구분을 위함
 
   final List<WindowInfo> _windows = [];
+  StreamSubscription<ImageModel>? _imageSubscription;
+  bool _isLoadingImages = false;
 
 
 
@@ -94,6 +97,44 @@ class _MainView extends ConsumerState<MainView> {
     _loadFav();
   }
 
+  Future<void> loadImagesStream(List<String?> paths) async {
+    // 기존 구독이 있는지 확인함
+    if (_imageSubscription != null) {
+      await _imageSubscription!.cancel();
+      _imageSubscription = null;
+    }
+
+    ref.read(loadingProvider.notifier).state = true;
+    _isLoadingImages = true;
+
+    final stream = pathToImagesStream(paths: paths, poolSize: 8);
+
+    _imageSubscription = stream.listen(
+      (image) {
+        ref.read(stateProvider.notifier).addImage(image);
+        if (mounted) {
+          setState(() {
+
+          });
+        }
+      },
+      onError: (e, st) {
+        debugPrint('Stream error: $e');
+      },
+      onDone: () {
+        debugPrint('모든 이미지 로딩 완료');
+
+        ref.read(loadingProvider.notifier).state = false;
+        _isLoadingImages = false;
+        _imageSubscription = null;
+      },
+      cancelOnError: false,
+    );
+
+    // 필요할 때
+    // subscription.cancel();
+  }
+
   Future<void> _loadOpt() async {
     ref.read(stateProvider.notifier).updateOption(await loadOpt());
   }
@@ -121,6 +162,50 @@ class _MainView extends ConsumerState<MainView> {
     ref.read(favPathProvider).addAll(list);
   }
 
+  Future<void> cancelImageLoading() async {
+    if (_imageSubscription != null) {
+      await _imageSubscription!.cancel();
+      _imageSubscription = null;
+    }
+    if (_isLoadingImages) {
+      ref.read(loadingProvider.notifier).state = false;
+      _isLoadingImages = false;
+    }
+    debugPrint('🚫 이미지 로딩 취소됨');
+  }
+
+  Future<void> loadFolderImagesSafe(String folderPath) async {
+    // 이전 로딩 취소
+    await _imageSubscription?.cancel();
+
+    ref.read(loadingProvider.notifier).state = true;
+
+    _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
+          (image) {
+        ref.read(stateProvider.notifier).addImage(image);
+
+        if (mounted && ref.read(stateProvider).images.length % 5 == 0) {
+          setState(() {});
+        }
+      },
+      onError: (e, st) => debugPrint('🔥 폴더 스트림 에러: $e'),
+      onDone: () {
+        debugPrint('✅ 폴더 로딩 완료');
+        ref.read(loadingProvider.notifier).state = false;
+        setState(() {}); // 마지막 UI 갱신
+      },
+    );
+  }
+
+
+
+  @override
+  void dispose() {
+    _imageSubscription?.cancel();
+    _imageSubscription = null;
+    super.dispose();
+  }
+
 
 
   @override
@@ -131,6 +216,8 @@ class _MainView extends ConsumerState<MainView> {
     final isUploading = ref.watch(uploadGProvider);
     final isDriving = ref.watch(driveGProvider);
     final isFavorite = ref.watch(favProvider);
+    final isConverting = ref.watch(converterProvider);
+    final isModaling = ref.watch(modalProvider);
 
     // 스크롤 모드용
     bool _isCtrlPressed = false;
@@ -587,27 +674,110 @@ class _MainView extends ConsumerState<MainView> {
                                                 child: GestureDetector(
 
                                                   onTap: () async {
-                                                    // 파일 불러오기
-                                                    FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                                        allowMultiple: true
+                                                    showContextMenu(
+                                                      context,
+                                                      contextMenu: ContextMenu(
+                                                        position: Offset(MediaQuery.of(context).size.width * 0.5, MediaQuery.of(context).size.height * 0.5),
+                                                        entries: [
+                                                          // 파일 불러오기
+                                                          MenuItem(
+                                                            label: "파일 불러오기",
+                                                            icon: Icons.file_open,
+                                                            onSelected: () async {
+                                                              // 파일 불러오기
+                                                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                                                  allowMultiple: true,
+                                                                lockParentWindow: true
+                                                              );
+                                                              if (kDebugMode) {
+                                                                print(result);
+                                                              }
+
+                                                              List<String?> paths = result!.paths;
+
+                                                              final imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                                                              
+                                                              List<String?> iPaths = paths
+                                                                .where((path) => imageExtensions.any((e) => path!.endsWith(e)))
+                                                                .toList();
+                                                              
+                                                              await cancelImageLoading();
+                                                              await loadImagesStream(iPaths);
+
+
+
+                                                              setState(() {
+                                                                if (kDebugMode) {
+                                                                  ref.read(stateProvider.notifier).updateIndex(0);
+                                                                  print(state.images.toString());
+                                                                }
+                                                              });
+                                                            }
+                                                          ),
+
+                                                          // 폴더
+                                                          MenuItem(
+                                                              label: "폴더 불러오기",
+                                                              icon: Icons.folder,
+                                                              onSelected: () async {
+                                                                // // 폴더 불러오기
+                                                                // String? result = await FilePicker.platform.getDirectoryPath(
+                                                                //     lockParentWindow: true
+                                                                // );
+                                                                //
+                                                                // if (result != null) {
+                                                                //   await loadFolderImagesSafe(result);
+                                                                // }
+                                                                //
+                                                                //
+                                                                // setState(() {
+                                                                // });
+
+                                                                try {
+                                                                  String? result = await FilePicker.platform.getDirectoryPath(
+                                                                      lockParentWindow: true
+                                                                  );
+                                                                  debugPrint("$result는 폴더.");
+
+                                                                  List<String> paths = await getImagePathsInDirectory(result!);
+                                                                  debugPrint(paths.toString());
+
+                                                                  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+
+                                                                  List<String> iPaths = paths
+                                                                      .where((path) =>
+                                                                      imageExtensions.any((e) => path.endsWith(e))
+                                                                  ).toList();
+                                                                  debugPrint(iPaths.toString());
+
+                                                                  final tempResult = await pathToImages(paths: iPaths);
+                                                                  debugPrint("temResult : ${tempResult.toString()}");
+
+                                                                  ref.read(stateProvider.notifier).addImages(tempResult);
+
+                                                                  if (mounted) {
+                                                                    Flushbar(
+                                                                      message: "${tempResult.length}개의 이미지를 불러왔습니다.",
+                                                                      duration: const Duration(seconds: 2),
+                                                                      flushbarPosition: FlushbarPosition.TOP,
+                                                                      margin: const EdgeInsets.all(20),
+                                                                      borderRadius: BorderRadius.circular(10),
+                                                                      backgroundColor: Colors.grey.shade500,
+                                                                    ).show(context);
+                                                                  }
+
+                                                                  debugPrint(tempResult.toString());
+                                                                } on Exception catch (e) {
+                                                                  // TODO
+                                                                } finally {
+                                                                  ref.read(loadingProvider.notifier).state = false;
+                                                                }
+                                                              }
+                                                          )
+                                                        ]
+                                                      )
                                                     );
-                                                    if (kDebugMode) {
-                                                      print(result);
-                                                    }
 
-                                                    List<String?> paths = result!.paths;
-
-                                                    final tempResult = await pathToImages(paths: paths);
-
-
-
-                                                    setState(() {
-                                                      if (kDebugMode) {
-                                                        ref.read(stateProvider.notifier).addImages(tempResult);
-                                                        ref.read(stateProvider.notifier).updateIndex(0);
-                                                        print(state.images.toString());
-                                                      }
-                                                    });
                                                   },
                                                   child: const Text('이미지, 혹은 디렉터리를 새로 가져와주세요.',
                                                     style: TextStyle(
@@ -691,7 +861,7 @@ class _MainView extends ConsumerState<MainView> {
 
                                                                             await _favFile!.writeAsString(jsonEncode(jsonIn));
                                                                           }
-                                                                      )
+                                                                      ),
                                                                     ]
                                                                   ),
                                                                   child: Image.file(
@@ -874,7 +1044,7 @@ class _MainView extends ConsumerState<MainView> {
         ),
 
 
-          if (isLoading)
+          if (isLoading || isModaling)
             const ModalBarrier(
               dismissible: false,
               color: Colors.black38,
@@ -901,6 +1071,15 @@ class _MainView extends ConsumerState<MainView> {
               top: 30,
               right: 20,
               child: FavGallery(),
+            ),
+
+          if(isConverting)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.5 - 300,
+              right: MediaQuery.of(context).size.width * 0.5 - 400,
+              child: ImageConverter(
+                images: state.images
+              ),
             ),
 
 
