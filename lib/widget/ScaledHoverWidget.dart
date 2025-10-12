@@ -1,8 +1,8 @@
 
 import 'package:flutter/cupertino.dart';
 
-class HoveredWidget extends StatefulWidget {
-  const HoveredWidget({
+class ScaleHoveredWidget extends StatefulWidget {
+  const ScaleHoveredWidget({
     super.key,
     required this.customWidget
   });
@@ -10,12 +10,12 @@ class HoveredWidget extends StatefulWidget {
   final Widget customWidget;
 
   @override
-  State<HoveredWidget> createState() {
-    return _HoveredWidget();
+  State<ScaleHoveredWidget> createState() {
+    return _ScaleHoveredWidget();
   }
 }
 
-class _HoveredWidget extends State<HoveredWidget> {
+class _ScaleHoveredWidget extends State<ScaleHoveredWidget> {
   bool _isHovered = false;
 
   @override
@@ -31,9 +31,9 @@ class _HoveredWidget extends State<HoveredWidget> {
           _isHovered = false;
         });
       },
-      child: AnimatedOpacity(
-        opacity: _isHovered ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 200),
+      child: AnimatedScale(
+        scale: _isHovered ? 1.2 : 1.0,
+        duration: const Duration(milliseconds: 100),
         child: widget.customWidget,
       ),
     );

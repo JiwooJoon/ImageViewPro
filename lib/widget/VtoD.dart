@@ -382,7 +382,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
                       }
                     }
 
-                    saveImages(path, ref);
+                    await saveImages(path, ref);
 
                     ref.read(uploadGProvider.notifier).state = false;
                   },

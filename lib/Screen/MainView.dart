@@ -21,9 +21,9 @@ import 'package:googleapis/streetviewpublish/v1.dart';
 import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
+import 'package:image_view_pro/widget/AllOpacityWidget.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/FavGallery.dart';
-import 'package:image_view_pro/widget/HoveredWidget.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
 import 'package:image_view_pro/widget/ViewModeDropDown.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
@@ -39,6 +39,8 @@ import 'package:path_provider/path_provider.dart';
 import '../widget/BottomBar.dart';
 import '../widget/ControllerButton.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
+
+import '../widget/ScaledHoverWidget.dart';
 
 class MainView extends ConsumerStatefulWidget {
   const MainView({super.key});
@@ -65,7 +67,7 @@ class _MainView extends ConsumerState<MainView> {
 
   final List<WindowInfo> _windows = [];
   StreamSubscription<ImageModel>? _imageSubscription;
-  bool _isLoadingImages = false;
+  bool? _isLoadingImages;
 
 
 
@@ -81,22 +83,18 @@ class _MainView extends ConsumerState<MainView> {
     return image;
   }
 
-  Future<Uint8List> getImageBytes(String path) async {
-    // 파일 경로에서 바이트 데이터를 읽어온다
-    Uint8List bytes = await File(path).readAsBytes();
-
-    return bytes;
-  }
-
 
   @override
   void initState() {
 
     super.initState();
+
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
     _loadFav();
+    _isLoadingImages = ref.read(imageLoadProvider);
   }
 
+  // 이미지 스트림 로딩
   Future<void> loadImagesStream(List<String?> paths) async {
     // 기존 구독이 있는지 확인함
     if (_imageSubscription != null) {
@@ -104,7 +102,6 @@ class _MainView extends ConsumerState<MainView> {
       _imageSubscription = null;
     }
 
-    ref.read(loadingProvider.notifier).state = true;
     _isLoadingImages = true;
 
     final stream = pathToImagesStream(paths: paths, poolSize: 8);
@@ -124,15 +121,11 @@ class _MainView extends ConsumerState<MainView> {
       onDone: () {
         debugPrint('모든 이미지 로딩 완료');
 
-        ref.read(loadingProvider.notifier).state = false;
         _isLoadingImages = false;
         _imageSubscription = null;
       },
       cancelOnError: false,
     );
-
-    // 필요할 때
-    // subscription.cancel();
   }
 
   Future<void> _loadOpt() async {
@@ -167,7 +160,7 @@ class _MainView extends ConsumerState<MainView> {
       await _imageSubscription!.cancel();
       _imageSubscription = null;
     }
-    if (_isLoadingImages) {
+    if (_isLoadingImages!) {
       ref.read(loadingProvider.notifier).state = false;
       _isLoadingImages = false;
     }
@@ -175,28 +168,35 @@ class _MainView extends ConsumerState<MainView> {
   }
 
   Future<void> loadFolderImagesSafe(String folderPath) async {
+
     // 이전 로딩 취소
     await _imageSubscription?.cancel();
 
-    ref.read(loadingProvider.notifier).state = true;
+    // ref.read(loadingProvider.notifier).state = true;
 
     _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
           (image) {
         ref.read(stateProvider.notifier).addImage(image);
 
-        if (mounted && ref.read(stateProvider).images.length % 5 == 0) {
-          setState(() {});
-        }
+        setState(() {});
       },
       onError: (e, st) => debugPrint('🔥 폴더 스트림 에러: $e'),
+
       onDone: () {
         debugPrint('✅ 폴더 로딩 완료');
-        ref.read(loadingProvider.notifier).state = false;
+        // ref.read(loadingProvider.notifier).state = false;
+        Flushbar(
+          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
+          duration: const Duration(seconds: 2),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
         setState(() {}); // 마지막 UI 갱신
       },
     );
   }
-
 
 
   @override
@@ -436,35 +436,30 @@ class _MainView extends ConsumerState<MainView> {
 
                             // 폴더를 드랍했다면
                             if (entity == FileSystemEntityType.directory) {
-                              ref.read(loadingProvider.notifier).state = true;
+                              // ref.read(loadingProvider.notifier).state = true;
 
                               try {
                                 debugPrint("${file.name}은 폴더.");
 
-                                List<String> paths = await getDirectoryPaths(file.path);
-                                debugPrint(paths.toString());
+                                // List<String> paths = await getImagePathsInDirectory(file.path);
+                                // debugPrint(paths.toString());
+                                //
+                                // final tempResult = await pathToImages(paths: paths);
+                                // debugPrint("temResult : ${tempResult.toString()}");
+                                //
+                                // ref.read(stateProvider.notifier).addImages(tempResult);
 
-                                const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                                loadFolderImagesSafe(file.path);
 
-                                List<String> iPaths = paths
-                                    .where((path) =>
-                                    imageExtensions.any((e) => path.endsWith(e))
-                                ).toList();
-                                debugPrint(iPaths.toString());
 
-                                final tempResult = await pathToImages(paths: iPaths);
-                                debugPrint("temResult : ${tempResult.toString()}");
-
-                                ref.read(stateProvider.notifier).addImages(tempResult);
-
-                                debugPrint(tempResult.toString());
+                                // debugPrint(tempResult.toString());
                               } on Exception catch (e) {
                                 // TODO
                               } finally {
-                                ref.read(loadingProvider.notifier).state = false;
+                                // ref.read(loadingProvider.notifier).state = false;
                               }
 
-
+                              // 파일 이라면
                             } else if (entity == FileSystemEntityType.file) {
                               // 이미지 확인
                               const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
@@ -474,7 +469,6 @@ class _MainView extends ConsumerState<MainView> {
                                 debugPrint("${file.name}은 이미지 파일!");
 
                                 ui.Image image = await getImageSize(file.path);
-                                String name = p.basenameWithoutExtension(file.path);
 
 
                                 ref.read(stateProvider.notifier).addImage(
@@ -485,26 +479,21 @@ class _MainView extends ConsumerState<MainView> {
                                     )
                                 );
 
-                                setState(() {
-                                });
+
 
                               } else {
 
                               }
                             }
+                            // 여러개의 이미지인 경우
                           } else {
                             List<String> paths = details.files.map((file) => file.path).toList();
 
-                            final tempResult = await pathToImages(paths: paths);
-
-                            ref.read(stateProvider.notifier).addImages(tempResult);
-
-                            setState(() {
-                              debugPrint(tempResult.toString());
-                            });
+                            loadImagesStream(paths);
                           }
 
                           setState(() {
+                            ref.read(stateProvider.notifier).updateIndex(0);
                           });
                         },
 
@@ -689,11 +678,36 @@ class _MainView extends ConsumerState<MainView> {
                                                                   allowMultiple: true,
                                                                 lockParentWindow: true
                                                               );
-                                                              if (kDebugMode) {
-                                                                print(result);
-                                                              }
+
 
                                                               List<String?> paths = result!.paths;
+
+                                                              if (paths.length == 1) {
+                                                                const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                                                                final path = paths.first;
+
+                                                                final ext = path?.toLowerCase();
+
+                                                                if (imageExtensions.any((e) => ext!.endsWith(e))) {
+                                                                  debugPrint("${path}은 이미지 파일!");
+
+                                                                  ui.Image image = await getImageSize(path!);
+
+
+                                                                  ref.read(stateProvider.notifier).addImage(
+                                                                      ImageModel(
+                                                                        height: image.height.toDouble(),
+                                                                        width: image.width.toDouble(),
+                                                                        path: path,
+                                                                      )
+                                                                  );
+
+
+
+                                                                }
+                                                              } else {
+
+                                                              }
 
                                                               final imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
                                                               
@@ -739,34 +753,8 @@ class _MainView extends ConsumerState<MainView> {
                                                                   );
                                                                   debugPrint("$result는 폴더.");
 
-                                                                  List<String> paths = await getImagePathsInDirectory(result!);
-                                                                  debugPrint(paths.toString());
+                                                                  loadFolderImagesSafe(result!);
 
-                                                                  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-
-                                                                  List<String> iPaths = paths
-                                                                      .where((path) =>
-                                                                      imageExtensions.any((e) => path.endsWith(e))
-                                                                  ).toList();
-                                                                  debugPrint(iPaths.toString());
-
-                                                                  final tempResult = await pathToImages(paths: iPaths);
-                                                                  debugPrint("temResult : ${tempResult.toString()}");
-
-                                                                  ref.read(stateProvider.notifier).addImages(tempResult);
-
-                                                                  if (mounted) {
-                                                                    Flushbar(
-                                                                      message: "${tempResult.length}개의 이미지를 불러왔습니다.",
-                                                                      duration: const Duration(seconds: 2),
-                                                                      flushbarPosition: FlushbarPosition.TOP,
-                                                                      margin: const EdgeInsets.all(20),
-                                                                      borderRadius: BorderRadius.circular(10),
-                                                                      backgroundColor: Colors.grey.shade500,
-                                                                    ).show(context);
-                                                                  }
-
-                                                                  debugPrint(tempResult.toString());
                                                                 } on Exception catch (e) {
                                                                   // TODO
                                                                 } finally {
@@ -947,32 +935,34 @@ class _MainView extends ConsumerState<MainView> {
                     Positioned(
                       bottom: 20,
                       right: MediaQuery.of(context).size.width * 0.5 - 350,
-                      child: const BottomBar()
+                      child: const AllOpacityWidget(child: BottomBar())
                     ),
 
                   // 왼쪽으로 돌리기 버튼
                   Positioned(
                       bottom: 20,
                       left: MediaQuery.of(context).size.width * 0.5 - 450,
-                      child: HoveredWidget(
-                          customWidget: IconButton(
-                            onPressed: () {
-                              ref.read(frontImageProvider.notifier).state = "";
-                              ref.read(backImageProvider.notifier).state = "";
+                      child: AllOpacityWidget(
+                        child: ScaleHoveredWidget(
+                            customWidget: IconButton(
+                              onPressed: () {
+                                ref.read(frontImageProvider.notifier).state = "";
+                                ref.read(backImageProvider.notifier).state = "";
 
-                              if (ref.read(imageAngleProvider) == 360 && state.images.isNotEmpty) {
-                                ref.read(imageAngleProvider.notifier).state = 0;
-                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
-                              } else if (state.images.isNotEmpty) {
-                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
-                              }
-                              debugPrint(ref.read(imageAngleProvider).toString());
-                            },
-                            icon: const Icon(
-                              Icons.rotate_90_degrees_cw_outlined,
-                              size: 50,
-                            ),
-                          )
+                                if (ref.read(imageAngleProvider) == 360 && state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = 0;
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
+                                } else if (state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
+                                }
+                                debugPrint(ref.read(imageAngleProvider).toString());
+                              },
+                              icon: const Icon(
+                                Icons.rotate_90_degrees_cw_outlined,
+                                size: 50,
+                              ),
+                            )
+                        ),
                       )
                   ),
 
@@ -980,25 +970,27 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                       bottom: 20,
                       right: MediaQuery.of(context).size.width * 0.5 -450,
-                      child: HoveredWidget(
-                          customWidget: IconButton(
-                            onPressed: () {
-                              ref.read(frontImageProvider.notifier).state = "";
-                              ref.read(backImageProvider.notifier).state = "";
+                      child: AllOpacityWidget(
+                        child: ScaleHoveredWidget(
+                            customWidget: IconButton(
+                              onPressed: () {
+                                ref.read(frontImageProvider.notifier).state = "";
+                                ref.read(backImageProvider.notifier).state = "";
 
-                              if (ref.read(imageAngleProvider) == -360 && state.images.isNotEmpty) {
-                                ref.read(imageAngleProvider.notifier).state = 0;
-                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
-                              } else if (state.images.isNotEmpty) {
-                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
-                              }
-                              debugPrint(ref.read(imageAngleProvider).toString());
-                            },
-                            icon: const Icon(
-                              Icons.rotate_90_degrees_ccw_outlined,
-                              size: 50,
-                            ),
-                          )
+                                if (ref.read(imageAngleProvider) == -360 && state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = 0;
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
+                                } else if (state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
+                                }
+                                debugPrint(ref.read(imageAngleProvider).toString());
+                              },
+                              icon: const Icon(
+                                Icons.rotate_90_degrees_ccw_outlined,
+                                size: 50,
+                              ),
+                            )
+                        ),
                       )
                   ),
 
@@ -1006,31 +998,35 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                       top: 40,
                       right: 30,
-                      child: HoveredWidget(
-                        customWidget: OutlinedButton(
-                          onPressed: () {
-                            ref.read(stateProvider.notifier).updateZoom(1.0);
-                          },
-                          child: const Text("크기 초기화")
+                      child: AllOpacityWidget(
+                        child: ScaleHoveredWidget(
+                          customWidget: OutlinedButton(
+                            onPressed: () {
+                              ref.read(stateProvider.notifier).updateZoom(1.0);
+                            },
+                            child: const Text("크기 초기화")
+                        )
+                                            ),
                       )
-                    )
                   ),
 
                   Positioned(
                       top: 90,
                       right: 30,
-                      child: HoveredWidget(
-                        customWidget: OutlinedButton(
-                            onPressed: () {
-                              if (ref.read(lookModeProvider) == "Long") {
-                                ref.read(lookModeProvider.notifier).state = "Cut";
-                                ref.read(stateProvider.notifier).updateZoom(1.0);
-                              } else {
-                                ref.read(lookModeProvider.notifier).state = "Long";
-                                ref.read(stateProvider.notifier).updateZoom(0.6);
-                              }
-                            },
-                            child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
+                      child: AllOpacityWidget(
+                        child: ScaleHoveredWidget(
+                          customWidget: OutlinedButton(
+                              onPressed: () {
+                                if (ref.read(lookModeProvider) == "Long") {
+                                  ref.read(lookModeProvider.notifier).state = "Cut";
+                                  ref.read(stateProvider.notifier).updateZoom(1.0);
+                                } else {
+                                  ref.read(lookModeProvider.notifier).state = "Long";
+                                  ref.read(stateProvider.notifier).updateZoom(0.6);
+                                }
+                              },
+                              child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
+                          ),
                         ),
                       )
                   ),

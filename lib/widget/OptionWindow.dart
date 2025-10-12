@@ -262,14 +262,8 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
 
                               if (result == "Success") {
                                 if (mounted) {
-                                  Flushbar(
-                                    message: "로그인 저장 성공!",
-                                    duration: const Duration(seconds: 2),
-                                    flushbarPosition: FlushbarPosition.TOP,
-                                    margin: const EdgeInsets.all(20),
-                                    borderRadius: BorderRadius.circular(10),
-                                    backgroundColor: Colors.grey.shade500,
-                                  ).show(ctx);
+
+
                                 }
                               } else {
                                 if (mounted) {

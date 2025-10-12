@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -9,11 +10,15 @@ import 'package:image_view_pro/func/aboutWindow.dart';
 import 'package:image_view_pro/func/saveImages.dart';
 import 'package:image_view_pro/func/translate.dart';
 import 'package:image_view_pro/main.dart';
+import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/util/OpenExplorer.dart';
 import 'package:image_view_pro/widget/OptionWindow.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:path/path.dart' as p;
 
+import '../func/getDirectoryPaths.dart';
 import '../func/pathToImageWithIsolate.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
@@ -25,7 +30,10 @@ class DeskTopMenuBar extends ConsumerStatefulWidget {
 
 class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
   Uint8List? imageByte;
+  StreamSubscription<ImageModel>? _imageSubscription;
+  bool? _isLoadingImages;
 
+  // 이미지 인식/번역
   Future<String?> startProcess() async {
 
     final state = ref.watch(stateProvider);
@@ -78,6 +86,101 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
     return null;
   }
 
+  // 이미지 스트림 로딩, 이미지들의 경로를 인수로 가져온다
+  Future<void> loadImagesStream(List<String?> paths) async {
+    // 기존 구독이 있는지 확인함
+    if (_imageSubscription != null) {
+      await _imageSubscription!.cancel();
+      _imageSubscription = null;
+    }
+
+    _isLoadingImages = true;
+
+    final stream = pathToImagesStream(paths: paths, poolSize: 8);
+
+    _imageSubscription = stream.listen(
+          (image) {
+        ref.read(stateProvider.notifier).addImage(image);
+        if (mounted) {
+          setState(() {
+
+          });
+        }
+      },
+      onError: (e, st) {
+        debugPrint('Stream error: $e');
+      },
+      onDone: () {
+        debugPrint('모든 이미지 로딩 완료');
+
+        Flushbar(
+          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
+          duration: const Duration(seconds: 2),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
+
+        _isLoadingImages = false;
+        _imageSubscription = null;
+      },
+      cancelOnError: false,
+    );
+  }
+
+  // 이미지 스트림 캔슬
+  Future<void> cancelImageLoading() async {
+    if (_imageSubscription != null) {
+      await _imageSubscription!.cancel();
+      _imageSubscription = null;
+    }
+    if (_isLoadingImages!) {
+      ref.read(loadingProvider.notifier).state = false;
+      _isLoadingImages = false;
+    }
+    debugPrint('🚫 이미지 로딩 취소됨');
+  }
+
+  // 폴더 이미지 스트림 로딩, 폴더의 경로를 가져오면 된다
+  Future<void> loadFolderImagesSafe(String folderPath) async {
+
+    // 이전 로딩 취소
+    await _imageSubscription?.cancel();
+
+    // ref.read(loadingProvider.notifier).state = true;
+
+    _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
+          (image) {
+        ref.read(stateProvider.notifier).addImage(image);
+
+        setState(() {});
+      },
+      onError: (e, st) => debugPrint('🔥 폴더 스트림 에러: $e'),
+
+      onDone: () {
+        debugPrint('✅ 폴더 로딩 완료');
+        // ref.read(loadingProvider.notifier).state = false;
+        Flushbar(
+          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
+          duration: const Duration(seconds: 2),
+          flushbarPosition: FlushbarPosition.TOP,
+          margin: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(10),
+          backgroundColor: Colors.grey.shade500,
+        ).show(context);
+        setState(() {}); // 마지막 UI 갱신
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoadingImages = ref.read(imageLoadProvider);
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -107,21 +210,23 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                           FilePickerResult? result = await FilePicker.platform.pickFiles(
                               allowMultiple: true
                           );
-                          debugPrint(result.toString());
 
                           List<String?> paths = result!.paths;
+                          ref.read(stateProvider).images.clear();
+                          ref.read(stateProvider.notifier).updateIndex(0);
 
-                          final tempResult = await pathToImages(paths: paths);
 
-
+                          if (paths.length < 50) {
+                            final tempResult = await pathToImages(paths: paths);
+                            ref.read(stateProvider.notifier).addImages(tempResult);
+                          } else {
+                            loadImagesStream(paths);
+                          }
 
                           setState(() {
-                            ref.read(stateProvider).images.clear();
-                            ref.read(stateProvider.notifier).addImages(tempResult);
-                            debugPrint(state.images.toString());
                           });
                         },
-                        child: const MenuAcceleratorLabel("파일/폴더에서.. (F)"),
+                        child: const MenuAcceleratorLabel("파일에서.. (F)"),
                       ),
                       MenuItemButton(
                         onPressed: () {
@@ -156,16 +261,20 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                             List<String?> paths = result!.paths;
 
-                            final tempResult = await pathToImages(paths: paths);
+                            if (paths.length < 50) {
+                              final tempResult = await pathToImages(paths: paths);
+                              ref.read(stateProvider.notifier).addImages(tempResult);
+                            } else {
+                              loadImagesStream(paths);
+                            }
 
                             setState(() {
-                              ref.read(stateProvider.notifier).addImages(tempResult);
                               debugPrint(state.images.toString());
                             });
                           }
 
                         },
-                        child: const MenuAcceleratorLabel("파일/폴더에서.. (F)"),
+                        child: const MenuAcceleratorLabel("파일에서.. (F)"),
                       ),
                     ],
                     child: const MenuAcceleratorLabel("이미지 추가 (A)"),
@@ -176,6 +285,9 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                       setState(() {
                         ref.read(stateProvider).images.clear();
+                        ref.read(stateProvider.notifier).updateIndex(0);
+                        ref.read(stateProvider.notifier).updateZoom(0);
+                        ref.read(stateProvider.notifier).updateSize(1);
                         ref.read(frontImageProvider.notifier).state = "";
                         ref.read(backImageProvider.notifier).state = "";
                         debugPrint(state.images.toString());
@@ -189,7 +301,44 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     menuChildren: [
                       MenuItemButton(
                         onPressed: () {
+                          Future.microtask(() async {
+                            String? savePath = await FilePicker.platform.getDirectoryPath(
+                                dialogTitle: "저장할 폴더를 선택하세요"
+                            );
 
+                            if (savePath == null) {
+                              return;
+                            }
+
+                            try {
+                              final File originFile = File(state.images[state.curIndex].path);
+                              if (await originFile.exists()) {
+                                final String fileName = p.basename(originFile.path);
+                                final String newFilePath = p.join(savePath, fileName);
+
+                                // 파일을 복사시키는 식으로 저장한다
+                                await originFile.copy(newFilePath);
+
+                                Flushbar(
+                                  message: "이미지 저장 완료 (클릭시 저장한 곳을 엽니다)",
+                                  duration: const Duration(seconds: 2),
+                                  flushbarPosition: FlushbarPosition.TOP,
+                                  margin: const EdgeInsets.all(20),
+                                  borderRadius: BorderRadius.circular(10),
+                                  backgroundColor: Colors.grey.shade500,
+                                  onTap: (e) {
+                                    debugPrint("save");
+                                    openFolderInExplorer(savePath);
+                                  },
+                                ).show(context);
+                              } else {
+                                debugPrint("File not found : $originFile");
+                              }
+
+                            } catch (e) {
+                              debugPrint("error has occurred when file saving, $e");
+                            }
+                          });
                         },
                         child: const MenuAcceleratorLabel("현 이미지 저장(C)"),
                       ),
@@ -287,14 +436,14 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
                   ),
 
-                  // 일괄 변환기
-                  MenuItemButton(
-                    onPressed: () {
-                      ref.read(modalProvider.notifier).state = true;
-                      ref.read(converterProvider.notifier).state = true;
-                    },
-                    child: const MenuAcceleratorLabel("일괄 변환기(A)"),
-                  ),
+                  // // 일괄 변환기 ** 예정
+                  // MenuItemButton(
+                  //   onPressed: () {
+                  //     ref.read(modalProvider.notifier).state = true;
+                  //     ref.read(converterProvider.notifier).state = true;
+                  //   },
+                  //   child: const MenuAcceleratorLabel("일괄 변환기(A)"),
+                  // ),
 
                   // 인식
                   MenuItemButton(
