@@ -69,6 +69,8 @@ class _MainView extends ConsumerState<MainView> {
   StreamSubscription<ImageModel>? _imageSubscription;
   bool? _isLoadingImages;
 
+  late ScrollController _scrollController;
+
 
 
   Future<ui.Image> getImageSize(String path) async {
@@ -92,6 +94,7 @@ class _MainView extends ConsumerState<MainView> {
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
     _loadFav();
     _isLoadingImages = ref.read(imageLoadProvider);
+    _scrollController = ScrollController();
   }
 
   // 이미지 스트림 로딩
@@ -203,6 +206,7 @@ class _MainView extends ConsumerState<MainView> {
   void dispose() {
     _imageSubscription?.cancel();
     _imageSubscription = null;
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -903,17 +907,24 @@ class _MainView extends ConsumerState<MainView> {
                                                     absorbing: HardwareKeyboard.instance.isControlPressed,
                                                     child: SizedBox(
                                                       height: MediaQuery.of(context).size.height * 0.9,
-                                                      width: MediaQuery.of(context).size.width * state.curZoom,
-                                                      child: ListView(
-                                                        physics: const AlwaysScrollableScrollPhysics(),
-                                                        children: [
-                                                          for (int i = 0; i < state.images.length; i++)
-                                                            Image.file(
-                                                              key: ValueKey(state.images[i].path),
-                                                              File(state.images[i].path),
-                                                              fit: BoxFit.contain,
-                                                            ),
-                                                        ],
+                                                      width: 500 * state.curZoom,
+                                                      child: Scrollbar(
+                                                        controller: _scrollController,
+                                                        thumbVisibility: true,
+                                                        trackVisibility: true,
+                                                        child: ListView(
+                                                          padding: EdgeInsets.zero,
+                                                          controller: _scrollController,
+                                                          physics: const AlwaysScrollableScrollPhysics(),
+                                                          children: [
+                                                            for (int i = 0; i < state.images.length; i++)
+                                                              Image.file(
+                                                                key: ValueKey(state.images[i].path),
+                                                                File(state.images[i].path),
+                                                                fit: BoxFit.cover,
+                                                              ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -1023,6 +1034,7 @@ class _MainView extends ConsumerState<MainView> {
                                 } else {
                                   ref.read(lookModeProvider.notifier).state = "Long";
                                   ref.read(stateProvider.notifier).updateZoom(0.6);
+                                  _scrollController = ScrollController();
                                 }
                               },
                               child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")

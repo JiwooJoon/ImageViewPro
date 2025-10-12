@@ -5,17 +5,19 @@ import 'package:flutter/foundation.dart';
 
 class GoogleVisionOcr {
   // ⚠️ 1. 여기에 발급받은 Google Cloud API 키를 입력하세요.
-  // 실제 앱에서는 환경 변수나 보안 저장소를 사용해야 합니다.
-  static const String apiKey = "";
 
-  // Google Vision API의 텍스트 감지 엔드포인트
-  static const String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=$apiKey";
 
   // 2. OCR (텍스트 인식) 함수
-  Future<String> recognizeText(File imageFile) async {
+  Future<String> recognizeText(File imageFile, String myKey) async {
     // if (apiKey == "YOUR_GOOGLE_CLOUD_VISION_API_KEY") {
     //   return "ERROR: Please replace YOUR_GOOGLE_CLOUD_VISION_API_KEY with your actual API key.";
     // }
+
+    // 실제 앱에서는 환경 변수나 보안 저장소를 사용해야 합니다.
+    final String apiKey = myKey;
+
+    // Google Vision API의 텍스트 감지 엔드포인트
+    final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=$apiKey";
 
     // 1. 이미지를 Base64 문자열로 변환
     final List<int> imageBytes = imageFile.readAsBytesSync();

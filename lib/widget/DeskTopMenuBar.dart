@@ -58,14 +58,15 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
       final api = prefs.get("selected_api");
 
       final apiKey = await state.storage.read(key: 'apiKey');
+      debugPrint(apiKey.toString());
 
       final file = File(state.images[state.curIndex].path);
-      final recognized = await state.recognizer.recognizeText(file);
+      final recognized = await state.recognizer.recognizeText(file, apiKey!);
 
       debugPrint('인식 결과 : ${recognized.substring(0, 20)}...');
 
       // 인식한 결과를 api 사용
-      final result = await translateGoogle(recognized, apiKey!);
+      final result = await translateGoogle(recognized, apiKey);
 
       switch(api) {
         case "Google Translate API":
