@@ -367,7 +367,7 @@ class _FavGallery extends ConsumerState<FavGallery> {
               ),
 
               // 기능 버튼들
-              const SizedBox(height: 25),
+              const SizedBox(height: 15),
 
               // 가져오기 버튼
               OutlinedButton.icon(

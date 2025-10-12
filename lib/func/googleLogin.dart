@@ -61,7 +61,7 @@ Future<AutoRefreshingAuthClient> getAuthClient(Map<String,dynamic> options, Flut
 
   await dotenv.load(fileName: ".env");
 
-  // 클라이언트 아이디 생성 (clientSecret 자리는 빈 문자열로 둡니다.)
+  // 클라이언트 아이디 생성
   final clientId = ClientId(
     options["clientId"],
     dotenv.env['CLIENT_SECRET']
@@ -73,10 +73,10 @@ Future<AutoRefreshingAuthClient> getAuthClient(Map<String,dynamic> options, Flut
     return autoRefreshingClient(clientId, savedCreds, http.Client());
   }
 
-  // PKCE 활성화를 위해 redirectUri를 로컬 루프백으로 지정합니다.
+  // PKCE 활성화 redirectUri를 로컬 루프백으로
   final redirectUri = Uri.parse('http://localhost:$_localPort/');
 
-  // clientViaUserConsent 함수를 사용하여 인증을 시도합니다.
+  // 인증을 시도
   final client = await clientViaUserConsent(
     clientId,
     options["scope"],
@@ -95,13 +95,13 @@ Future<String> loginAndSave(Map<String,dynamic> options, FlutterSecureStorage st
 
   await dotenv.load(fileName: ".env");
 
-  // 클라이언트 아이디 생성 (clientSecret 자리는 빈 문자열로 둡니다.)
+  // 클라이언트 아이디 생성
   final clientId = ClientId(
       options["clientId"],
       dotenv.env['CLIENT_SECRET']
   );
 
-  // clientViaUserConsent 함수를 사용하여 인증을 시도합니다.
+  // 인증시도
   final client = await clientViaUserConsent(
     clientId,
     options["scope"],

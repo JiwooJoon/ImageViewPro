@@ -25,6 +25,7 @@ import 'package:image_view_pro/widget/AllOpacityWidget.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
+import 'package:image_view_pro/widget/OpacityWidget.dart';
 import 'package:image_view_pro/widget/ViewModeDropDown.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
@@ -66,7 +67,7 @@ class _MainView extends ConsumerState<MainView> {
   bool _isCtrlPressed = false; // 리스트 뷰에서 컨트롤키/일반키 스크롤 구분을 위함
 
   final List<WindowInfo> _windows = [];
-  StreamSubscription<ImageModel>? _imageSubscription;
+  late StreamSubscription<ImageModel>? _imageSubscription = ref.read(subscriptProvider);
   bool? _isLoadingImages;
 
   late ScrollController _scrollController;
@@ -93,7 +94,6 @@ class _MainView extends ConsumerState<MainView> {
 
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
     _loadFav();
-    _isLoadingImages = ref.read(imageLoadProvider);
     _scrollController = ScrollController();
   }
 
@@ -105,13 +105,22 @@ class _MainView extends ConsumerState<MainView> {
       _imageSubscription = null;
     }
 
+    ref.read(imageLoadProvider.notifier).state = true;
+
     _isLoadingImages = true;
 
     final stream = pathToImagesStream(paths: paths, poolSize: 8);
 
+
     _imageSubscription = stream.listen(
       (image) {
+
         ref.read(stateProvider.notifier).addImage(image);
+
+        if (ref.read(imageLoadProvider) == false) {
+          _imageSubscription?.cancel();
+          ref.read(stateProvider.notifier).clearImages();
+        }
         if (mounted) {
           setState(() {
 
@@ -126,6 +135,7 @@ class _MainView extends ConsumerState<MainView> {
 
         _isLoadingImages = false;
         _imageSubscription = null;
+        ref.read(imageLoadProvider.notifier).state = false;
       },
       cancelOnError: false,
     );
@@ -174,12 +184,18 @@ class _MainView extends ConsumerState<MainView> {
 
     // 이전 로딩 취소
     await _imageSubscription?.cancel();
+    ref.read(imageLoadProvider.notifier).state = true;
 
-    // ref.read(loadingProvider.notifier).state = true;
 
     _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
           (image) {
+
         ref.read(stateProvider.notifier).addImage(image);
+
+        if (ref.read(imageLoadProvider) == false) {
+          _imageSubscription?.cancel();
+          ref.read(stateProvider.notifier).clearImages();
+        }
 
         setState(() {});
       },
@@ -187,7 +203,8 @@ class _MainView extends ConsumerState<MainView> {
 
       onDone: () {
         debugPrint('✅ 폴더 로딩 완료');
-        // ref.read(loadingProvider.notifier).state = false;
+        ref.read(imageLoadProvider.notifier).state = false;
+        _isLoadingImages = false;
         Flushbar(
           message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
           duration: const Duration(seconds: 2),
@@ -199,6 +216,7 @@ class _MainView extends ConsumerState<MainView> {
         setState(() {}); // 마지막 UI 갱신
       },
     );
+
   }
 
 
@@ -222,6 +240,7 @@ class _MainView extends ConsumerState<MainView> {
     final isFavorite = ref.watch(favProvider);
     final isConverting = ref.watch(converterProvider);
     final isModaling = ref.watch(modalProvider);
+    _isLoadingImages = ref.watch(imageLoadProvider);
 
     // 스크롤 모드용
     bool _isCtrlPressed = false;
@@ -942,12 +961,12 @@ class _MainView extends ConsumerState<MainView> {
                       },
                     ),
                   ),
-                  if (state.images.isNotEmpty)
-                    Positioned(
-                      bottom: 20,
-                      right: MediaQuery.of(context).size.width * 0.5 - 350,
-                      child: const AllOpacityWidget(child: BottomBar())
-                    ),
+
+                  Positioned(
+                    bottom: 20,
+                    right: MediaQuery.of(context).size.width * 0.5 - 350,
+                    child: AllOpacityWidget(child: BottomBar())
+                  ),
 
                   // 왼쪽으로 돌리기 버튼
                   Positioned(
@@ -1043,9 +1062,39 @@ class _MainView extends ConsumerState<MainView> {
                       )
                   ),
 
-                  const Positioned(
+                  Positioned(
+                    right: 20,
+                    bottom: 25,
+                    child: ref.read(avoidWidgetProvider) == false ? Tooltip(
+                      message: "인터페이스를 가립니다.",
+                      child: IconButton.outlined(
+                          onPressed: () {
+                            ref.read(avoidWidgetProvider.notifier).state = true;
+                          },
+                          icon: const Icon(
+                            Icons.image_outlined,
+                            size: 75,
+                          )
+                      ),
+                    ) : OpacityWidget(
+                        child: Tooltip(
+                          message: "인터페이스를 다시 표시합니다.",
+                          child: IconButton.outlined(
+                              onPressed: () {
+                                ref.read(avoidWidgetProvider.notifier).state = false;
+                              },
+                              icon: const Icon(
+                                Icons.image_rounded,
+                                size: 75,
+                              )
+                          ),
+                        )
+                    )
+                  ),
+
+                  Positioned(
                       top: 0,
-                      child: DeskTopMenuBar()
+                      child: AllOpacityWidget(child: DeskTopMenuBar())
                   ),
                 ]
             )

@@ -22,7 +22,10 @@ import '../func/getDirectoryPaths.dart';
 import '../func/pathToImageWithIsolate.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
-  const DeskTopMenuBar({super.key});
+  const DeskTopMenuBar({
+    super.key,
+  });
+
 
   @override
   ConsumerState<DeskTopMenuBar> createState() => _DeskTopMenuBar();
@@ -97,11 +100,22 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
     _isLoadingImages = true;
 
+    ref.read(imageLoadProvider.notifier).state = true;
+
+
+
     final stream = pathToImagesStream(paths: paths, poolSize: 8);
+
 
     _imageSubscription = stream.listen(
           (image) {
+
         ref.read(stateProvider.notifier).addImage(image);
+
+          if (ref.read(imageLoadProvider) == false) {
+            _imageSubscription?.cancel();
+            ref.read(stateProvider.notifier).clearImages();
+          }
         if (mounted) {
           setState(() {
 
@@ -123,6 +137,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
           backgroundColor: Colors.grey.shade500,
         ).show(context);
 
+        ref.read(imageLoadProvider.notifier).state = false;
         _isLoadingImages = false;
         _imageSubscription = null;
       },
@@ -149,11 +164,17 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
     // 이전 로딩 취소
     await _imageSubscription?.cancel();
 
-    // ref.read(loadingProvider.notifier).state = true;
+    ref.read(imageLoadProvider.notifier).state = true;
 
     _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
           (image) {
+
         ref.read(stateProvider.notifier).addImage(image);
+
+            if (ref.read(imageLoadProvider) == false) {
+              _imageSubscription?.cancel();
+              ref.read(stateProvider.notifier).clearImages();
+            }
 
         setState(() {});
       },
@@ -161,7 +182,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
       onDone: () {
         debugPrint('✅ 폴더 로딩 완료');
-        // ref.read(loadingProvider.notifier).state = false;
+        ref.read(imageLoadProvider.notifier).state = false;
         Flushbar(
           message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
           duration: const Duration(seconds: 2),
@@ -170,6 +191,8 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
           borderRadius: BorderRadius.circular(10),
           backgroundColor: Colors.grey.shade500,
         ).show(context);
+
+        // _isLoadingImages = false;
         setState(() {}); // 마지막 UI 갱신
       },
     );
@@ -178,7 +201,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
   @override
   void initState() {
     super.initState();
-    _isLoadingImages = ref.read(imageLoadProvider);
   }
 
 
@@ -186,6 +208,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
+    _isLoadingImages = ref.watch(imageLoadProvider);
 
 
     return Row(
@@ -283,11 +306,12 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   // 이미지 닫기
                   MenuItemButton(
                     onPressed: () {
+                      ref.read(imageLoadProvider.notifier).state = false;
 
                       setState(() {
                         ref.read(stateProvider).images.clear();
                         ref.read(stateProvider.notifier).updateIndex(0);
-                        ref.read(stateProvider.notifier).updateZoom(0);
+                        ref.read(stateProvider.notifier).updateZoom(1.0);
                         ref.read(stateProvider.notifier).updateSize(1);
                         ref.read(frontImageProvider.notifier).state = "";
                         ref.read(backImageProvider.notifier).state = "";

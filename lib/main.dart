@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
@@ -33,6 +34,7 @@ final viewModeProvider = StateProvider<BoxFit>((ref) => BoxFit.contain);
 final lookModeProvider = StateProvider<String>((ref) => "Cut");
 final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 final favPathProvider = StateProvider<List<String>>((ref) => []);
+final subscriptProvider = StateProvider<StreamSubscription<ImageModel>?>((ref) => null);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
@@ -80,6 +82,10 @@ class StateProv extends StateNotifier<StateModel> {
 
   void addImages(List<ImageModel> images) {
     state.images.addAll(images);
+  }
+
+  void clearImages() {
+    state.images.clear();
   }
 
   void updateZoom(double zoom) {
