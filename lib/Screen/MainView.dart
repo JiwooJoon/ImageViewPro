@@ -850,7 +850,7 @@ class _MainView extends ConsumerState<MainView> {
                                                                       ref.read(favPathProvider).contains(state.images[i].path) ?
                                                                       MenuItem(
                                                                           label: "즐겨찾기 제거",
-                                                                          icon: Icons.favorite_border,
+                                                                          icon: Icons.favorite,
                                                                           onSelected: () async {
                                                                             ref.read(favPathProvider).remove(state.images[i].path);
                                                                             Map<String, List<String>> jsonIn = {
@@ -863,7 +863,7 @@ class _MainView extends ConsumerState<MainView> {
                                                                       ) :
                                                                       MenuItem(
                                                                           label: "즐겨찾기 추가",
-                                                                          icon: Icons.favorite,
+                                                                          icon: Icons.favorite_border,
                                                                           onSelected: () async {
                                                                             ref.read(favPathProvider).add(state.images[i].path);
                                                                             Map<String, List<String>> jsonIn = {
@@ -871,6 +871,16 @@ class _MainView extends ConsumerState<MainView> {
                                                                             };
 
                                                                             await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                          }
+                                                                      ),
+                                                                      MenuItem(
+                                                                          label: "목록에서 제거",
+                                                                          icon: Icons.remove,
+                                                                          onSelected: () async {
+                                                                            ref.read(stateProvider).images.removeAt(i);
+                                                                            setState(() {
+
+                                                                            });
                                                                           }
                                                                       ),
                                                                     ]
@@ -965,14 +975,18 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                     bottom: 20,
                     right: MediaQuery.of(context).size.width * 0.5 - 350,
-                    child: AllOpacityWidget(child: BottomBar())
+                    child: OpacityWidget(
+                      enable: ref.read(avoidWidgetProvider),
+                      child: const BottomBar()
+                    )
                   ),
 
                   // 왼쪽으로 돌리기 버튼
                   Positioned(
                       bottom: 20,
                       left: MediaQuery.of(context).size.width * 0.5 - 450,
-                      child: AllOpacityWidget(
+                      child: OpacityWidget(
+                        enable: ref.read(avoidWidgetProvider),
                         child: ScaleHoveredWidget(
                             customWidget: IconButton(
                               onPressed: () {
@@ -1000,7 +1014,8 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                       bottom: 20,
                       right: MediaQuery.of(context).size.width * 0.5 -450,
-                      child: AllOpacityWidget(
+                      child: OpacityWidget(
+                        enable: ref.read(avoidWidgetProvider),
                         child: ScaleHoveredWidget(
                             customWidget: IconButton(
                               onPressed: () {
@@ -1028,7 +1043,8 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                       top: 40,
                       right: 30,
-                      child: AllOpacityWidget(
+                      child: OpacityWidget(
+                        enable: ref.read(avoidWidgetProvider),
                         child: ScaleHoveredWidget(
                           customWidget: OutlinedButton(
                             onPressed: () {
@@ -1043,17 +1059,20 @@ class _MainView extends ConsumerState<MainView> {
                   Positioned(
                       top: 90,
                       right: 30,
-                      child: AllOpacityWidget(
+                      child: OpacityWidget(
+                        enable: ref.read(avoidWidgetProvider),
                         child: ScaleHoveredWidget(
                           customWidget: OutlinedButton(
                               onPressed: () {
-                                if (ref.read(lookModeProvider) == "Long") {
-                                  ref.read(lookModeProvider.notifier).state = "Cut";
-                                  ref.read(stateProvider.notifier).updateZoom(1.0);
-                                } else {
-                                  ref.read(lookModeProvider.notifier).state = "Long";
-                                  ref.read(stateProvider.notifier).updateZoom(0.6);
-                                  _scrollController = ScrollController();
+                                if (state.images.isNotEmpty) {
+                                  if (ref.read(lookModeProvider) == "Long") {
+                                    ref.read(lookModeProvider.notifier).state = "Cut";
+                                    ref.read(stateProvider.notifier).updateZoom(1.0);
+                                  } else {
+                                    ref.read(lookModeProvider.notifier).state = "Long";
+                                    ref.read(stateProvider.notifier).updateZoom(0.6);
+                                    _scrollController = ScrollController();
+                                  }
                                 }
                               },
                               child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
@@ -1072,11 +1091,12 @@ class _MainView extends ConsumerState<MainView> {
                             ref.read(avoidWidgetProvider.notifier).state = true;
                           },
                           icon: const Icon(
-                            Icons.image_outlined,
-                            size: 75,
+                            Icons.desktop_access_disabled,
+                            size: 55,
                           )
                       ),
                     ) : OpacityWidget(
+                      enable: true,
                         child: Tooltip(
                           message: "인터페이스를 다시 표시합니다.",
                           child: IconButton.outlined(
@@ -1084,8 +1104,8 @@ class _MainView extends ConsumerState<MainView> {
                                 ref.read(avoidWidgetProvider.notifier).state = false;
                               },
                               icon: const Icon(
-                                Icons.image_rounded,
-                                size: 75,
+                                Icons.desktop_windows,
+                                size: 55,
                               )
                           ),
                         )
@@ -1093,8 +1113,11 @@ class _MainView extends ConsumerState<MainView> {
                   ),
 
                   Positioned(
-                      top: 0,
-                      child: AllOpacityWidget(child: DeskTopMenuBar())
+                    top: 0,
+                    child: OpacityWidget(
+                      enable: ref.read(avoidWidgetProvider),
+                      child: const DeskTopMenuBar()
+                    )
                   ),
                 ]
             )

@@ -103,9 +103,9 @@ class _BottomBar extends ConsumerState<BottomBar> {
         child: Container(
           decoration: const BoxDecoration(
             borderRadius: BorderRadius.all(Radius.circular(30)),
-            color: Colors.white12,
+            color: Colors.grey,
           ),
-          height: 125,
+          height: 100,
           width: 700,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
@@ -188,8 +188,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/back_attach2.png',
-                                height: 35,
-                                width: 35,
+                                height: 30,
+                                width: 30,
                               )
                           ),
                           // 오른쪽 떼어내기
@@ -199,8 +199,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/back_detach2.png',
-                                height: 35,
-                                width: 35,
+                                height: 30,
+                                width: 30,
                               )
                           )
                         ],
@@ -222,8 +222,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/front_attach2.png',
-                                height: 35,
-                                width: 35,
+                                height: 30,
+                                width: 30,
                               )
                           ),
                           // 왼쪽 떼어내기
@@ -233,8 +233,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/front_detach2.png',
-                                height: 35,
-                                width: 35,
+                                height: 30,
+                                width: 30,
                               )
                           )
                         ],

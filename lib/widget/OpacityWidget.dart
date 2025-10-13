@@ -3,12 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class OpacityWidget extends ConsumerStatefulWidget {
-  const OpacityWidget({
+  OpacityWidget({
     super.key,
-    required this.child
+    required this.child,
+    required this.enable
   });
 
   final Widget child;
+  bool enable = false;
 
   @override
   ConsumerState<OpacityWidget> createState() {
@@ -25,7 +27,7 @@ class _OpacityWidget extends ConsumerState<OpacityWidget> {
   Widget build(BuildContext context) {
 
 
-    return MouseRegion(
+    return widget.enable ? MouseRegion(
       onEnter: (e) {
         setState(() {
           _hovered = true;
@@ -37,10 +39,10 @@ class _OpacityWidget extends ConsumerState<OpacityWidget> {
         });
       },
       child: AnimatedOpacity(
-          opacity: _hovered ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 100),
-          child: widget.child,
+        opacity: _hovered ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 100),
+        child: widget.child,
       ),
-    );
+    ) : widget.child;
   }
 }

@@ -240,12 +240,13 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                           ref.read(stateProvider.notifier).updateIndex(0);
 
 
-                          if (paths.length < 50) {
-                            final tempResult = await pathToImages(paths: paths);
-                            ref.read(stateProvider.notifier).addImages(tempResult);
-                          } else {
-                            loadImagesStream(paths);
-                          }
+                          // if (paths.length < 50) {
+                          //   final tempResult = await pathToImages(paths: paths);
+                          //   ref.read(stateProvider.notifier).addImages(tempResult);
+                          // } else {
+                          //   loadImagesStream(paths);
+                          // }
+                          loadImagesStream(paths);
 
                           setState(() {
                           });
@@ -461,18 +462,53 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
                   ),
 
-                  // // 일괄 변환기 ** 예정
-                  // MenuItemButton(
-                  //   onPressed: () {
-                  //     ref.read(modalProvider.notifier).state = true;
-                  //     ref.read(converterProvider.notifier).state = true;
-                  //   },
-                  //   child: const MenuAcceleratorLabel("일괄 변환기(A)"),
-                  // ),
+                  // 일괄 변환기 ** 예정
+                  MenuItemButton(
+                    onPressed: () {
+                      if (ref.read(imageConvertProvider) == true) {
+                        Flushbar(
+                          message: "변환중인 이미지가 있습니다.",
+                          duration: const Duration(seconds: 2),
+                          flushbarPosition: FlushbarPosition.TOP,
+                          margin: const EdgeInsets.all(20),
+                          borderRadius: BorderRadius.circular(10),
+                          backgroundColor: Colors.grey.shade500,
+                        ).show(context);
+                        return ;
+                      }
+                      ref.read(modalProvider.notifier).state = true;
+                      ref.read(converterProvider.notifier).state = true;
+                    },
+                    child: const MenuAcceleratorLabel("일괄 변환기(A)"),
+                  ),
 
                   // 인식
                   MenuItemButton(
                     onPressed: () async {
+                      if (state.images.isEmpty) {
+                        Flushbar(
+                          message: "이미지가 비어있습니다.",
+                          duration: const Duration(seconds: 2),
+                          flushbarPosition: FlushbarPosition.TOP,
+                          margin: const EdgeInsets.all(20),
+                          borderRadius: BorderRadius.circular(10),
+                          backgroundColor: Colors.grey.shade500,
+                        ).show(context);
+                        return;
+                      }
+
+                      if (state.curSize != 1) {
+                        Flushbar(
+                          message: "이미지를 한장만 보고 있을 때 가능합니다.",
+                          duration: const Duration(seconds: 2),
+                          flushbarPosition: FlushbarPosition.TOP,
+                          margin: const EdgeInsets.all(20),
+                          borderRadius: BorderRadius.circular(10),
+                          backgroundColor: Colors.grey.shade500,
+                        ).show(context);
+                        return;
+                      }
+
                       final result = await startProcess();
                       createWindow(windowName: "translate_window", windows: [], data: result);
                     },

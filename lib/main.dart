@@ -25,6 +25,7 @@ final converterProvider = StateProvider<bool>((ref) => false);
 final modalProvider = StateProvider<bool>((ref) => false);
 final imageLoadProvider = StateProvider<bool>((ref) => false);
 final avoidWidgetProvider = StateProvider<bool>((ref) => false);
+final imageConvertProvider = StateProvider<bool>((ref) => false);
 
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final backGroundProvider = StateProvider<List<String>>((ref) => []);

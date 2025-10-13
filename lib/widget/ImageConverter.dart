@@ -3,7 +3,9 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:googleapis/chat/v1.dart' hide Image, TextButton;
+import 'package:path_provider/path_provider.dart';
 
 import '../model/ImageModel.dart';
 import 'package:another_flushbar/flushbar.dart';
@@ -31,10 +33,19 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
   List<String> _paths = [];
   final Map<String, bool> _checkedFiles = {};
   late List<bool>? _hoverOn = [];
+  String? _outputPath;
 
   int _curIndex = 0;
   double _curAngle = 0;
   List<double> _curFlip = [1.0, 1.0, 1.0];
+  int _scaleValue = 2;
+  String _extValue = "jpg";
+  String _howToSave = "각 폴더에";
+  final Map<String ,String> _saveHow = {
+    "각 폴더에" : "각 이미지가 있는 폴더에 저장됩니다",
+    "특정 폴더에" : "저장할 폴더를 지정합니다",
+     "각 폴더 아래에" : "각 이미지의 폴더 하위에 lal_converted 폴더를 생성해 그곳에 저장합니다."
+  };
 
 
   bool? _everyBoxChecked = false;
@@ -50,6 +61,10 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
     _paths = widget.images.map((image) => image.path).toList();
 
     debugPrint(_paths.toString());
+
+    // 초기 저장하는 곳 설정
+    final appDir = await getApplicationDocumentsDirectory();
+    _outputPath = Directory("${appDir.path}/converted").toString();
 
     if (mounted) {
       setState(() {
@@ -121,7 +136,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.black54, width: 3)
                   ),
-                  child: InteractiveViewer(
+                  child: _paths.isNotEmpty ? InteractiveViewer(
                     panAxis: PanAxis.free,
                     scaleEnabled: false,
                     panEnabled: true,
@@ -134,11 +149,13 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                         File(_paths[_curIndex])
                       ),
                     ),
+                  ) : const Center(
+                    child: Text("이미지가 없습니다."),
                   )
                 )
               ),
 
-              // 데이터 표
+              // 데이터 표 // 그리드
               Positioned(
                 right: 20,
                 bottom: 55,
@@ -348,7 +365,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                       // 크기 조절
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black26, width: 2),
+                          border: Border.all(color: Colors.black26, width: 1.5),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.only(left: 5.0, top: 5.0, bottom: 5.0),
@@ -364,6 +381,175 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey[900],
                                 ),
+                              ),
+                              const SizedBox(height: 10,),
+                              Material(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(),
+                                  ),
+                                  child: DropdownButton(
+                                      value: _scaleValue,
+                                      items: [1, 2, 3, 4].map((e) => DropdownMenuItem(
+                                          value: e,
+                                          child: Text("x$e")
+                                      )).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _scaleValue = value!;
+                                        });
+                                
+                                      }
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10,),
+
+                      // 저장 설정
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black26, width: 1.5),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 5.0, top: 5.0, bottom: 5.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "저장 설정",
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.grey[900],
+                                ),
+                              ),
+                              const SizedBox(height: 10,),
+                              Row(
+                                children: [
+                                  Text(
+                                    "확장자",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[900],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10,),
+                                  Material(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(),
+                                      ),
+                                      child: DropdownButton(
+                                          value: _extValue,
+                                          items: ["jpg", "png", "webp", "bmp"].map((e) => DropdownMenuItem(
+                                              value: e,
+                                              child: Text(e)
+                                          )).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _extValue = value!;
+                                            });
+
+                                          }
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10,),
+                              // 저장 방법
+                              Row(
+                                children: [
+                                  Text(
+                                    "저장 장소",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[900],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10,),
+                                  Material(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(),
+                                      ),
+                                      child: DropdownButton(
+                                          value: _howToSave,
+                                          items: ["각 폴더에", "특정 폴더에", "각 폴더 아래에"].map((e) => DropdownMenuItem(
+                                              value: e,
+                                              child: Text(e)
+                                          )).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _howToSave = value!;
+                                            });
+                                          }
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5,),
+                                  if (_howToSave == "특정 폴더에")
+                                    IconButton(onPressed: () async {
+                                      final path = await FilePicker.platform.getDirectoryPath(
+                                          dialogTitle: "저장할 폴더를 선택하세요"
+                                      );
+                                      if (path == null) {
+                                        return;
+                                      }
+
+                                      // 한글이 경로에 들어가면 튕기므로 정규화한다
+                                      final normalizedPath = Uri.file(path).toFilePath(windows: Platform.isWindows);
+
+                                      setState(() {
+                                        _outputPath = normalizedPath;
+                                      });
+
+                                    }, icon: const Icon(Icons.output))
+
+                                ],
+                              ),
+                              const SizedBox(height: 3,),
+                              Text(
+                                _saveHow[_howToSave]!,
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              if (_howToSave == "특정 폴더에")
+                                const SizedBox(height: 3,),
+                              if (_howToSave == "특정 폴더에")
+                                Container(
+                                height: 15,
+                                width: 200,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(width: 1, color: Colors.black54)
+                                ),
+                                child: SelectableText(
+                                  _outputPath.toString(),
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.normal,
+                                    overflow: TextOverflow.clip
+                                  ),
+                                )
+                                ,
                               ),
                               const SizedBox(height: 10,),
                             ],
@@ -433,8 +619,8 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
               // ,
               // 취소 버튼
               Positioned(
-                bottom: 15,
-                right: 15,
+                bottom: 12,
+                right: 135,
                 child: OutlinedButton.icon(
                     onPressed: () async {
                       ref.read(modalProvider.notifier).state = false;
@@ -454,6 +640,36 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                     ),
                     label:Text(
                       "취소",
+                      style: TextStyle(
+                          color: Colors.grey[800],
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800
+                      ),
+                    )
+                ),
+              ),
+              Positioned(
+                bottom: 12,
+                right: 15,
+                child: OutlinedButton.icon(
+                    onPressed: () async {
+                      ref.read(modalProvider.notifier).state = false;
+                      ref.read(converterProvider.notifier).state = false;
+                    },
+                    style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: Colors.grey.shade800,
+                            width: 3,
+                            style: BorderStyle.solid
+                        )
+                    ),
+                    icon: Icon(
+                      Icons.save_alt,
+                      color: Colors.grey[750],
+                      size: 25,
+                    ),
+                    label:Text(
+                      "저장",
                       style: TextStyle(
                           color: Colors.grey[800],
                           fontSize: 20,

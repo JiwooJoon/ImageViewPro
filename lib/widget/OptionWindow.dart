@@ -261,9 +261,17 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                               final result = await loginAndSave(state.options, state.storage);
 
                               if (result == "Success") {
+
+                                _cred = await state.storage.read(key: "cred");
                                 if (mounted) {
-
-
+                                  Flushbar(
+                                    message: "로그인 저장 성공",
+                                    duration: const Duration(seconds: 2),
+                                    flushbarPosition: FlushbarPosition.TOP,
+                                    margin: const EdgeInsets.all(20),
+                                    borderRadius: BorderRadius.circular(10),
+                                    backgroundColor: Colors.grey.shade500,
+                                  ).show(ctx);
                                 }
                               } else {
                                 if (mounted) {
@@ -279,6 +287,7 @@ class _OptionWindowState extends ConsumerState<OptionWindow> {
                               }
                             } else {
                               await state.storage.delete(key: "cred");
+                              _cred = await state.storage.read(key: "cred");
                               if (mounted) {
                                 Flushbar(
                                   message: "로그인 토큰을 제거했습니다. 다음부터는 로그인이 필요합니다.",
