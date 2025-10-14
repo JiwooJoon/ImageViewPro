@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/imageProcess.dart';
 import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:path_provider/path_provider.dart';
@@ -45,9 +46,6 @@ class _FavGallery extends ConsumerState<FavGallery> {
     final favFile = File("${favDir.path}/favi.json");
     final favList = await favFile.readAsString();
 
-    // if (await favFile.exists() == false) {
-    //   favFile.writeAsString("");
-    // }
 
     final list = jsonDecode(favList);
 
@@ -376,13 +374,13 @@ class _FavGallery extends ConsumerState<FavGallery> {
 
                     debugPrint(state.options['clientId']);
 
-                    final images = await pathToImages(paths: list);
+                    final images = loadImagesPath(list);
 
                     state.images.addAll(images);
 
 
                     Flushbar(
-                      message: "${list.length.toString()}개의 이미지를 추가하는 중입니다",
+                      message: "${list.length.toString()}개의 이미지를 가져왔습니다.",
                       duration: const Duration(seconds: 2),
                       flushbarPosition: FlushbarPosition.TOP,
                       margin: const EdgeInsets.all(20),

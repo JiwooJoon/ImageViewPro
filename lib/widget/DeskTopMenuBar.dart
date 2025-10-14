@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
+import 'package:image_view_pro/func/imageProcess.dart';
 import 'package:image_view_pro/func/saveImages.dart';
 import 'package:image_view_pro/func/translate.dart';
 import 'package:image_view_pro/main.dart';
@@ -18,7 +19,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:path/path.dart' as p;
 
-import '../func/getDirectoryPaths.dart';
 import '../func/pathToImageWithIsolate.dart';
 
 class DeskTopMenuBar extends ConsumerStatefulWidget {
@@ -90,120 +90,12 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
     return null;
   }
 
-  // 이미지 스트림 로딩, 이미지들의 경로를 인수로 가져온다
-  Future<void> loadImagesStream(List<String?> paths) async {
-    // 기존 구독이 있는지 확인함
-    if (_imageSubscription != null) {
-      await _imageSubscription!.cancel();
-      _imageSubscription = null;
-    }
 
-    _isLoadingImages = true;
-
-    ref.read(imageLoadProvider.notifier).state = true;
-
-
-
-    final stream = pathToImagesStream(paths: paths, poolSize: 8);
-
-
-    _imageSubscription = stream.listen(
-          (image) {
-
-        ref.read(stateProvider.notifier).addImage(image);
-
-          if (ref.read(imageLoadProvider) == false) {
-            _imageSubscription?.cancel();
-            ref.read(stateProvider.notifier).clearImages();
-          }
-        if (mounted) {
-          setState(() {
-
-          });
-        }
-      },
-      onError: (e, st) {
-        debugPrint('Stream error: $e');
-      },
-      onDone: () {
-        debugPrint('모든 이미지 로딩 완료');
-
-        Flushbar(
-          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
-          duration: const Duration(seconds: 2),
-          flushbarPosition: FlushbarPosition.TOP,
-          margin: const EdgeInsets.all(20),
-          borderRadius: BorderRadius.circular(10),
-          backgroundColor: Colors.grey.shade500,
-        ).show(context);
-
-        ref.read(imageLoadProvider.notifier).state = false;
-        _isLoadingImages = false;
-        _imageSubscription = null;
-      },
-      cancelOnError: false,
-    );
-  }
-
-  // 이미지 스트림 캔슬
-  Future<void> cancelImageLoading() async {
-    if (_imageSubscription != null) {
-      await _imageSubscription!.cancel();
-      _imageSubscription = null;
-    }
-    if (_isLoadingImages!) {
-      ref.read(loadingProvider.notifier).state = false;
-      _isLoadingImages = false;
-    }
-    debugPrint('🚫 이미지 로딩 취소됨');
-  }
-
-  // 폴더 이미지 스트림 로딩, 폴더의 경로를 가져오면 된다
-  Future<void> loadFolderImagesSafe(String folderPath) async {
-
-    // 이전 로딩 취소
-    await _imageSubscription?.cancel();
-
-    ref.read(imageLoadProvider.notifier).state = true;
-
-    _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
-          (image) {
-
-        ref.read(stateProvider.notifier).addImage(image);
-
-            if (ref.read(imageLoadProvider) == false) {
-              _imageSubscription?.cancel();
-              ref.read(stateProvider.notifier).clearImages();
-            }
-
-        setState(() {});
-      },
-      onError: (e, st) => debugPrint('🔥 폴더 스트림 에러: $e'),
-
-      onDone: () {
-        debugPrint('✅ 폴더 로딩 완료');
-        ref.read(imageLoadProvider.notifier).state = false;
-        Flushbar(
-          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
-          duration: const Duration(seconds: 2),
-          flushbarPosition: FlushbarPosition.TOP,
-          margin: const EdgeInsets.all(20),
-          borderRadius: BorderRadius.circular(10),
-          backgroundColor: Colors.grey.shade500,
-        ).show(context);
-
-        // _isLoadingImages = false;
-        setState(() {}); // 마지막 UI 갱신
-      },
-    );
-  }
 
   @override
   void initState() {
     super.initState();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -212,240 +104,246 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: 25,
-          width: MediaQuery.of(context).size.width,
-          child: MenuBar(
-            style: const MenuStyle(
-              backgroundColor: WidgetStatePropertyAll(Colors.grey)
-            ),
-            children: [
-              // 파일
-              SubmenuButton(
-                menuChildren: [
-                  // 열기
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () async {
-                          // 파일 불러오기
+
+        MenuBar(
+          style: const MenuStyle(
+            backgroundColor: WidgetStatePropertyAll(Colors.grey),
+          ),
+          children: [
+            // 파일
+            SubmenuButton(
+              menuStyle: const MenuStyle(
+                backgroundColor: WidgetStatePropertyAll(Colors.grey),
+              ),
+              menuChildren: [
+                // 열기
+                SubmenuButton(
+                  menuChildren: [
+                    MenuItemButton(
+                      onPressed: () async {
+                        FilePickerResult? result = await FilePicker.platform.pickFiles(
+                            allowMultiple: true,
+                            lockParentWindow: true
+                        );
+
+                        List<String?> paths = result!.paths;
+                        // 파일 불러오기
+                        final imgPaths = loadImagesPath(paths);
+
+                        ref.read(stateProvider.notifier).clearImages();
+
+                        ref.read(stateProvider.notifier).addImages(imgPaths);
+
+                      },
+                      child: const MenuAcceleratorLabel("파일에서.. (F)"),
+                    ),
+                    MenuItemButton(
+                      onPressed: () async {
+                        // 폴더 불러오기
+                        String? result = await FilePicker.platform.getDirectoryPath(
+                            lockParentWindow: true
+                        );
+                        debugPrint("$result는 폴더.");
+
+
+                        final paths = await loadImagesPathFromFolder(result!);
+
+                        ref.read(stateProvider.notifier).clearImages();
+                        ref.read(stateProvider.notifier).addImages(paths);
+                        debugPrint("가져온 이미지의 수 : ${state.images.length}");
+                      },
+                      child: const MenuAcceleratorLabel("폴더에서.. (D)"),
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
+                        ref.read(driveGProvider.notifier).state = true;
+                      },
+                      child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
+                    )
+                  ],
+                  child: const MenuAcceleratorLabel("열기 (O)"),
+                ),
+                // 추가로 열기
+                SubmenuButton(
+                  menuChildren: [
+                    MenuItemButton(
+                      onPressed: () async {
+                        if (state.images.isEmpty) {
+                          // 이미지가 비어있는 경우
+                          Flushbar(
+                            message: "먼저 이미지를 가져와야 합니다",
+                            duration: const Duration(seconds: 2),
+                            flushbarPosition: FlushbarPosition.TOP,
+                            margin: const EdgeInsets.all(20),
+                            borderRadius: BorderRadius.circular(10),
+                            backgroundColor: Colors.grey.shade500,
+                          ).show(context);
+                        } else {
+                          // 파일 추가하기
                           FilePickerResult? result = await FilePicker.platform.pickFiles(
                               allowMultiple: true
                           );
+                          debugPrint(result.toString());
 
-                          List<String?> paths = result!.paths;
-                          ref.read(stateProvider).images.clear();
-                          ref.read(stateProvider.notifier).updateIndex(0);
+                          final imgPaths = loadImagesPath(result!.paths);
 
-
-                          // if (paths.length < 50) {
-                          //   final tempResult = await pathToImages(paths: paths);
-                          //   ref.read(stateProvider.notifier).addImages(tempResult);
-                          // } else {
-                          //   loadImagesStream(paths);
-                          // }
-                          loadImagesStream(paths);
+                          ref.read(stateProvider.notifier).addImages(imgPaths);
+                          debugPrint("가져온 이미지의 수 : ${state.images.length}");
 
                           setState(() {
+                            debugPrint(state.images.toString());
                           });
-                        },
-                        child: const MenuAcceleratorLabel("파일에서.. (F)"),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          ref.read(driveGProvider.notifier).state = true;
-                        },
-                        child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
-                      )
-                    ],
-                    child: const MenuAcceleratorLabel("열기 (O)"),
-                  ),
-                  // 추가로 열기
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () async {
-                          if (state.images.isEmpty) {
-                            // 이미지가 비어있는 경우
-                            Flushbar(
-                              message: "먼저 이미지를 가져와야 합니다",
-                              duration: const Duration(seconds: 2),
-                              flushbarPosition: FlushbarPosition.TOP,
-                              margin: const EdgeInsets.all(20),
-                              borderRadius: BorderRadius.circular(10),
-                              backgroundColor: Colors.grey.shade500,
-                            ).show(context);
-                          } else {
-                            // 파일 추가하기
-                            FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                allowMultiple: true
-                            );
-                            debugPrint(result.toString());
+                        }
 
-                            List<String?> paths = result!.paths;
+                      },
+                      child: const MenuAcceleratorLabel("파일에서.. (F)"),
+                    ),
+                  ],
+                  child: const MenuAcceleratorLabel("이미지 추가 (A)"),
+                ),
+                // 이미지 닫기
+                MenuItemButton(
+                  onPressed: () {
+                    ref.read(imageLoadProvider.notifier).state = false;
 
-                            if (paths.length < 50) {
-                              final tempResult = await pathToImages(paths: paths);
-                              ref.read(stateProvider.notifier).addImages(tempResult);
+                    setState(() {
+                      ref.read(stateProvider).images.clear();
+                      ref.read(stateProvider.notifier).updateIndex(0);
+                      ref.read(stateProvider.notifier).updateZoom(1.0);
+                      ref.read(stateProvider.notifier).updateSize(1);
+                      ref.read(frontImageProvider.notifier).state = "";
+                      ref.read(backImageProvider.notifier).state = "";
+                      debugPrint(state.images.toString());
+                    });
+
+                  },
+                  child: const MenuAcceleratorLabel("이미지 닫기 (C)"),
+                ),
+                // 저장하기
+                SubmenuButton(
+                  menuChildren: [
+                    MenuItemButton(
+                      onPressed: () {
+                        Future.microtask(() async {
+                          String? savePath = await FilePicker.platform.getDirectoryPath(
+                              dialogTitle: "저장할 폴더를 선택하세요"
+                          );
+
+                          if (savePath == null) {
+                            return;
+                          }
+
+                          try {
+                            final File originFile = File(state.images[state.curIndex].path);
+                            if (await originFile.exists()) {
+                              final String fileName = p.basename(originFile.path);
+                              final String newFilePath = p.join(savePath, fileName);
+
+                              // 파일을 복사시키는 식으로 저장한다
+                              await originFile.copy(newFilePath);
+
+                              Flushbar(
+                                message: "이미지 저장 완료 (클릭시 저장한 곳을 엽니다)",
+                                duration: const Duration(seconds: 2),
+                                flushbarPosition: FlushbarPosition.TOP,
+                                margin: const EdgeInsets.all(20),
+                                borderRadius: BorderRadius.circular(10),
+                                backgroundColor: Colors.grey.shade500,
+                                onTap: (e) {
+                                  debugPrint("save");
+                                  openFolderInExplorer(savePath);
+                                },
+                              ).show(context);
                             } else {
-                              loadImagesStream(paths);
+                              debugPrint("File not found : $originFile");
                             }
 
-                            setState(() {
-                              debugPrint(state.images.toString());
-                            });
+                          } catch (e) {
+                            debugPrint("error has occurred when file saving, $e");
                           }
+                        });
+                      },
+                      child: const MenuAcceleratorLabel("현 이미지 저장(C)"),
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
 
-                        },
-                        child: const MenuAcceleratorLabel("파일에서.. (F)"),
-                      ),
-                    ],
-                    child: const MenuAcceleratorLabel("이미지 추가 (A)"),
-                  ),
-                  // 이미지 닫기
-                  MenuItemButton(
-                    onPressed: () {
-                      ref.read(imageLoadProvider.notifier).state = false;
+                        setState(() {
+                          ref.read(stateProvider.notifier).updateSize(1);
+                          ref.read(uploadGProvider.notifier).state = true;
+                        });
 
-                      setState(() {
-                        ref.read(stateProvider).images.clear();
-                        ref.read(stateProvider.notifier).updateIndex(0);
-                        ref.read(stateProvider.notifier).updateZoom(1.0);
-                        ref.read(stateProvider.notifier).updateSize(1);
-                        ref.read(frontImageProvider.notifier).state = "";
-                        ref.read(backImageProvider.notifier).state = "";
-                        debugPrint(state.images.toString());
-                      });
+                      },
+                      child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
+                    ),
+                    MenuItemButton(
+                      onPressed: () async {
+                        List<String> path = [];
+                        for (var i = state.curIndex; i < (state.curIndex + state.curSize); i++ ) {
+                          path.add(state.images[i].path);
+                        }
 
-                    },
-                    child: const MenuAcceleratorLabel("이미지 닫기 (C)"),
-                  ),
-                  // 저장하기
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () {
-                          Future.microtask(() async {
-                            String? savePath = await FilePicker.platform.getDirectoryPath(
-                                dialogTitle: "저장할 폴더를 선택하세요"
-                            );
+                        var result = await saveImage(path, ref);
 
-                            if (savePath == null) {
-                              return;
-                            }
+                        if (!mounted) return;
 
-                            try {
-                              final File originFile = File(state.images[state.curIndex].path);
-                              if (await originFile.exists()) {
-                                final String fileName = p.basename(originFile.path);
-                                final String newFilePath = p.join(savePath, fileName);
+                        if (result != "failed") {
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  backgroundColor: Colors.grey[850],
+                                  shadowColor: Colors.black,
+                                  content: const Text("저장 완료"),
+                                  actions: [
+                                    ElevatedButton(
+                                        onPressed: () async {
+                                          if (Platform.isWindows) {
+                                            await Process.run('explorer', [result]);
+                                          }
 
-                                // 파일을 복사시키는 식으로 저장한다
-                                await originFile.copy(newFilePath);
+                                          if (!mounted) return;
 
-                                Flushbar(
-                                  message: "이미지 저장 완료 (클릭시 저장한 곳을 엽니다)",
-                                  duration: const Duration(seconds: 2),
-                                  flushbarPosition: FlushbarPosition.TOP,
-                                  margin: const EdgeInsets.all(20),
-                                  borderRadius: BorderRadius.circular(10),
-                                  backgroundColor: Colors.grey.shade500,
-                                  onTap: (e) {
-                                    debugPrint("save");
-                                    openFolderInExplorer(savePath);
-                                  },
-                                ).show(context);
-                              } else {
-                                debugPrint("File not found : $originFile");
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text("위치 열기")
+                                    ),
+                                    ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text("확인")
+                                    )
+                                  ],
+                                );
                               }
+                          );
+                        }
 
-                            } catch (e) {
-                              debugPrint("error has occurred when file saving, $e");
-                            }
-                          });
-                        },
-                        child: const MenuAcceleratorLabel("현 이미지 저장(C)"),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
+                      },
+                      child: const MenuAcceleratorLabel("보이는 대로 저장 (S)"),
+                    )
+                  ],
+                  child: const MenuAcceleratorLabel("저장 (S)"),
+                ),
 
-                          setState(() {
-                            ref.read(stateProvider.notifier).updateSize(1);
-                            ref.read(uploadGProvider.notifier).state = true;
-                          });
+              ],
 
-                        },
-                        child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
-                      ),
-                      MenuItemButton(
-                        onPressed: () async {
-                          List<String> path = [];
-                          for (var i = state.curIndex; i < (state.curIndex + state.curSize); i++ ) {
-                            path.add(state.images[i].path);
-                          }
+              child: const MenuAcceleratorLabel("파일 (F)"),
+            ),
 
-                          var result = await saveImage(path, ref);
+            // 도구
+            SubmenuButton(
+              menuChildren: [
+                // 이미지 에디터
+                MenuItemButton(
+                  onPressed: () async {
+                    imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
 
-                          if (!mounted) return;
+                    if (!Platform.isMacOS) {
 
-                          if (result != "failed") {
-                            showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    backgroundColor: Colors.grey[850],
-                                    shadowColor: Colors.black,
-                                    content: const Text("저장 완료"),
-                                    actions: [
-                                      ElevatedButton(
-                                          onPressed: () async {
-                                            if (Platform.isWindows) {
-                                              await Process.run('explorer', [result]);
-                                            }
-
-                                            if (!mounted) return;
-
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: const Text("위치 열기")
-                                      ),
-                                      ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: const Text("확인")
-                                      )
-                                    ],
-                                  );
-                                }
-                            );
-                          }
-
-                        },
-                        child: const MenuAcceleratorLabel("보이는 대로 저장 (S)"),
-                      )
-                    ],
-                    child: const MenuAcceleratorLabel("저장 (S)"),
-                  ),
-
-                ],
-
-                child: const MenuAcceleratorLabel("파일 (F)"),
-              ),
-
-              // 도구
-              SubmenuButton(
-                menuChildren: [
-                  // 이미지 에디터
-                  MenuItemButton(
-                    onPressed: () async {
-                      imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
-
-                      if (!Platform.isMacOS) {
-
-                        showDialog(
+                      showDialog(
                           fullscreenDialog: true,
                           context: context,
                           builder: (context) {
@@ -456,86 +354,86 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                               ),
                             );
                           }
-                        );
-                      }
-                    },
-                    child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
-                  ),
+                      );
+                    }
+                  },
+                  child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
+                ),
 
-                  // 일괄 변환기 ** 예정
-                  MenuItemButton(
-                    onPressed: () {
-                      if (ref.read(imageConvertProvider) == true) {
-                        Flushbar(
-                          message: "변환중인 이미지가 있습니다.",
-                          duration: const Duration(seconds: 2),
-                          flushbarPosition: FlushbarPosition.TOP,
-                          margin: const EdgeInsets.all(20),
-                          borderRadius: BorderRadius.circular(10),
-                          backgroundColor: Colors.grey.shade500,
-                        ).show(context);
-                        return ;
-                      }
-                      ref.read(modalProvider.notifier).state = true;
-                      ref.read(converterProvider.notifier).state = true;
-                    },
-                    child: const MenuAcceleratorLabel("일괄 변환기(A)"),
-                  ),
+                // 일괄 변환기 ** 예정
+                MenuItemButton(
+                  onPressed: () {
+                    if (ref.read(imageConvertProvider) == true) {
+                      Flushbar(
+                        message: "변환중인 이미지가 있습니다.",
+                        duration: const Duration(seconds: 2),
+                        flushbarPosition: FlushbarPosition.TOP,
+                        margin: const EdgeInsets.all(20),
+                        borderRadius: BorderRadius.circular(10),
+                        backgroundColor: Colors.grey.shade500,
+                      ).show(context);
+                      return ;
+                    }
+                    ref.read(modalProvider.notifier).state = true;
+                    ref.read(converterProvider.notifier).state = true;
+                  },
+                  child: const MenuAcceleratorLabel("일괄 변환기(A)"),
+                ),
 
-                  // 인식
-                  MenuItemButton(
-                    onPressed: () async {
-                      if (state.images.isEmpty) {
-                        Flushbar(
-                          message: "이미지가 비어있습니다.",
-                          duration: const Duration(seconds: 2),
-                          flushbarPosition: FlushbarPosition.TOP,
-                          margin: const EdgeInsets.all(20),
-                          borderRadius: BorderRadius.circular(10),
-                          backgroundColor: Colors.grey.shade500,
-                        ).show(context);
-                        return;
-                      }
+                // 인식
+                MenuItemButton(
+                  onPressed: () async {
+                    if (state.images.isEmpty) {
+                      Flushbar(
+                        message: "이미지가 비어있습니다.",
+                        duration: const Duration(seconds: 2),
+                        flushbarPosition: FlushbarPosition.TOP,
+                        margin: const EdgeInsets.all(20),
+                        borderRadius: BorderRadius.circular(10),
+                        backgroundColor: Colors.grey.shade500,
+                      ).show(context);
+                      return;
+                    }
 
-                      if (state.curSize != 1) {
-                        Flushbar(
-                          message: "이미지를 한장만 보고 있을 때 가능합니다.",
-                          duration: const Duration(seconds: 2),
-                          flushbarPosition: FlushbarPosition.TOP,
-                          margin: const EdgeInsets.all(20),
-                          borderRadius: BorderRadius.circular(10),
-                          backgroundColor: Colors.grey.shade500,
-                        ).show(context);
-                        return;
-                      }
+                    if (state.curSize != 1) {
+                      Flushbar(
+                        message: "이미지를 한장만 보고 있을 때 가능합니다.",
+                        duration: const Duration(seconds: 2),
+                        flushbarPosition: FlushbarPosition.TOP,
+                        margin: const EdgeInsets.all(20),
+                        borderRadius: BorderRadius.circular(10),
+                        backgroundColor: Colors.grey.shade500,
+                      ).show(context);
+                      return;
+                    }
 
-                      final result = await startProcess();
-                      createWindow(windowName: "translate_window", windows: [], data: result);
-                    },
-                    child: const MenuAcceleratorLabel("이미지 번역 (O)"),
-                  ),
+                    final result = await startProcess();
+                    createWindow(windowName: "translate_window", windows: [], data: result);
+                  },
+                  child: const MenuAcceleratorLabel("이미지 번역 (O)"),
+                ),
 
-                  // 즐겨찾기
-                  MenuItemButton(
-                    onPressed: () {
-                      ref.read(favProvider.notifier).state = true;
-                    },
-                    child: const MenuAcceleratorLabel("즐겨찾기(S)"),
-                  ),
+                // 즐겨찾기
+                MenuItemButton(
+                  onPressed: () {
+                    ref.read(favProvider.notifier).state = true;
+                  },
+                  child: const MenuAcceleratorLabel("즐겨찾기(S)"),
+                ),
 
-                ],
+              ],
 
-                child: const MenuAcceleratorLabel("도구 (F)"),
-              ),
+              child: const MenuAcceleratorLabel("도구 (F)"),
+            ),
 
 
-              // 옵션
-              SubmenuButton(
-                menuChildren: [
-                  // 설정
-                  MenuItemButton(
-                    onPressed: () {
-                      showDialog(
+            // 옵션
+            SubmenuButton(
+              menuChildren: [
+                // 설정
+                MenuItemButton(
+                  onPressed: () {
+                    showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return Dialog(
@@ -545,23 +443,33 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                             child: const OptionWindow(),
                           );
                         }
-                      );
-                    },
-                    child: const MenuAcceleratorLabel("설정 (O)"),
-                  ),
-                  // 대하여
-                  MenuItemButton(
-                    onPressed: () {
-                      createWindow(windowName: "LaL", windows: [], data: '');
-                    },
-                    child: const MenuAcceleratorLabel("LaL에 대하여.. (L)"),
-                  ),
-                ],
+                    );
+                  },
+                  child: const MenuAcceleratorLabel("설정 (O)"),
+                ),
+                // 대하여
+                MenuItemButton(
+                  onPressed: () {
+                    createWindow(windowName: "LaL", windows: [], data: '');
+                  },
+                  child: const MenuAcceleratorLabel("LaL에 대하여.. (L)"),
+                ),
+              ],
 
-                child: const MenuAcceleratorLabel("옵션 (O)"),
+              child: const MenuAcceleratorLabel("옵션 (O)"),
+            ),
+
+            // 크기 초기화
+            MenuItemButton(
+              onPressed: () {
+
+              },
+              child: Text(
+                  "크기 초기화"
               ),
-            ],
-          ),
+            )
+
+          ],
         )
       ],
     );

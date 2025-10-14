@@ -11,3 +11,5 @@ Future<void> saveOpt(Map<String, dynamic> opt) async {
   final file = File('config/option.json');
   await file.writeAsString(json.encode(opt));
 }
+
+// json을 불러오고 가져오는

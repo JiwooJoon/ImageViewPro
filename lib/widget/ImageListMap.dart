@@ -84,7 +84,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                       ),
                       child: Image.file(
                         File(_imageModels[index].path),
-                        width: 100,
+                        width: 60,
                         height: 50,
                       ),
                     ),
@@ -113,7 +113,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                                   duration: const Duration(milliseconds: 200),
                                   child: Image.file(
                                     File(_imageModels[index].path),
-                                    width: 75,
+                                    width: 55,
                                     height: 25,
                                     fit: BoxFit.scaleDown,
                                     colorBlendMode: BlendMode.color,

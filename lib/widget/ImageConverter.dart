@@ -90,6 +90,60 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
     super.dispose();
   }
 
+  Future<void> imageConvertProcess(String imagePath,[ String? outPutPath = ""]) async {
+    try {
+      final image = img.decodeImage(File(imagePath).readAsBytesSync())!;
+      img.FlipDirection? curFlip;
+      debugPrint("👉 outPutPath: $outPutPath");
+
+      const ext = "png";
+
+      if (_curFlip[0] == -1.0 && _curFlip[1] == 1.0) {
+        curFlip = img.FlipDirection.vertical;
+      } else if (_curFlip[0] == 1.0 && _curFlip[1] == -1.0) {
+        curFlip = img.FlipDirection.horizontal;
+      } else if (_curFlip[0] == -1.0 && _curFlip[1] == -1.0) {
+        curFlip = img.FlipDirection.both;
+      };
+
+      img.Command editedImage;
+
+      if (curFlip != null) {
+        editedImage = (img.Command()
+          ..decodeImageFile(imagePath)
+          ..copyResize(width: image.width * _scaleValue, height: image.height * _scaleValue)
+          ..copyRotate(angle: _curAngle * math.pi / 180)
+          ..copyFlip(direction: curFlip));
+      } else {
+        editedImage = (img.Command()
+          ..decodeImageFile(imagePath)
+          ..copyResize(
+              width: (image.width * _scaleValue).toInt(),
+              height: (image.height * _scaleValue).toInt())
+          ..copyRotate(angle: _curAngle * math.pi / 180));
+      }
+
+      if (_howToSave == "각 폴더에") {
+        final dir = p.dirname(imagePath);
+        final name = p.basenameWithoutExtension(imagePath);
+        final outPath = p.join(dir, "$name(1).png");
+        editedImage = editedImage..writeToFile(outPath);
+      } else if (_howToSave == "특정 폴더에") {
+        final name = p.basenameWithoutExtension(imagePath);
+        final outPath = p.join(outPutPath!, "$name(1).png").replaceAll(r'\', '/');
+        debugPrint(outPath);
+        editedImage = editedImage..writeToFile("$outPath");
+      }
+
+      debugPrint("이미지 변환 시작.. ${DateTime.now()}");
+      await editedImage.execute();  // ← 여기서 많이 죽습니다
+      debugPrint("이미지 변환 완료.. ${DateTime.now()}");
+    } catch (e, st) {
+      debugPrint("❌ 변환 중 오류 발생: $e");
+      debugPrint(st.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext ctx) {
 
@@ -560,64 +614,6 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                   ),
                 ),
               ),
-              //
-              // const SizedBox(
-              //   height: 20,
-              // ),
-              //
-              // // 기능 버튼들
-              // const SizedBox(height: 25),
-              //
-              // // 가져오기 버튼
-              // OutlinedButton.icon(
-              //     onPressed: () async {
-              //       final list = _paths.where((f) => _checkedFiles[f] == true).toList();
-              //
-              //       debugPrint(state.options['clientId']);
-              //
-              //       final images = await pathToImages(paths: list);
-              //
-              //       state.images.addAll(images);
-              //
-              //
-              //       Flushbar(
-              //         message: "${list.length.toString()}개의 이미지를 추가하는 중입니다",
-              //         duration: const Duration(seconds: 2),
-              //         flushbarPosition: FlushbarPosition.TOP,
-              //         margin: const EdgeInsets.all(20),
-              //         borderRadius: BorderRadius.circular(10),
-              //         backgroundColor: Colors.grey.shade500,
-              //       ).show(ctx);
-              //
-              //       ref.read(favProvider.notifier).state = false;
-              //     },
-              //     style: OutlinedButton.styleFrom(
-              //         side: BorderSide(
-              //             color: Colors.grey.shade800,
-              //             width: 3,
-              //             style: BorderStyle.solid
-              //         )
-              //     ),
-              //     icon: Icon(
-              //       Icons.drive_file_move_outline,
-              //       color: Colors.grey[750],
-              //       size: 25,
-              //     ),
-              //     label:Text(
-              //       "가져오기",
-              //       style: TextStyle(
-              //           color: Colors.grey[800],
-              //           fontSize: 20,
-              //           fontWeight: FontWeight.w800
-              //       ),
-              //     )
-              // ),
-              //
-              // const SizedBox(
-              //   height: 25,
-              // )
-              // ,
-              // 취소 버튼
               Positioned(
                 bottom: 12,
                 right: 135,
@@ -653,6 +649,17 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                 right: 15,
                 child: OutlinedButton.icon(
                     onPressed: () async {
+
+
+
+                      for (var path in _paths) {
+                        if (_howToSave == "특정 폴더에") {
+                          await imageConvertProcess(path, _outputPath);
+                        } else {
+                          await imageConvertProcess(path);
+                        }
+                      }
+
                       ref.read(modalProvider.notifier).state = false;
                       ref.read(converterProvider.notifier).state = false;
                     },

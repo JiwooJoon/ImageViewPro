@@ -9,13 +9,6 @@ import 'package:flutter/foundation.dart';
 import '../model/ImageModel.dart';
 import '../util/isolatePool.dart' hide ImageModel;
 
-Future<Map<String, dynamic>> readImageMeta(String path) async {
-  final bytes = await File(path).readAsBytes(); // 직접 읽기
-  return {
-    'bytes': bytes,
-    'path' : path,
-  };
-}
 
 Future<ImageModel> _readAndDecodeImageInIsolate(String path) async {
   final bytes = await File(path).readAsBytes();
@@ -29,8 +22,8 @@ Future<ImageModel> _readAndDecodeImageInIsolate(String path) async {
   // 썸네일 크기 조정 (선택 사항 : 원본 코드의 targetWidth/Height를 대체한다)
   final img.Image thumbnail = img.copyResize(
     decodedImage,
-    width: 20,
-    height: 20,
+    width: 1,
+    height: 1,
   );
 
   return ImageModel(height: thumbnail.height.toDouble(), width: thumbnail.width.toDouble(), path: path);
@@ -66,26 +59,4 @@ Future<List<ImageModel>> pathToImages({
   return results;
 }
 
-// 이미지 경로들을 순차적으로 decode해서 Stream으로 반환
-Stream<ImageModel> pathToImagesStream({
-  required List<String?> paths,
-  int poolSize = 8,
-}) async* {
-  final pool = IsolatePool(poolSize);
-  await pool.init();
-
-  try {
-    for (final path in paths) {
-      try {
-        final image = await pool.decode(path!);
-        yield image; // ✅ 하나씩 내보내기
-      } catch (e, st) {
-        debugPrint('❌ Failed to decode $path: $e\n$st');
-        // 실패한 파일은 그냥 스킵
-      }
-    }
-  } finally {
-    await pool.dispose();
-  }
-}
 

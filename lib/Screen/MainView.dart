@@ -7,7 +7,6 @@ import 'dart:math' as math;
 
 import 'package:another_flushbar/flushbar.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
-import 'package:exif/exif.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -17,16 +16,11 @@ import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:googleapis/drive/v2.dart' as drive;
-import 'package:googleapis/streetviewpublish/v1.dart';
-import 'package:image_view_pro/func/getDirectoryPaths.dart';
 import 'package:image_view_pro/func/jsonDeIn.dart';
-import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
-import 'package:image_view_pro/widget/AllOpacityWidget.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
 import 'package:image_view_pro/widget/OpacityWidget.dart';
-import 'package:image_view_pro/widget/ViewModeDropDown.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
 
@@ -34,11 +28,10 @@ import 'package:image_view_pro/main.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/window_info.dart';
 import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
-import 'package:image_view_pro/widget/ImageListMap.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
 import 'package:path_provider/path_provider.dart';
+import '../func/imageProcess.dart';
 import '../widget/BottomBar.dart';
-import '../widget/ControllerButton.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 
 import '../widget/ScaledHoverWidget.dart';
@@ -73,20 +66,6 @@ class _MainView extends ConsumerState<MainView> {
   late ScrollController _scrollController;
 
 
-
-  Future<ui.Image> getImageSize(String path) async {
-    // 파일 경로에서 바이트 데이터를 읽어온다
-    Uint8List bytes = await File(path).readAsBytes();
-
-    // 바이트 데이터를 디코딩하여 이미지 정보를 얻는다
-    ui.Image image = await ui.instantiateImageCodecFromBuffer(
-      await ui.ImmutableBuffer.fromUint8List(bytes),
-    ).then((codec) => codec.getNextFrame()).then((frameInfo) => frameInfo.image);
-
-    return image;
-  }
-
-
   @override
   void initState() {
 
@@ -97,49 +76,6 @@ class _MainView extends ConsumerState<MainView> {
     _scrollController = ScrollController();
   }
 
-  // 이미지 스트림 로딩
-  Future<void> loadImagesStream(List<String?> paths) async {
-    // 기존 구독이 있는지 확인함
-    if (_imageSubscription != null) {
-      await _imageSubscription!.cancel();
-      _imageSubscription = null;
-    }
-
-    ref.read(imageLoadProvider.notifier).state = true;
-
-    _isLoadingImages = true;
-
-    final stream = pathToImagesStream(paths: paths, poolSize: 8);
-
-
-    _imageSubscription = stream.listen(
-      (image) {
-
-        ref.read(stateProvider.notifier).addImage(image);
-
-        if (ref.read(imageLoadProvider) == false) {
-          _imageSubscription?.cancel();
-          ref.read(stateProvider.notifier).clearImages();
-        }
-        if (mounted) {
-          setState(() {
-
-          });
-        }
-      },
-      onError: (e, st) {
-        debugPrint('Stream error: $e');
-      },
-      onDone: () {
-        debugPrint('모든 이미지 로딩 완료');
-
-        _isLoadingImages = false;
-        _imageSubscription = null;
-        ref.read(imageLoadProvider.notifier).state = false;
-      },
-      cancelOnError: false,
-    );
-  }
 
   Future<void> _loadOpt() async {
     ref.read(stateProvider.notifier).updateOption(await loadOpt());
@@ -153,7 +89,7 @@ class _MainView extends ConsumerState<MainView> {
     Map<String, List<String>> jsonIn = {
       "fav" : []
     };
-    Map<String, String> favList = {};
+    Map<String, dynamic> favList = {};
 
 
     if (await _favFile!.exists()) {
@@ -163,67 +99,18 @@ class _MainView extends ConsumerState<MainView> {
       await _favFile!.writeAsString(jsonEncode(jsonIn));
     }
 
-    final list = jsonDecode(favList['fav']!);
+    List<String> list = [];
+
+    for (var item in favList['fav']) {
+      list.add(item);
+    }
 
     ref.read(favPathProvider).addAll(list);
-  }
-
-  Future<void> cancelImageLoading() async {
-    if (_imageSubscription != null) {
-      await _imageSubscription!.cancel();
-      _imageSubscription = null;
-    }
-    if (_isLoadingImages!) {
-      ref.read(loadingProvider.notifier).state = false;
-      _isLoadingImages = false;
-    }
-    debugPrint('🚫 이미지 로딩 취소됨');
-  }
-
-  Future<void> loadFolderImagesSafe(String folderPath) async {
-
-    // 이전 로딩 취소
-    await _imageSubscription?.cancel();
-    ref.read(imageLoadProvider.notifier).state = true;
-
-
-    _imageSubscription = safeFolderStream(folderPath, batchSize: 3).listen(
-          (image) {
-
-        ref.read(stateProvider.notifier).addImage(image);
-
-        if (ref.read(imageLoadProvider) == false) {
-          _imageSubscription?.cancel();
-          ref.read(stateProvider.notifier).clearImages();
-        }
-
-        setState(() {});
-      },
-      onError: (e, st) => debugPrint('🔥 폴더 스트림 에러: $e'),
-
-      onDone: () {
-        debugPrint('✅ 폴더 로딩 완료');
-        ref.read(imageLoadProvider.notifier).state = false;
-        _isLoadingImages = false;
-        Flushbar(
-          message: "${ref.read(stateProvider).images.length}개의 이미지를 가져왔습니다.",
-          duration: const Duration(seconds: 2),
-          flushbarPosition: FlushbarPosition.TOP,
-          margin: const EdgeInsets.all(20),
-          borderRadius: BorderRadius.circular(10),
-          backgroundColor: Colors.grey.shade500,
-        ).show(context);
-        setState(() {}); // 마지막 UI 갱신
-      },
-    );
-
   }
 
 
   @override
   void dispose() {
-    _imageSubscription?.cancel();
-    _imageSubscription = null;
     _scrollController.dispose();
     super.dispose();
   }
@@ -464,18 +351,9 @@ class _MainView extends ConsumerState<MainView> {
                               try {
                                 debugPrint("${file.name}은 폴더.");
 
-                                // List<String> paths = await getImagePathsInDirectory(file.path);
-                                // debugPrint(paths.toString());
-                                //
-                                // final tempResult = await pathToImages(paths: paths);
-                                // debugPrint("temResult : ${tempResult.toString()}");
-                                //
-                                // ref.read(stateProvider.notifier).addImages(tempResult);
+                                final path0 = await loadImagesPathFromFolder(file.path);
+                                ref.read(stateProvider.notifier).addImages(path0);
 
-                                loadFolderImagesSafe(file.path);
-
-
-                                // debugPrint(tempResult.toString());
                               } on Exception catch (e) {
                                 // TODO
                               } finally {
@@ -491,18 +369,13 @@ class _MainView extends ConsumerState<MainView> {
                               if (imageExtensions.any((e) => ext.endsWith(e))) {
                                 debugPrint("${file.name}은 이미지 파일!");
 
-                                ui.Image image = await getImageSize(file.path);
-
-
                                 ref.read(stateProvider.notifier).addImage(
                                     ImageModel(
-                                      height: image.height.toDouble(),
-                                      width: image.width.toDouble(),
+                                      height: 1,
+                                      width: 1,
                                       path: file.path,
                                     )
                                 );
-
-
 
                               } else {
 
@@ -512,7 +385,10 @@ class _MainView extends ConsumerState<MainView> {
                           } else {
                             List<String> paths = details.files.map((file) => file.path).toList();
 
-                            loadImagesStream(paths);
+                            final imgPaths = loadImagesPath(paths);
+
+                            ref.read(stateProvider.notifier).addImages(imgPaths);
+
                           }
 
                           setState(() {
@@ -705,6 +581,7 @@ class _MainView extends ConsumerState<MainView> {
 
                                                               List<String?> paths = result!.paths;
 
+                                                              // 가져온 이미지가 한개라면
                                                               if (paths.length == 1) {
                                                                 const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
                                                                 final path = paths.first;
@@ -714,33 +591,23 @@ class _MainView extends ConsumerState<MainView> {
                                                                 if (imageExtensions.any((e) => ext!.endsWith(e))) {
                                                                   debugPrint("${path}은 이미지 파일!");
 
-                                                                  ui.Image image = await getImageSize(path!);
-
-
                                                                   ref.read(stateProvider.notifier).addImage(
                                                                       ImageModel(
-                                                                        height: image.height.toDouble(),
-                                                                        width: image.width.toDouble(),
-                                                                        path: path,
+                                                                        height: 1,
+                                                                        width: 1,
+                                                                        path: path!,
                                                                       )
                                                                   );
 
-
-
+                                                                  return;
                                                                 }
                                                               } else {
 
                                                               }
 
-                                                              final imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
-                                                              
-                                                              List<String?> iPaths = paths
-                                                                .where((path) => imageExtensions.any((e) => path!.endsWith(e)))
-                                                                .toList();
-                                                              
-                                                              await cancelImageLoading();
-                                                              await loadImagesStream(iPaths);
-
+                                                              // 여러개 라면
+                                                              final imgPaths = loadImagesPath(paths);
+                                                              ref.read(stateProvider.notifier).addImages(imgPaths);
 
 
                                                               setState(() {
@@ -757,31 +624,23 @@ class _MainView extends ConsumerState<MainView> {
                                                               label: "폴더 불러오기",
                                                               icon: Icons.folder,
                                                               onSelected: () async {
-                                                                // // 폴더 불러오기
-                                                                // String? result = await FilePicker.platform.getDirectoryPath(
-                                                                //     lockParentWindow: true
-                                                                // );
-                                                                //
-                                                                // if (result != null) {
-                                                                //   await loadFolderImagesSafe(result);
-                                                                // }
-                                                                //
-                                                                //
-                                                                // setState(() {
-                                                                // });
-
                                                                 try {
                                                                   String? result = await FilePicker.platform.getDirectoryPath(
                                                                       lockParentWindow: true
                                                                   );
                                                                   debugPrint("$result는 폴더.");
 
-                                                                  loadFolderImagesSafe(result!);
+                                                                  /// loadFolderImagesSafe(result!);
+                                                                  // 이전에 사용한
+                                                                  final paths = await loadImagesPathFromFolder(result!);
+
+                                                                  ref.read(stateProvider.notifier).addImages(paths);
+                                                                  debugPrint("가져온 이미지의 수 : ${state.images.length}");
 
                                                                 } on Exception catch (e) {
                                                                   // TODO
                                                                 } finally {
-                                                                  ref.read(loadingProvider.notifier).state = false;
+
                                                                 }
                                                               }
                                                           )
@@ -1111,14 +970,6 @@ class _MainView extends ConsumerState<MainView> {
                         )
                     )
                   ),
-
-                  Positioned(
-                    top: 0,
-                    child: OpacityWidget(
-                      enable: ref.read(avoidWidgetProvider),
-                      child: const DeskTopMenuBar()
-                    )
-                  ),
                 ]
             )
         ),
@@ -1161,6 +1012,19 @@ class _MainView extends ConsumerState<MainView> {
                 images: state.images
               ),
             ),
+
+          Positioned(
+              top: 0,
+              child: OpacityWidget(
+                  enable: ref.read(avoidWidgetProvider),
+                  child: Container(
+                    height: 30,
+                    width: MediaQuery.of(context).size.width,
+                    color: Colors.grey,
+                    child: DeskTopMenuBar(),
+                  )
+              )
+          ),
 
 
         ]
