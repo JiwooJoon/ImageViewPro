@@ -833,7 +833,7 @@ class _MainView extends ConsumerState<MainView> {
 
                   Positioned(
                     bottom: 20,
-                    right: MediaQuery.of(context).size.width * 0.5 - 350,
+                    right: MediaQuery.of(context).size.width * 0.5 - 300,
                     child: OpacityWidget(
                       enable: ref.read(avoidWidgetProvider),
                       child: const BottomBar()

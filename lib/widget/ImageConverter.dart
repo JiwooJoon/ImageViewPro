@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:googleapis/chat/v1.dart' hide Image, TextButton;
@@ -31,14 +32,12 @@ class ImageConverter extends ConsumerStatefulWidget {
 class _ImageConverter extends ConsumerState<ImageConverter> {
 
   List<String> _paths = [];
-  final Map<String, bool> _checkedFiles = {};
-  late List<bool>? _hoverOn = [];
   String? _outputPath;
 
   int _curIndex = 0;
   double _curAngle = 0;
   List<double> _curFlip = [1.0, 1.0, 1.0];
-  int _scaleValue = 2;
+  double _scaleValue = 2.0;
   String _extValue = "jpg";
   String _howToSave = "각 폴더에";
   final Map<String ,String> _saveHow = {
@@ -47,8 +46,6 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
      "각 폴더 아래에" : "각 이미지의 폴더 하위에 lal_converted 폴더를 생성해 그곳에 저장합니다."
   };
 
-
-  bool? _everyBoxChecked = false;
 
   late ScrollController _scrollContrller;
 
@@ -66,14 +63,6 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
     final appDir = await getApplicationDocumentsDirectory();
     _outputPath = Directory("${appDir.path}/converted").toString();
 
-    if (mounted) {
-      setState(() {
-        _hoverOn = List.filled(_paths.length, false);
-        _paths.map((path) {
-          // _checkedFiles[path.toString()] = false;
-        });
-      });
-    }
   }
 
 
@@ -94,9 +83,8 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
     try {
       final image = img.decodeImage(File(imagePath).readAsBytesSync())!;
       img.FlipDirection? curFlip;
-      debugPrint("👉 outPutPath: $outPutPath");
 
-      const ext = "png";
+      final ext = _extValue;
 
       if (_curFlip[0] == -1.0 && _curFlip[1] == 1.0) {
         curFlip = img.FlipDirection.vertical;
@@ -104,14 +92,14 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
         curFlip = img.FlipDirection.horizontal;
       } else if (_curFlip[0] == -1.0 && _curFlip[1] == -1.0) {
         curFlip = img.FlipDirection.both;
-      };
+      }
 
       img.Command editedImage;
 
       if (curFlip != null) {
         editedImage = (img.Command()
           ..decodeImageFile(imagePath)
-          ..copyResize(width: image.width * _scaleValue, height: image.height * _scaleValue)
+          ..copyResize(width: (image.width * _scaleValue).toInt(), height: (image.height * _scaleValue).toInt())
           ..copyRotate(angle: _curAngle * math.pi / 180)
           ..copyFlip(direction: curFlip));
       } else {
@@ -123,23 +111,37 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
           ..copyRotate(angle: _curAngle * math.pi / 180));
       }
 
+
       if (_howToSave == "각 폴더에") {
+        // final dir = p.dirname(imagePath).replaceAll(r'\', '/',);
         final dir = p.dirname(imagePath);
         final name = p.basenameWithoutExtension(imagePath);
-        final outPath = p.join(dir, "$name(1).png");
-        editedImage = editedImage..writeToFile(outPath);
+        final outPath = p.join(dir, "$name.$ext");
+        debugPrint(outPath);
+        editedImage = editedImage..writeToFile("$outPath");
+
       } else if (_howToSave == "특정 폴더에") {
         final name = p.basenameWithoutExtension(imagePath);
-        final outPath = p.join(outPutPath!, "$name(1).png").replaceAll(r'\', '/');
+        final outPath = p.join(outPutPath!, "$name.$ext");
+        debugPrint("outPath :  $outPath");
+        editedImage = editedImage..writeToFile("$outPath");
+      } else if (_howToSave == "각 폴더 아래에") {
+
+        final dir = p.dirname(imagePath);
+        final name = p.basenameWithoutExtension(imagePath);
+
+        final outPath = p.join(dir, "lal_converted/", "$name(1).$ext");
         debugPrint(outPath);
         editedImage = editedImage..writeToFile("$outPath");
       }
 
+
+
       debugPrint("이미지 변환 시작.. ${DateTime.now()}");
-      await editedImage.execute();  // ← 여기서 많이 죽습니다
+      editedImage.executeThread();
       debugPrint("이미지 변환 완료.. ${DateTime.now()}");
     } catch (e, st) {
-      debugPrint("❌ 변환 중 오류 발생: $e");
+      debugPrint("변환 중 오류 발생: $e");
       debugPrint(st.toString());
     }
   }
@@ -444,7 +446,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                   ),
                                   child: DropdownButton(
                                       value: _scaleValue,
-                                      items: [1, 2, 3, 4].map((e) => DropdownMenuItem(
+                                      items: [0.25, 0.5, 1.0, 2.0, 3.0, 4.0].map((e) => DropdownMenuItem(
                                           value: e,
                                           child: Text("x$e")
                                       )).toList(),

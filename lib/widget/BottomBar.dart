@@ -101,87 +101,44 @@ class _BottomBar extends ConsumerState<BottomBar> {
         opacity: _isHover ? 1.0 : 1.0,
         duration: const Duration(milliseconds: 500),
         child: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(30)),
-            color: Colors.grey,
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(Radius.circular(30)),
+            border: Border.all(),
+            color: Colors.transparent,
           ),
           height: 100,
-          width: 700,
+          width: 600,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
               return Stack(
                 children: [
                   Positioned(
-                    top: constraints.maxHeight * 0.5 - 50,
-                    left: constraints.maxWidth * 0.5 - 150,
-                    child: ShaderMask(
-
-                      shaderCallback: (Rect rect) {
-                        return const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                          stops: [0.0, 0.1, 0.9, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: const SizedBox(
-                        height: 100,
-                        width: 300,
-                        child: ImageListMap(),
-                      ),
-                    )
-                  ),
-
-                  // 왼쪽
-                  Positioned(
-                    top: 0,
                     bottom: 0,
-                    left: 15,
-                    child: IconButton(
-                      onPressed: () {
-                        convertIndexPlusOrMinus(isPlus: false);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 60,
-                        color: Colors.black,
-                      ),
-
-                    )
-                  ),
-
-                  // 오른쪽
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    right: 15,
-                    child: IconButton(
-                        onPressed: () {
-                          convertIndexPlusOrMinus(isPlus: true);
-                        },
-                        icon: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 60,
-                          color: Colors.black,
-                        )
-                    )
-                  ),
-
-                  // 오른쪽 부속
-                  Positioned(
-                      top: 0,
-                      bottom: 0,
-                      right: 130,
-                      child: Column(
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // 오른쪽 붙이기
+                          IconButton(
+                            onPressed: () {
+                              convertIndexPlusOrMinus(isPlus: false);
+                            },
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 35,
+                              color: Colors.black,
+                            ),
+                          ),
+                          IconButton(
+                              onPressed: () {
+                                convertIndexPlusOrMinus(isPlus: true);
+                              },
+                              icon: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 35,
+                                color: Colors.black,
+                              )
+                          ),
                           IconButton(
                               onPressed: () {
                                 attachBackOrFront(isBack: true);
@@ -192,7 +149,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                 width: 30,
                               )
                           ),
-                          // 오른쪽 떼어내기
+
                           IconButton(
                               onPressed: () {
                                 detachBackOrFront(isBack: true);
@@ -202,20 +159,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                 height: 30,
                                 width: 30,
                               )
-                          )
-                        ],
-                      )
-                  ),
+                          ),
 
-                  // 왼쪽 부속
-                  Positioned(
-                      top: 0,
-                      bottom: 0,
-                      left: 130,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // 왼쪽 붙이기
                           IconButton(
                               onPressed: () {
                                 attachBackOrFront(isBack: false);
@@ -226,7 +171,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                 width: 30,
                               )
                           ),
-                          // 왼쪽 떼어내기
+
                           IconButton(
                               onPressed: () {
                                 detachBackOrFront(isBack: false);
@@ -238,8 +183,13 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               )
                           )
                         ],
-                      )
-                  )
+                      ),
+                    ),
+                  ),
+
+                  // 오른쪽 부
+
+                  // 왼쪽 부속
 
                 ],
               );

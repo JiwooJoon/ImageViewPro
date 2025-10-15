@@ -1,0 +1,472 @@
+@startuml
+set namespaceSeparator ::
+
+class "image_view_pro::func::visonOcr.dart::GoogleVisionOcr" {
+  +dynamic recognizeText()
+}
+
+class "image_view_pro::main.dart::StateProv" {
+  +void updateIndex()
+  +void updateSize()
+  +void updateModel()
+  +void updateStorage()
+  +void updateOption()
+  +void addImage()
+  +void addImages()
+  +void clearImages()
+  +void updateZoom()
+  +void toggleDirection()
+}
+
+"state_notifier::state_notifier.dart::StateNotifier" <|-- "image_view_pro::main.dart::StateProv"
+
+class "image_view_pro::model::ImageModel.dart::ImageModel" {
+  +double height
+  +double width
+  +String path
+  +String toString()
+}
+
+class "image_view_pro::model::stateModel.dart::StateModel" {
+  +int curIndex
+  +int curSize
+  +double curZoom
+  +List<ImageModel> images
+  +bool direction
+  +bool watchMode
+  +GoogleVisionOcr recognizer
+  +List<String> recognizedText
+  +Map<String, dynamic> options
+  +FlutterSecureStorage storage
+  +StateModel copyWith()
+}
+
+"image_view_pro::model::stateModel.dart::StateModel" o-- "image_view_pro::func::visonOcr.dart::GoogleVisionOcr"
+"image_view_pro::model::stateModel.dart::StateModel" o-- "flutter_secure_storage::flutter_secure_storage.dart::FlutterSecureStorage"
+
+class "image_view_pro::model::window_info.dart::WindowInfo" {
+  +int id
+  +String name
+  +WindowController controller
+}
+
+"image_view_pro::model::window_info.dart::WindowInfo" o-- "desktop_multi_window::src::window_controller.dart::WindowController"
+
+class "image_view_pro::Screen::MainView.dart::MainView" {
+  +ConsumerState<MainView> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::Screen::MainView.dart::MainView"
+
+class "image_view_pro::Screen::MainView.dart::_MainView" {
+  +bool isControllerWatched
+  +bool isOrderWatched
+  -Timer? _orderTimer
+  -File? _favFile
+  +List<String> droppedFiles
+  +bool isDragging
+  +bool isHoverOnMenubar
+  +bool isHoverOnNavi
+  -bool _isMovingOnLeft
+  -bool _isMovingOnRight
+  -bool _isCtrlPressed
+  -List<WindowInfo> _windows
+  -StreamSubscription<ImageModel>? _imageSubscription
+  -bool? _isLoadingImages
+  -ScrollController _scrollController
+  +dynamic getImageSize()
+  +void initState()
+  +dynamic loadImagesStream()
+  -dynamic _loadOpt()
+  -dynamic _loadFav()
+  +dynamic cancelImageLoading()
+  +dynamic loadFolderImagesSafe()
+  +void dispose()
+  +Widget build()
+}
+
+"image_view_pro::Screen::MainView.dart::_MainView" o-- "dart::async::Timer"
+"image_view_pro::Screen::MainView.dart::_MainView" o-- "dart::io::File"
+"image_view_pro::Screen::MainView.dart::_MainView" o-- "dart::async::StreamSubscription<ImageModel>"
+"image_view_pro::Screen::MainView.dart::_MainView" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::Screen::MainView.dart::_MainView"
+
+class "image_view_pro::Screen::TranslatedView.dart::TranslatedView" {
+  +String recognized
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "image_view_pro::Screen::TranslatedView.dart::TranslatedView"
+
+class "image_view_pro::util::isolatePool.dart::_DecodeRequest" {
+  +String path
+  +SendPort replyPort
+}
+
+"image_view_pro::util::isolatePool.dart::_DecodeRequest" o-- "dart::isolate::SendPort"
+
+class "image_view_pro::util::isolatePool.dart::IsolatePool" {
+  +int size
+  -List<SendPort> _workers
+  -bool _initialized
+  +dynamic init()
+  +dynamic decode()
+  +dynamic dispose()
+}
+
+class "image_view_pro::widget::AllOpacityWidget.dart::AllOpacityWidget" {
+  +Widget child
+  +ConsumerState<AllOpacityWidget> createState()
+}
+
+"image_view_pro::widget::AllOpacityWidget.dart::AllOpacityWidget" o-- "flutter::src::widgets::framework.dart::Widget"
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::AllOpacityWidget.dart::AllOpacityWidget"
+
+class "image_view_pro::widget::AllOpacityWidget.dart::_AllOpacityWidget" {
+  +Widget build()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::AllOpacityWidget.dart::_AllOpacityWidget"
+
+class "image_view_pro::widget::BottomBar.dart::BottomBar" {
+  +ConsumerState<BottomBar> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::BottomBar.dart::BottomBar"
+
+class "image_view_pro::widget::BottomBar.dart::_BottomBar" {
+  -bool _isHover
+  +Widget build()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::BottomBar.dart::_BottomBar"
+
+class "image_view_pro::widget::ControllerButton.dart::ControllerButton" {
+  +void Function() btnCallback
+  +Icon icon
+  +Widget build()
+}
+
+"image_view_pro::widget::ControllerButton.dart::ControllerButton" o-- "dart::ui::void Function()"
+"image_view_pro::widget::ControllerButton.dart::ControllerButton" o-- "flutter::src::widgets::icon.dart::Icon"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "image_view_pro::widget::ControllerButton.dart::ControllerButton"
+
+class "image_view_pro::widget::CustomSnackBar.dart::CustomSnackBar" {
+  +Widget build()
+}
+
+"flutter::src::material::snack_bar.dart::SnackBar" <|-- "image_view_pro::widget::CustomSnackBar.dart::CustomSnackBar"
+
+class "image_view_pro::widget::DeskTopMenuBar.dart::DeskTopMenuBar" {
+  +ConsumerState<DeskTopMenuBar> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::DeskTopMenuBar.dart::DeskTopMenuBar"
+
+class "image_view_pro::widget::DeskTopMenuBar.dart::_DeskTopMenuBar" {
+  +Uint8List? imageByte
+  -StreamSubscription<ImageModel>? _imageSubscription
+  -bool? _isLoadingImages
+  +dynamic startProcess()
+  +dynamic loadImagesStream()
+  +dynamic cancelImageLoading()
+  +dynamic loadFolderImagesSafe()
+  +void initState()
+  +Widget build()
+}
+
+"image_view_pro::widget::DeskTopMenuBar.dart::_DeskTopMenuBar" o-- "dart::typed_data::Uint8List"
+"image_view_pro::widget::DeskTopMenuBar.dart::_DeskTopMenuBar" o-- "dart::async::StreamSubscription<ImageModel>"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::DeskTopMenuBar.dart::_DeskTopMenuBar"
+
+class "image_view_pro::widget::DtoV(test).dart::DtoVGallery" {
+  +ConsumerState<DtoVGallery> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::DtoV(test).dart::DtoVGallery"
+
+class "image_view_pro::widget::DtoV(test).dart::_DtoVGallery" {
+  +List<File> files
+  -Map<File, bool> _checkedFiles
+  -List<bool> _choices
+  -List<bool>? _hoverOn
+  -List<File> _savedFiles
+  -int _firstIndex
+  -int _lastIndex
+  -int _curIndex
+  -File? _curFolder
+  -bool? _everyBoxChecked
+  -TextEditingController _folderNameController
+  +dynamic initList()
+  +void initState()
+  +void dispose()
+  +Widget build()
+}
+
+"image_view_pro::widget::DtoV(test).dart::_DtoVGallery" o-- "googleapis::drive::v3.dart::File"
+"image_view_pro::widget::DtoV(test).dart::_DtoVGallery" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::DtoV(test).dart::_DtoVGallery"
+
+class "image_view_pro::widget::DtoV.dart::DtoVGallery" {
+  +ConsumerState<DtoVGallery> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::DtoV.dart::DtoVGallery"
+
+class "image_view_pro::widget::DtoV.dart::_DtoVGallery" {
+  +List<File> files
+  -Map<String, bool> _checkedFiles
+  -List<bool>? _hoverOn
+  -int _firstIndex
+  -int _lastIndex
+  -int _curIndex
+  -File? _curFolder
+  -bool? _everyBoxChecked
+  +dynamic initList()
+  +void initState()
+  +void dispose()
+  +Widget build()
+}
+
+"image_view_pro::widget::DtoV.dart::_DtoVGallery" o-- "googleapis::drive::v3.dart::File"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::DtoV.dart::_DtoVGallery"
+
+class "image_view_pro::widget::FavGallery.dart::FavGallery" {
+  +ConsumerState<FavGallery> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::FavGallery.dart::FavGallery"
+
+class "image_view_pro::widget::FavGallery.dart::_FavGallery" {
+  -List<String> _paths
+  -Map<String, bool> _checkedFiles
+  -List<bool>? _hoverOn
+  -int _firstIndex
+  -int _lastIndex
+  -int _curIndex
+  -bool? _everyBoxChecked
+  +dynamic initList()
+  +void initState()
+  +void dispose()
+  +Widget build()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::FavGallery.dart::_FavGallery"
+
+class "image_view_pro::widget::ImageConverter.dart::ImageConverter" {
+  +List<ImageModel> images
+  +ConsumerState<ImageConverter> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::ImageConverter.dart::ImageConverter"
+
+class "image_view_pro::widget::ImageConverter.dart::_ImageConverter" {
+  -List<String> _paths
+  -Map<String, bool> _checkedFiles
+  -List<bool>? _hoverOn
+  -int _curIndex
+  -double _curAngle
+  -List<double> _curFlip
+  -bool? _everyBoxChecked
+  -ScrollController _scrollContrller
+  +dynamic initList()
+  +void initState()
+  +void dispose()
+  +Widget build()
+}
+
+"image_view_pro::widget::ImageConverter.dart::_ImageConverter" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::ImageConverter.dart::_ImageConverter"
+
+class "image_view_pro::widget::ImageListMap.dart::ImageListMap" {
+  +ConsumerState<ImageListMap> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::ImageListMap.dart::ImageListMap"
+
+class "image_view_pro::widget::ImageListMap.dart::_ImageListMap" {
+  -List<ImageModel> _imageModels
+  -List<bool> _hoverStates
+  -ScrollController _scrollController
+  +void dispose()
+  -void _scrollToIndex()
+  +Widget build()
+}
+
+"image_view_pro::widget::ImageListMap.dart::_ImageListMap" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::ImageListMap.dart::_ImageListMap"
+
+class "image_view_pro::widget::LoadingOverlay.dart::LoadingOverlay" {
+  +String msg
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "image_view_pro::widget::LoadingOverlay.dart::LoadingOverlay"
+
+class "image_view_pro::widget::OpacityWidget.dart::OpacityWidget" {
+  +Widget child
+  +ConsumerState<OpacityWidget> createState()
+}
+
+"image_view_pro::widget::OpacityWidget.dart::OpacityWidget" o-- "flutter::src::widgets::framework.dart::Widget"
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::OpacityWidget.dart::OpacityWidget"
+
+class "image_view_pro::widget::OpacityWidget.dart::_OpacityWidget" {
+  -bool _hovered
+  +Widget build()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::OpacityWidget.dart::_OpacityWidget"
+
+class "image_view_pro::widget::OptionWindow.dart::OptionWindow" {
+  +ConsumerState<OptionWindow> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::OptionWindow.dart::OptionWindow"
+
+class "image_view_pro::widget::OptionWindow.dart::_OptionWindowState" {
+  -TextEditingController _apiKeyController
+  -TextEditingController _apiKey2Controller
+  +List<String> opts
+  -String? _selectedValue
+  -String? _cred
+  +void dispose()
+  +void initState()
+  -dynamic _loadSelectedValue()
+  -dynamic _saveSelectedValue()
+  -dynamic _loadKeys()
+  +Widget build()
+}
+
+"image_view_pro::widget::OptionWindow.dart::_OptionWindowState" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::OptionWindow.dart::_OptionWindowState"
+
+class "image_view_pro::widget::ScaledHoverWidget.dart::ScaleHoveredWidget" {
+  +Widget customWidget
+  +State<ScaleHoveredWidget> createState()
+}
+
+"image_view_pro::widget::ScaledHoverWidget.dart::ScaleHoveredWidget" o-- "flutter::src::widgets::framework.dart::Widget"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "image_view_pro::widget::ScaledHoverWidget.dart::ScaleHoveredWidget"
+
+class "image_view_pro::widget::ScaledHoverWidget.dart::_ScaleHoveredWidget" {
+  -bool _isHovered
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "image_view_pro::widget::ScaledHoverWidget.dart::_ScaleHoveredWidget"
+
+class "image_view_pro::widget::Second_Window.dart::SecondaryWindowApp" {
+  +int windowId
+  +String windowName
+  +String result
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "image_view_pro::widget::Second_Window.dart::SecondaryWindowApp"
+
+class "image_view_pro::widget::Second_Window.dart::_SecondaryWindow" {
+  +int windowId
+  +String windowName
+  +String result
+  +State<_SecondaryWindow> createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "image_view_pro::widget::Second_Window.dart::_SecondaryWindow"
+
+class "image_view_pro::widget::Second_Window.dart::_SecondaryWindowState" {
+  +void initState()
+  +Widget build()
+  -dynamic _handleMethodCall()
+  -dynamic _sendMessageToMain()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "image_view_pro::widget::Second_Window.dart::_SecondaryWindowState"
+
+class "image_view_pro::widget::SimpleImageEditor.dart::SimpleImageEditor" {
+  +String imagePath
+  +State<SimpleImageEditor> createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "image_view_pro::widget::SimpleImageEditor.dart::SimpleImageEditor"
+
+class "image_view_pro::widget::SimpleImageEditor.dart::_SimpleImageEditor" {
+  +dynamic imageByte
+  +double rotation
+  +double scale
+  +Offset offset
+  +bool flipHorizontal
+  +bool flipVertical
+  +dynamic bytesToUiImage()
+  +void initState()
+  +Widget build()
+  -Widget _ToolButtons()
+  -Widget _RotateMenu()
+}
+
+"image_view_pro::widget::SimpleImageEditor.dart::_SimpleImageEditor" o-- "dart::ui::Offset"
+"flutter::src::widgets::framework.dart::State" <|-- "image_view_pro::widget::SimpleImageEditor.dart::_SimpleImageEditor"
+
+class "image_view_pro::widget::SimpleImageEditor.dart::ImageCanvas" {
+  +Image image
+  +double rotation
+  +double scale
+  +Offset offset
+  +Widget build()
+}
+
+"image_view_pro::widget::SimpleImageEditor.dart::ImageCanvas" o-- "dart::ui::Image"
+"image_view_pro::widget::SimpleImageEditor.dart::ImageCanvas" o-- "dart::ui::Offset"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "image_view_pro::widget::SimpleImageEditor.dart::ImageCanvas"
+
+class "image_view_pro::widget::SimpleImageEditor.dart::_ImagePainter" {
+  +Image image
+  +double rotation
+  +double scale
+  +Offset offset
+  +void paint()
+  +bool shouldRepaint()
+}
+
+"image_view_pro::widget::SimpleImageEditor.dart::_ImagePainter" o-- "dart::ui::Image"
+"image_view_pro::widget::SimpleImageEditor.dart::_ImagePainter" o-- "dart::ui::Offset"
+"flutter::src::rendering::custom_paint.dart::CustomPainter" <|-- "image_view_pro::widget::SimpleImageEditor.dart::_ImagePainter"
+
+class "image_view_pro::widget::ViewModeDropDown.dart::ViewModeDropDown" {
+  +ConsumerState<ConsumerStatefulWidget> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::ViewModeDropDown.dart::ViewModeDropDown"
+
+class "image_view_pro::widget::ViewModeDropDown.dart::_ViewModeDropDown" {
+  -Map<String, BoxFit> _fitOpts
+  -String _selectedFit
+  +Widget build()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::ViewModeDropDown.dart::_ViewModeDropDown"
+
+class "image_view_pro::widget::VtoD.dart::VtoDGallery" {
+  +List<ImageModel> images
+  +ConsumerState<VtoDGallery> createState()
+}
+
+"flutter_riverpod::src::core.dart::ConsumerStatefulWidget" <|-- "image_view_pro::widget::VtoD.dart::VtoDGallery"
+
+class "image_view_pro::widget::VtoD.dart::_VtoDGallery" {
+  -List<bool> _choices
+  -List<bool> _hoverOn
+  -int _firstIndex
+  -int _lastIndex
+  -bool? _everyBoxChecked
+  -TextEditingController _folderNameController
+  +void initState()
+  +void dispose()
+  +Widget build()
+}
+
+"image_view_pro::widget::VtoD.dart::_VtoDGallery" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"flutter_riverpod::src::core.dart::ConsumerState" <|-- "image_view_pro::widget::VtoD.dart::_VtoDGallery"
+
+
+@enduml
