@@ -5,9 +5,9 @@ import 'dart:ui';
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:googleapis/chat/v1.dart' hide Image, TextButton;
 import 'package:path_provider/path_provider.dart';
-
 import '../model/ImageModel.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
@@ -79,72 +79,6 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
     super.dispose();
   }
 
-  Future<void> imageConvertProcess(String imagePath,[ String? outPutPath = ""]) async {
-    try {
-      final image = img.decodeImage(File(imagePath).readAsBytesSync())!;
-      img.FlipDirection? curFlip;
-
-      final ext = _extValue;
-
-      if (_curFlip[0] == -1.0 && _curFlip[1] == 1.0) {
-        curFlip = img.FlipDirection.vertical;
-      } else if (_curFlip[0] == 1.0 && _curFlip[1] == -1.0) {
-        curFlip = img.FlipDirection.horizontal;
-      } else if (_curFlip[0] == -1.0 && _curFlip[1] == -1.0) {
-        curFlip = img.FlipDirection.both;
-      }
-
-      img.Command editedImage;
-
-      if (curFlip != null) {
-        editedImage = (img.Command()
-          ..decodeImageFile(imagePath)
-          ..copyResize(width: (image.width * _scaleValue).toInt(), height: (image.height * _scaleValue).toInt())
-          ..copyRotate(angle: _curAngle * math.pi / 180)
-          ..copyFlip(direction: curFlip));
-      } else {
-        editedImage = (img.Command()
-          ..decodeImageFile(imagePath)
-          ..copyResize(
-              width: (image.width * _scaleValue).toInt(),
-              height: (image.height * _scaleValue).toInt())
-          ..copyRotate(angle: _curAngle * math.pi / 180));
-      }
-
-
-      if (_howToSave == "각 폴더에") {
-        // final dir = p.dirname(imagePath).replaceAll(r'\', '/',);
-        final dir = p.dirname(imagePath);
-        final name = p.basenameWithoutExtension(imagePath);
-        final outPath = p.join(dir, "$name.$ext");
-        debugPrint(outPath);
-        editedImage = editedImage..writeToFile("$outPath");
-
-      } else if (_howToSave == "특정 폴더에") {
-        final name = p.basenameWithoutExtension(imagePath);
-        final outPath = p.join(outPutPath!, "$name.$ext");
-        debugPrint("outPath :  $outPath");
-        editedImage = editedImage..writeToFile("$outPath");
-      } else if (_howToSave == "각 폴더 아래에") {
-
-        final dir = p.dirname(imagePath);
-        final name = p.basenameWithoutExtension(imagePath);
-
-        final outPath = p.join(dir, "lal_converted/", "$name(1).$ext");
-        debugPrint(outPath);
-        editedImage = editedImage..writeToFile("$outPath");
-      }
-
-
-
-      debugPrint("이미지 변환 시작.. ${DateTime.now()}");
-      editedImage.executeThread();
-      debugPrint("이미지 변환 완료.. ${DateTime.now()}");
-    } catch (e, st) {
-      debugPrint("변환 중 오류 발생: $e");
-      debugPrint(st.toString());
-    }
-  }
 
   @override
   Widget build(BuildContext ctx) {
@@ -317,7 +251,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                 textAlign: TextAlign.start,
                                 style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w900,
                                   color: Colors.grey[900],
                                 ),
                               ),
@@ -327,7 +261,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   TextButton.icon(
-                                    onPressed: () { 
+                                    onPressed: () {
                                       if (_curAngle == 360) {
                                         _curAngle = 0;
                                         _curAngle += 90;
@@ -434,7 +368,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                 textAlign: TextAlign.start,
                                 style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w900,
                                   color: Colors.grey[900],
                                 ),
                               ),
@@ -454,7 +388,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                         setState(() {
                                           _scaleValue = value!;
                                         });
-                                
+
                                       }
                                   ),
                                 ),
@@ -627,7 +561,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                     style: OutlinedButton.styleFrom(
                         side: BorderSide(
                             color: Colors.grey.shade800,
-                            width: 3,
+                            width: 1.5,
                             style: BorderStyle.solid
                         )
                     ),
@@ -652,23 +586,26 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                 child: OutlinedButton.icon(
                     onPressed: () async {
 
-
-
                       for (var path in _paths) {
-                        if (_howToSave == "특정 폴더에") {
-                          await imageConvertProcess(path, _outputPath);
-                        } else {
-                          await imageConvertProcess(path);
-                        }
+                        await imageConvertProcess({
+                          'imagePath' : path,
+                          'extValue' : _extValue,
+                          'curFlip' : _curFlip,
+                          'scaleValue' : _scaleValue,
+                          'curAngle' : _curAngle,
+                          'howToSave' : _howToSave,
+                          'outputPath' : _outputPath
+                        });
                       }
 
                       ref.read(modalProvider.notifier).state = false;
                       ref.read(converterProvider.notifier).state = false;
+
                     },
                     style: OutlinedButton.styleFrom(
                         side: BorderSide(
                             color: Colors.grey.shade800,
-                            width: 3,
+                            width: 1.5,
                             style: BorderStyle.solid
                         )
                     ),
@@ -678,7 +615,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                       size: 25,
                     ),
                     label:Text(
-                      "저장",
+                      "변환",
                       style: TextStyle(
                           color: Colors.grey[800],
                           fontSize: 20,
@@ -690,5 +627,82 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
             ],
           )
     );
+  }
+}
+
+Future<void> imageConvertProcess(Map<String, dynamic> args) async {
+  final imagePath = args['imagePath'] as String;
+  final extValue = args['extValue'] as String;
+  final curFlip = args['curFlip'] as List<double>;
+  final scaleValue = args['scaleValue'] as double;
+  final curAngle = args['curAngle'] as double;
+  final howToSave = args['howToSave'] as String;
+  final outputPath = args['outputPath'] as String;
+
+
+  try {
+    final image = img.decodeImage(await File(imagePath).readAsBytes())!;
+    img.FlipDirection? thisFlip;
+
+    final ext = extValue;
+
+    if (curFlip[0] == -1.0 && curFlip[1] == 1.0) {
+      thisFlip = img.FlipDirection.vertical;
+    } else if (curFlip[0] == 1.0 && curFlip[1] == -1.0) {
+      thisFlip = img.FlipDirection.horizontal;
+    } else if (curFlip[0] == -1.0 && curFlip[1] == -1.0) {
+      thisFlip = img.FlipDirection.both;
+    }
+
+    img.Command editedImage;
+
+    if (thisFlip != null) {
+      editedImage = (img.Command()
+        ..decodeImageFile(imagePath)
+        ..copyResize(width: (image.width * scaleValue).toInt(), height: (image.height * scaleValue).toInt())
+        ..copyRotate(angle: curAngle * math.pi / 180)
+        ..copyFlip(direction: thisFlip));
+    } else {
+      editedImage = (img.Command()
+        ..decodeImageFile(imagePath)
+        ..copyResize(
+            width: (image.width * scaleValue).toInt(),
+            height: (image.height * scaleValue).toInt())
+        ..copyRotate(angle: curAngle * math.pi / 180));
+    }
+
+
+    if (howToSave == "각 폴더에") {
+      final dir = p.dirname(imagePath);
+      final name = p.basenameWithoutExtension(imagePath);
+      final outPath = p.join(dir, "$name.$ext").replaceAll(r'\', '/',);
+      print("$outPath");
+      editedImage = editedImage..writeToFile("$outPath");
+
+    } else if (howToSave == "특정 폴더에") {
+      final name = p.basenameWithoutExtension(imagePath);
+      String outPath = "$outputPath/$name.$ext";
+      outPath = outPath.replaceAll(r'\', '/',);
+
+      print("$outPath");
+      editedImage = editedImage..writeToFile("$outPath");
+    } else if (howToSave == "각 폴더 아래에") {
+      final dir = p.dirname(imagePath);
+      final name = p.basenameWithoutExtension(imagePath);
+
+      final outPath = p.join(dir, "lal_converted/", "$name(1).$ext");
+      final saveDir = outPath.replaceAll(r'\', '/');
+      print("$saveDir");
+      editedImage = editedImage..writeToFile("$saveDir");
+    }
+
+
+
+    print("이미지 변환 시작.. ${DateTime.now()}");
+    editedImage.executeThread();
+    print("이미지 변환 완료.. ${DateTime.now()}");
+  } catch (e, st) {
+    print("변환 중 오류 발생: $e");
+    print(st.toString());
   }
 }
