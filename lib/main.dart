@@ -36,6 +36,7 @@ final lookModeProvider = StateProvider<String>((ref) => "Cut");
 final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 final favPathProvider = StateProvider<List<String>>((ref) => []);
 final subscriptProvider = StateProvider<StreamSubscription<ImageModel>?>((ref) => null);
+final sliderProvider = StateProvider<double>((ref) => 0.0);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정

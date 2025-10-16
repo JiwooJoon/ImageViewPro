@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:googleapis/chat/v1.dart' hide Image, TextButton;
 import 'package:path_provider/path_provider.dart';
+import '../func/ImageConvert.dart';
 import '../model/ImageModel.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
@@ -52,7 +53,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
 
 
   Future<void> initList() async {
-    ref.read(uploadGProvider.notifier).state = false;
+    // ref.read(uploadGProvider.notifier).state = false;
 
     // image들의 path를 리스트에 저장
     _paths = widget.images.map((image) => image.path).toList();
@@ -586,17 +587,14 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                 child: OutlinedButton.icon(
                     onPressed: () async {
 
-                      for (var path in _paths) {
-                        await imageConvertProcess({
-                          'imagePath' : path,
-                          'extValue' : _extValue,
-                          'curFlip' : _curFlip,
-                          'scaleValue' : _scaleValue,
-                          'curAngle' : _curAngle,
-                          'howToSave' : _howToSave,
-                          'outputPath' : _outputPath
-                        });
-                      }
+                      await convertImagesInParallel( _paths,
+                        extValue: _extValue,
+                        flip: _curFlip,
+                        scaleValue: _scaleValue,
+                        angle: _curAngle,
+                        howToSave: _howToSave,
+                        outputPath: _outputPath!
+                      );
 
                       ref.read(modalProvider.notifier).state = false;
                       ref.read(converterProvider.notifier).state = false;

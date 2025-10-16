@@ -1,20 +1,47 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
-
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
+Future<void> convertImagesInParallel(
+    List<String> imagePaths, {
+      required String extValue,
+      required List<double> flip,
+      required double scaleValue,
+      required double angle,
+      required String howToSave,
+      required String outputPath,
+    }) async {
+  const int isolateCount = 5;
+  final int batchSize = (imagePaths.length / isolateCount).ceil();
 
-Future<void> doBackgroundConvertImage(List<String> list ,Map<String, dynamic> args) async {
-
-  for (var path in list) {
-    final args2 = args;
-    args2['imagePath'] = path;
-    await imageConvertProcess(args2);
+  final List<List<String>> batches = [];
+  for (int i = 0; i < imagePaths.length; i += batchSize) {
+    final batch = imagePaths.sublist(
+      i,
+      (i + batchSize > imagePaths.length) ? imagePaths.length : i + batchSize,
+    );
+    batches.add(batch);
   }
 
-  print("완료");
+  final futures = batches.map((batch) async {
+    for (final path in batch) {
+      final args = {
+        'imagePath': path,
+        'extValue': extValue,
+        'curFlip': flip,
+        'scaleValue': scaleValue,
+        'curAngle': angle,
+        'howToSave': howToSave,
+        'outputPath': outputPath,
+      };
+      await compute(imageConvertProcess, args);
+    }
+  }).toList();
+
+  await Future.wait(futures);
+  print('✅ 총 ${imagePaths.length}개의 이미지 변환 완료!');
 }
 
 Future<void> imageConvertProcess(Map<String, dynamic> args) async {
@@ -26,69 +53,72 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
   final howToSave = args['howToSave'] as String;
   final outputPath = args['outputPath'] as String;
 
+  img.FlipDirection? flipDir;
+  if (curFlip[0] == -1.0 && curFlip[1] == 1.0) {
+    flipDir = img.FlipDirection.vertical;
+  } else if (curFlip[0] == 1.0 && curFlip[1] == -1.0) {
+    flipDir = img.FlipDirection.horizontal;
+  } else if (curFlip[0] == -1.0 && curFlip[1] == -1.0) {
+    flipDir = img.FlipDirection.both;
+  }
 
   try {
-    final image = img.decodeImage(await File(imagePath).readAsBytes())!;
-    img.FlipDirection? thisFlip;
+    // 1. 디코드
+    final bytes = await File(imagePath).readAsBytes();
+    img.Image? image = img.decodeImage(bytes);
+    if (image == null) throw Exception('이미지를 디코드할 수 없습니다: $imagePath');
 
-    final ext = extValue;
-
-    if (curFlip[0] == -1.0 && curFlip[1] == 1.0) {
-      thisFlip = img.FlipDirection.vertical;
-    } else if (curFlip[0] == 1.0 && curFlip[1] == -1.0) {
-      thisFlip = img.FlipDirection.horizontal;
-    } else if (curFlip[0] == -1.0 && curFlip[1] == -1.0) {
-      thisFlip = img.FlipDirection.both;
+    // 2. 스케일
+    if (scaleValue != 1.0) {
+      image = img.copyResize(
+        image,
+        width: (image.width * scaleValue).toInt(),
+        height: (image.height * scaleValue).toInt(),
+      );
     }
 
-    img.Command editedImage;
-
-    if (thisFlip != null) {
-      editedImage = (img.Command()
-        ..decodeImageFile(imagePath)
-        ..copyResize(width: (image.width * scaleValue).toInt(), height: (image.height * scaleValue).toInt())
-        ..copyRotate(angle: curAngle * math.pi / 180)
-        ..copyFlip(direction: thisFlip));
-    } else {
-      editedImage = (img.Command()
-        ..decodeImageFile(imagePath)
-        ..copyResize(
-            width: (image.width * scaleValue).toInt(),
-            height: (image.height * scaleValue).toInt())
-        ..copyRotate(angle: curAngle * math.pi / 180));
+    // 3. 회전 (degree)
+    if (curAngle != 0) {
+      image = img.copyRotate(image, angle: curAngle);
     }
 
+    // 4. 플립
+    if (flipDir != null) {
+      image = img.copyFlip(image, direction: flipDir);
+    }
+
+    // 5. 출력 경로 설정
+    final dir = p.dirname(imagePath);
+    final name = p.basenameWithoutExtension(imagePath);
+    late final String outPath;
 
     if (howToSave == "각 폴더에") {
-      final dir = p.dirname(imagePath);
-      final name = p.basenameWithoutExtension(imagePath);
-      final outPath = p.join(dir, "$name.$ext").replaceAll(r'\', '/',);
-      print("$outPath");
-      editedImage = editedImage..writeToFile("$outPath");
-
+      outPath = p.join(dir, "$name(1).$extValue");
     } else if (howToSave == "특정 폴더에") {
-      final name = p.basenameWithoutExtension(imagePath);
-      final outPath = p.join(outputPath, "$name.$ext").replaceAll(r'\', '/',);
-
-      print("$outPath");
-      editedImage = editedImage..writeToFile("$outPath");
-    } else if (howToSave == "각 폴더 아래에") {
-      final dir = p.dirname(outputPath);
-      final name = p.basenameWithoutExtension(imagePath);
-
-      final outPath = p.join(dir, "lal_converted/", "$name(1).$ext");
-      final saveDir = outPath.replaceAll(r'\', '/');
-      print("$saveDir");
-      editedImage = editedImage..writeToFile("$saveDir");
+      outPath = p.join(outputPath, "$name.$extValue").replaceAll(r"\", "/");
+    } else {
+      outPath = p.join(dir, "lal_converted", "$name(1).$extValue");
     }
 
+    final outDir = Directory(p.dirname(outPath));
+    if (!outDir.existsSync()) {
+      outDir.createSync(recursive: true);
+    }
 
+    // 6. 인코딩 및 저장
+    List<int> encoded;
+    if (extValue.toLowerCase() == 'png') {
+      encoded = img.encodePng(image);
+    } else if (extValue.toLowerCase() == 'jpg' || extValue.toLowerCase() == 'jpeg') {
+      encoded = img.encodeJpg(image);
+    } else {
+      throw Exception('지원하지 않는 확장자: $extValue');
+    }
 
-    print("이미지 변환 시작.. ${DateTime.now()}");
-    editedImage.execute();
-    print("이미지 변환 완료.. ${DateTime.now()}");
+    await File(outPath).writeAsBytes(encoded);
+    print("✅ 변환 완료: $outPath");
   } catch (e, st) {
-    print("변환 중 오류 발생: $e");
-    print(st.toString());
+    print("❌ 변환 중 오류: $e");
+    print(st);
   }
 }

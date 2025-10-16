@@ -224,6 +224,7 @@ class _MainView extends ConsumerState<MainView> {
             isOrderWatched = true;
             if (state.curIndex < (state.images.length - state.curSize)) {
               ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+              ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state + 1;
             } else {
               if (kDebugMode) {
                 print("탑에 도달했습니다.");
@@ -246,6 +247,7 @@ class _MainView extends ConsumerState<MainView> {
 
             if (state.curIndex > 0) {
               ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
+              ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state - 1;
             } else {
               if (kDebugMode) {
                 print("처음 이미지입니다.");

@@ -15,6 +15,13 @@ class BottomBar extends ConsumerStatefulWidget {
 class _BottomBar extends ConsumerState<BottomBar> {
 
   bool _isHover = false;
+  late double _curSlide = ref.read(stateProvider).curIndex.toDouble();
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(sliderProvider.notifier).state = ref.read(stateProvider).curIndex.toDouble();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +75,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
         setState(() {
           if (state.curIndex < (state.images.length - state.curSize)) {
             ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+            ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state + 1;
           } else {
           }
         });
@@ -78,6 +86,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
 
           if (state.curIndex > 0) {
             ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
+            ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state - 1;
           } else {
           }
         });
@@ -102,7 +111,6 @@ class _BottomBar extends ConsumerState<BottomBar> {
         duration: const Duration(milliseconds: 500),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
             border: Border.all(),
             color: Colors.transparent,
           ),
@@ -129,16 +137,67 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               color: Colors.black,
                             ),
                           ),
+
                           IconButton(
                               onPressed: () {
-                                convertIndexPlusOrMinus(isPlus: true);
+                                detachBackOrFront(isBack: false);
                               },
-                              icon: const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 35,
-                                color: Colors.black,
+                              icon: Image.asset(
+                                'assets/images/front_detach2.png',
+                                height: 30,
+                                width: 30,
                               )
                           ),
+
+                          IconButton(
+                              onPressed: () {
+                                attachBackOrFront(isBack: false);
+                              },
+                              icon: Image.asset(
+                                'assets/images/front_attach2.png',
+                                height: 30,
+                                width: 30,
+                              )
+                          ),
+
+                          // if (ref.read(stateProvider).images.isNotEmpty)
+                            Tooltip(
+                                message: "${ref.read(sliderProvider).toInt() + 1}/${ref.read(stateProvider).images.length}",
+                                enableTapToDismiss: false,
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    thumbColor: Colors.black,
+                                    trackHeight: 15,
+                                    activeTrackColor: Colors.grey.shade600,
+                                    inactiveTrackColor: Colors.grey.shade800
+                                  ),
+                                  child: Slider(
+                                    value: ref.read(sliderProvider),
+                                    // max: ref.read(stateProvider).images.length.toDouble() - 1,
+                                    max: 10,
+                                    min: 0.0,
+
+                                    divisions: ref.read(stateProvider).images.isEmpty ? 1 : ref.read(stateProvider).images.length,
+                                    onChanged: (double value) {
+                                      if (value < 0.0) {
+                                        ref.read(sliderProvider.notifier).state = 0;
+                                      } else if ( value > ref.read(stateProvider).images.length.toDouble() - 1) {
+                                        ref.read(sliderProvider.notifier).state = ref.read(stateProvider).images.length + 1;
+                                      } else {
+                                        ref.read(sliderProvider.notifier).state = value;
+                                      }
+                                      ref.read(stateProvider.notifier).updateIndex(value.toInt());
+                                      setState(() {
+
+                                      });
+                                    },
+
+                                  ),
+                                )
+                            ),
+
+
+
                           IconButton(
                               onPressed: () {
                                 attachBackOrFront(isBack: true);
@@ -160,28 +219,16 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                 width: 30,
                               )
                           ),
-
                           IconButton(
                               onPressed: () {
-                                attachBackOrFront(isBack: false);
+                                convertIndexPlusOrMinus(isPlus: true);
                               },
-                              icon: Image.asset(
-                                'assets/images/front_attach2.png',
-                                height: 30,
-                                width: 30,
+                              icon: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 35,
+                                color: Colors.black,
                               )
                           ),
-
-                          IconButton(
-                              onPressed: () {
-                                detachBackOrFront(isBack: false);
-                              },
-                              icon: Image.asset(
-                                'assets/images/front_detach2.png',
-                                height: 30,
-                                width: 30,
-                              )
-                          )
                         ],
                       ),
                     ),
