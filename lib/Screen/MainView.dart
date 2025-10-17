@@ -20,6 +20,7 @@ import 'package:image_view_pro/func/jsonDeIn.dart';
 import 'package:image_view_pro/widget/DtoV.dart';
 import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
+import 'package:image_view_pro/widget/ListBottomBar.dart';
 import 'package:image_view_pro/widget/OpacityWidget.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
@@ -169,54 +170,6 @@ class _MainView extends ConsumerState<MainView> {
 
     });
 
-    void convertSizePlusOrMinus({required bool isPlus}) {
-      if (isPlus) {
-        setState(() {
-          isOrderWatched = true;
-          if (state.curSize < 6 && state.curIndex < (state.images.length - state.curSize)) {
-            ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
-          } else {
-            // todo: 스낵바
-            if (kDebugMode) {
-              print("탑에 도달했습니다.");
-            }
-          }
-        });
-
-        _orderTimer?.cancel();
-
-        _orderTimer = Timer(const Duration(seconds: 1), () {
-          setState(() {
-            if (mounted) {
-              isOrderWatched = false;
-            }
-          });
-        });
-      } else {
-        setState(() {
-          isOrderWatched = true;
-          if (state.curSize < 6 && state.curIndex > 0) {
-            ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
-            ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
-          } else {
-            // TODO: 스낵바 넣을 것
-            if (kDebugMode) {
-              print("처음 이미지입니다.");
-            }
-          }
-        });
-        _orderTimer?.cancel();
-
-        _orderTimer = Timer(const Duration(seconds: 1), () {
-          setState(() {
-            if (mounted) {
-              isOrderWatched = false;
-            }
-          });
-        });
-      }
-    }
-
     void convertIndexPlusOrMinus({required bool isPlus}) {
       if (ref.read(lookModeProvider) == "Cut") {
         if (isPlus) {
@@ -348,7 +301,6 @@ class _MainView extends ConsumerState<MainView> {
 
                             // 폴더를 드랍했다면
                             if (entity == FileSystemEntityType.directory) {
-                              // ref.read(loadingProvider.notifier).state = true;
 
                               try {
                                 debugPrint("${file.name}은 폴더.");
@@ -356,10 +308,13 @@ class _MainView extends ConsumerState<MainView> {
                                 final path0 = await loadImagesPathFromFolder(file.path);
                                 ref.read(stateProvider.notifier).addImages(path0);
 
+                                final providers = path0.map((p) => FileImage(File(p.path))).toList();
+                                ref.read(imageProviderProvider.notifier).state = providers;
+
+
                               } on Exception catch (e) {
                                 // TODO
                               } finally {
-                                // ref.read(loadingProvider.notifier).state = false;
                               }
 
                               // 파일 이라면
@@ -379,6 +334,10 @@ class _MainView extends ConsumerState<MainView> {
                                     )
                                 );
 
+                                ref.read(imageProviderProvider.notifier).state.add(
+                                  FileImage(File(file.path))
+                                );
+
                               } else {
 
                               }
@@ -390,6 +349,9 @@ class _MainView extends ConsumerState<MainView> {
                             final imgPaths = loadImagesPath(paths);
 
                             ref.read(stateProvider.notifier).addImages(imgPaths);
+
+                            final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+                            ref.read(imageProviderProvider.notifier).state = providers;
 
                           }
 
@@ -601,6 +563,12 @@ class _MainView extends ConsumerState<MainView> {
                                                                       )
                                                                   );
 
+                                                                  ref.read(imageProviderProvider.notifier).state.add(
+                                                                    FileImage(
+                                                                      File(path)
+                                                                    )
+                                                                  );
+
                                                                   return;
                                                                 }
                                                               } else {
@@ -610,6 +578,9 @@ class _MainView extends ConsumerState<MainView> {
                                                               // 여러개 라면
                                                               final imgPaths = loadImagesPath(paths);
                                                               ref.read(stateProvider.notifier).addImages(imgPaths);
+
+                                                              final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+                                                              ref.read(imageProviderProvider.notifier).state = providers;
 
 
                                                               setState(() {
@@ -638,6 +609,9 @@ class _MainView extends ConsumerState<MainView> {
 
                                                                   ref.read(stateProvider.notifier).addImages(paths);
                                                                   debugPrint("가져온 이미지의 수 : ${state.images.length}");
+
+                                                                  final providers = paths.map((p) => FileImage(File(p.path))).toList();
+                                                                  ref.read(imageProviderProvider.notifier).state = providers;
 
                                                                 } on Exception catch (e) {
                                                                   // TODO
@@ -746,10 +720,13 @@ class _MainView extends ConsumerState<MainView> {
                                                                       ),
                                                                     ]
                                                                   ),
-                                                                  child: Image.file(
-                                                                    File(state.images[i].path),
+                                                                  // child: Image.file(
+                                                                  //   File(state.images[i].path),
+                                                                  //   fit: BoxFit.contain,
+                                                                  // ),
+                                                                  child: Image(
+                                                                    image: ref.read(imageProviderProvider)[i],
                                                                     fit: BoxFit.contain,
-                                                                    excludeFromSemantics: false,
                                                                   ),
                                                                 ),
                                                               ),
@@ -796,24 +773,45 @@ class _MainView extends ConsumerState<MainView> {
                                                   child: AbsorbPointer(
                                                     absorbing: HardwareKeyboard.instance.isControlPressed,
                                                     child: SizedBox(
-                                                      height: MediaQuery.of(context).size.height * 0.9,
-                                                      width: 500 * state.curZoom,
+                                                      height: ref.read(listProvider).ax == Axis.vertical ?
+                                                        MediaQuery.of(context).size.height * 0.9
+                                                      : 500 * state.curZoom,
+                                                      width: ref.read(listProvider).ax == Axis.vertical ?
+                                                      500 * state.curZoom
+                                                      : MediaQuery.of(context).size.width * 0.8,
                                                       child: Scrollbar(
                                                         controller: _scrollController,
                                                         thumbVisibility: true,
                                                         trackVisibility: true,
-                                                        child: ListView(
+                                                        // child: ListView(
+                                                        //   padding: EdgeInsets.zero,
+                                                        //   controller: _scrollController,
+                                                        //   physics: const AlwaysScrollableScrollPhysics(),
+                                                        //   children: [
+                                                        //     for (int i = 0; i < state.images.length; i++)
+                                                        //       // Image.file(
+                                                        //       //   key: ValueKey(state.images[i].path),
+                                                        //       //   File(state.images[i].path),
+                                                        //       //   fit: BoxFit.cover,
+                                                        //       // ),
+                                                        //       Image(
+                                                        //         image: ref.read(imageProviderProvider)[i],
+                                                        //         fit: BoxFit.contain,
+                                                        //       ),
+                                                        //   ],
+                                                        // ),
+                                                        child: ListView.builder(
+                                                          scrollDirection: ref.read(listProvider).ax,
                                                           padding: EdgeInsets.zero,
                                                           controller: _scrollController,
                                                           physics: const AlwaysScrollableScrollPhysics(),
-                                                          children: [
-                                                            for (int i = 0; i < state.images.length; i++)
-                                                              Image.file(
-                                                                key: ValueKey(state.images[i].path),
-                                                                File(state.images[i].path),
-                                                                fit: BoxFit.cover,
-                                                              ),
-                                                          ],
+                                                          itemCount: state.images.length,
+                                                          itemBuilder: (context, index) {
+                                                            return Image(
+                                                              image: ref.read(imageProviderProvider)[index],
+                                                              fit: BoxFit.contain,
+                                                            );
+                                                          }
                                                         ),
                                                       ),
                                                     ),
@@ -833,13 +831,22 @@ class _MainView extends ConsumerState<MainView> {
                     ),
                   ),
 
+                  ref.read(lookModeProvider) == "Cut" ?
+                    Positioned(
+                        bottom: 20,
+                        right: MediaQuery.of(context).size.width * 0.5 - 300,
+                        child: OpacityWidget(
+                            enable: ref.read(avoidWidgetProvider),
+                            child: const BottomBar()
+                        )
+                    ) :
                   Positioned(
-                    bottom: 20,
-                    right: MediaQuery.of(context).size.width * 0.5 - 300,
-                    child: OpacityWidget(
-                      enable: ref.read(avoidWidgetProvider),
-                      child: const BottomBar()
-                    )
+                      bottom: 20,
+                      right: MediaQuery.of(context).size.width * 0.5 - 150,
+                      child: OpacityWidget(
+                          enable: ref.read(avoidWidgetProvider),
+                          child: const ListBottomBar()
+                      )
                   ),
 
                   // 왼쪽으로 돌리기 버튼
@@ -925,15 +932,13 @@ class _MainView extends ConsumerState<MainView> {
                         child: ScaleHoveredWidget(
                           customWidget: OutlinedButton(
                               onPressed: () {
-                                if (state.images.isNotEmpty) {
-                                  if (ref.read(lookModeProvider) == "Long") {
-                                    ref.read(lookModeProvider.notifier).state = "Cut";
-                                    ref.read(stateProvider.notifier).updateZoom(1.0);
-                                  } else {
-                                    ref.read(lookModeProvider.notifier).state = "Long";
-                                    ref.read(stateProvider.notifier).updateZoom(0.6);
-                                    _scrollController = ScrollController();
-                                  }
+                                if (ref.read(lookModeProvider) == "Long") {
+                                  ref.read(lookModeProvider.notifier).state = "Cut";
+                                  ref.read(stateProvider.notifier).updateZoom(1.0);
+                                } else {
+                                  ref.read(lookModeProvider.notifier).state = "Long";
+                                  ref.read(stateProvider.notifier).updateZoom(0.6);
+                                  _scrollController = ScrollController();
                                 }
                               },
                               child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")

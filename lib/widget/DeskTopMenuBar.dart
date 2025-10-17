@@ -132,8 +132,11 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         final imgPaths = loadImagesPath(paths);
 
                         ref.read(stateProvider.notifier).clearImages();
-
+                        ref.read(imageProviderProvider.notifier).state.clear();
                         ref.read(stateProvider.notifier).addImages(imgPaths);
+
+                        final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+                        ref.read(imageProviderProvider.notifier).state = providers;
 
                       },
                       child: const MenuAcceleratorLabel("파일에서.. (F)"),
@@ -150,7 +153,11 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         final paths = await loadImagesPathFromFolder(result!);
 
                         ref.read(stateProvider.notifier).clearImages();
+                        ref.read(imageProviderProvider.notifier).state.clear();
                         ref.read(stateProvider.notifier).addImages(paths);
+
+                        final providers = paths.map((p) => FileImage(File(p.path))).toList();
+                        ref.read(imageProviderProvider.notifier).state = providers;
                         debugPrint("가져온 이미지의 수 : ${state.images.length}");
                       },
                       child: const MenuAcceleratorLabel("폴더에서.. (D)"),
@@ -190,6 +197,9 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                           ref.read(stateProvider.notifier).addImages(imgPaths);
                           debugPrint("가져온 이미지의 수 : ${state.images.length}");
+
+                          final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+                          ref.read(imageProviderProvider.notifier).state.addAll(providers);
 
                           setState(() {
                             debugPrint(state.images.toString());

@@ -114,12 +114,24 @@ class _BottomBar extends ConsumerState<BottomBar> {
             border: Border.all(),
             color: Colors.transparent,
           ),
-          height: 100,
+          height: 150,
           width: 600,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
               return Stack(
                 children: [
+                  if (state.images.isNotEmpty)
+                    Positioned(
+                      top: 15,
+                      right: constraints.maxWidth * 0.5 - 200,
+                      child:const SizedBox(
+                        width: 400,
+                        height: 70,
+                        child: ImageListMap(),
+                      )
+                    ),
+
+
                   Positioned(
                     bottom: 0,
                     child: SizedBox(
@@ -173,8 +185,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                   ),
                                   child: Slider(
                                     value: ref.read(sliderProvider),
-                                    // max: ref.read(stateProvider).images.length.toDouble() - 1,
-                                    max: 10,
+                                    max: ref.read(imageProviderProvider).isEmpty ? 0.0 : ref.read(imageProviderProvider).length.toDouble() - 1,
                                     min: 0.0,
 
                                     divisions: ref.read(stateProvider).images.isEmpty ? 1 : ref.read(stateProvider).images.length,

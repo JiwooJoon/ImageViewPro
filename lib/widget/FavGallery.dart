@@ -377,6 +377,8 @@ class _FavGallery extends ConsumerState<FavGallery> {
                     final images = loadImagesPath(list);
 
                     state.images.addAll(images);
+                    final providers = images.map((p) => FileImage(File(p.path))).toList();
+                    ref.read(imageProviderProvider.notifier).state.addAll(providers);
 
 
                     Flushbar(

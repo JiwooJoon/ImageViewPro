@@ -25,6 +25,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
   List<ImageModel> _imageModels = [];
   List<bool> _hoverStates = [];
   final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _itemKeys = [];
 
   @override
   void dispose() {
@@ -33,12 +34,27 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
   }
 
   void _scrollToIndex(int index) {
-    final double offset = index * 100;
-    _scrollController.animateTo(
-      offset,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeInOut
-    );
+    final keyContext = _itemKeys[index].currentContext;
+
+    if (keyContext != null) {
+      final box = keyContext.findRenderObject() as RenderBox;
+      final itemPosition = box.localToGlobal(Offset.zero);
+      final itemWidth = box.size.width;
+      final screenWidth = MediaQuery.of(context).size.width;
+
+      final targetOffset = _scrollController.offset + itemPosition.dx + itemWidth / 2 - screenWidth / 2;
+
+      _scrollController.animateTo(
+        targetOffset.clamp(_scrollController.position.minScrollExtent, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.ease
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
 
@@ -47,9 +63,18 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
     final state = ref.watch(stateProvider);
     _imageModels = state.images;
 
+
+    if (_itemKeys.length != _imageModels.length) {
+      _itemKeys
+        ..clear()
+        ..addAll(List.generate(_imageModels.length, (_) => GlobalKey()));
+    }
+
     if (_hoverStates.length != _imageModels.length) {
       _hoverStates = List.generate(state.images.length, (_) => false);
     }
+
+
 
 
 
@@ -106,18 +131,26 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                               // 클릭시
                               onTap: () {
                                 ref.read(stateProvider.notifier).updateIndex(index);
+                                ref.read(sliderProvider.notifier).state = index.toDouble();
                                 _scrollToIndex(index);
                               },
                               child: AnimatedOpacity(
-                                  opacity: _hoverStates[index] ? 1.0 : 0.7,
+                                  opacity: _hoverStates[index] ? 1.0 : 0.5,
                                   duration: const Duration(milliseconds: 200),
-                                  child: Image.file(
-                                    File(_imageModels[index].path),
-                                    width: 55,
-                                    height: 25,
-                                    fit: BoxFit.scaleDown,
-                                    colorBlendMode: BlendMode.color,
-                                    color: index == state.curIndex ? Colors.lightGreen.withOpacity(0.5) : Colors.transparent,
+                                  child: Container(
+                                    key: _itemKeys[index],
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: index == state.curIndex ? Colors.greenAccent.shade700 : Colors.transparent,
+                                        width: 2
+                                      )
+                                    ),
+                                    child: Image(
+                                      image: FileImage(File(_imageModels[index].path)),
+                                      width: 50,
+                                      height: 45,
+                                      fit: BoxFit.scaleDown,
+                                      colorBlendMode: BlendMode.color,
+                                    ),
                                   ),
                                 ),
                             ),

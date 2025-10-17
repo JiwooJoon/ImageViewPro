@@ -6,10 +6,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:googleapis/drive/v2.dart' as drive;
-import 'package:image_view_pro/Screen/MainView.dart';
+
+import 'package:googleapis/drive/v2.dart' as drive;import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:image_view_pro/model/ListModel.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 import 'package:image_view_pro/widget/Second_Window.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,6 +38,8 @@ final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 final favPathProvider = StateProvider<List<String>>((ref) => []);
 final subscriptProvider = StateProvider<StreamSubscription<ImageModel>?>((ref) => null);
 final sliderProvider = StateProvider<double>((ref) => 0.0);
+
+final imageProviderProvider = StateProvider<List<ImageProvider>>((ref) => []);
 
 class StateProv extends StateNotifier<StateModel> {
   // 초기 상태 설정
@@ -99,9 +102,27 @@ class StateProv extends StateNotifier<StateModel> {
   }
 }
 
+class ListProv extends StateNotifier<ListModel> {
+  ListProv() : super(ListModel(
+      pad: 0.0,
+      ax: Axis.vertical
+    )
+  );
+
+  void updateDirectionToHo() {
+    state = state.copyWith(ax: Axis.horizontal);
+  }
+  void updateDirectionToV() {
+    state = state.copyWith(ax: Axis.vertical);
+  }
+}
+
 // 실제 프로바이더 생성
 final stateProvider = StateNotifierProvider<StateProv, StateModel>(
     (ref) => StateProv()
+);
+final listProvider = StateNotifierProvider<ListProv, ListModel>(
+    (ref) => ListProv()
 );
 
 void main(List<String> args) async {
