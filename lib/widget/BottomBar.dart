@@ -111,7 +111,7 @@ class _BottomBar extends ConsumerState<BottomBar> {
         duration: const Duration(milliseconds: 500),
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(),
+            // border: Border.all(),
             color: Colors.transparent,
           ),
           height: 150,
@@ -139,13 +139,24 @@ class _BottomBar extends ConsumerState<BottomBar> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
+
+                          // 왼쪽 회전
                           IconButton(
                             onPressed: () {
-                              convertIndexPlusOrMinus(isPlus: false);
+                              ref.read(frontImageProvider.notifier).state = "";
+                              ref.read(backImageProvider.notifier).state = "";
+
+                              if (ref.read(imageAngleProvider) == 360 && state.images.isNotEmpty) {
+                                ref.read(imageAngleProvider.notifier).state = 0;
+                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
+                              } else if (state.images.isNotEmpty) {
+                                ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
+                              }
+                              debugPrint(ref.read(imageAngleProvider).toString());
                             },
                             icon: const Icon(
-                              Icons.arrow_back_ios_new,
-                              size: 35,
+                              Icons.rotate_90_degrees_cw_outlined,
+                              size: 40,
                               color: Colors.black,
                             ),
                           ),
@@ -156,8 +167,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/front_detach2.png',
-                                height: 30,
-                                width: 30,
+                                height: 45,
+                                width: 45,
                               )
                           ),
 
@@ -167,8 +178,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/front_attach2.png',
-                                height: 30,
-                                width: 30,
+                                height: 45,
+                                width: 45,
                               )
                           ),
 
@@ -215,8 +226,8 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/back_attach2.png',
-                                height: 30,
-                                width: 30,
+                                height: 45,
+                                width: 45,
                               )
                           ),
 
@@ -226,17 +237,27 @@ class _BottomBar extends ConsumerState<BottomBar> {
                               },
                               icon: Image.asset(
                                 'assets/images/back_detach2.png',
-                                height: 30,
-                                width: 30,
+                                height: 45,
+                                width: 45,
                               )
                           ),
+                          // 오른쪽 회전
                           IconButton(
                               onPressed: () {
-                                convertIndexPlusOrMinus(isPlus: true);
+                                ref.read(frontImageProvider.notifier).state = "";
+                                ref.read(backImageProvider.notifier).state = "";
+
+                                if (ref.read(imageAngleProvider) == -360 && state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = 0;
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
+                                } else if (state.images.isNotEmpty) {
+                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
+                                }
+                                debugPrint(ref.read(imageAngleProvider).toString());
                               },
                               icon: const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 35,
+                                Icons.rotate_90_degrees_ccw_outlined,
+                                size: 40,
                                 color: Colors.black,
                               )
                           ),
@@ -245,9 +266,34 @@ class _BottomBar extends ConsumerState<BottomBar> {
                     ),
                   ),
 
-                  // 오른쪽 부
-
-                  // 왼쪽 부속
+                  // 왼쪽 으로
+                  Positioned(
+                    top: 15,
+                    left: 15,
+                    child: IconButton(
+                        onPressed: () {
+                          convertIndexPlusOrMinus(isPlus: false);
+                        },
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 60,
+                        )
+                    ),
+                  ),
+                  // 왼쪽 으로
+                  Positioned(
+                    top: 15,
+                    right: 15,
+                    child: IconButton(
+                        onPressed: () {
+                          convertIndexPlusOrMinus(isPlus: true);
+                        },
+                        icon: const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 60,
+                        )
+                    ),
+                  )
 
                 ],
               );

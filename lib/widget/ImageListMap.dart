@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_view_pro/func/imageProcess.dart';
 import 'package:image_view_pro/main.dart';
 import 'package:riverpod/riverpod.dart';
 
@@ -137,19 +138,22 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                               child: AnimatedOpacity(
                                   opacity: _hoverStates[index] ? 1.0 : 0.5,
                                   duration: const Duration(milliseconds: 200),
-                                  child: Container(
-                                    key: _itemKeys[index],
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: index == state.curIndex ? Colors.greenAccent.shade700 : Colors.transparent,
-                                        width: 2
-                                      )
-                                    ),
-                                    child: Image(
-                                      image: FileImage(File(_imageModels[index].path)),
-                                      width: 50,
-                                      height: 45,
-                                      fit: BoxFit.scaleDown,
-                                      colorBlendMode: BlendMode.color,
+                                  child: Tooltip(
+                                    message: getImageName(_imageModels[index].path),
+                                    child: Container(
+                                      key: _itemKeys[index],
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: index == state.curIndex ? Colors.greenAccent.shade700 : Colors.transparent,
+                                          width: 2
+                                        )
+                                      ),
+                                      child: Image(
+                                        image: FileImage(File(_imageModels[index].path)),
+                                        width: 50,
+                                        height: 45,
+                                        fit: BoxFit.scaleDown,
+                                        colorBlendMode: BlendMode.color,
+                                      ),
                                     ),
                                   ),
                                 ),

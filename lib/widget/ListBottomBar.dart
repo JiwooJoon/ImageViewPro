@@ -67,7 +67,12 @@ class _ListBottomBar extends ConsumerState<ListBottomBar> {
                             message: "이미지 사이의 간격을 좁힙니다",
                             child: IconButton(
                                 onPressed: () {
-
+                                  if (ref.read(listProvider).pad > 0) {
+                                    ref.read(listProvider.notifier).updatePadding(-5);
+                                  } else {
+                                    ref.read(listProvider.notifier).changePadding(0);
+                                  }
+                                  debugPrint(ref.read(listProvider).pad.toString());
                                 },
                                 icon: const Icon(
                                   Icons.remove,
@@ -82,6 +87,9 @@ class _ListBottomBar extends ConsumerState<ListBottomBar> {
                             child: IconButton(
                                 onPressed: () {
                                   ref.read(listProvider.notifier).updateDirectionToHo();
+                                  setState(() {
+
+                                  });
                                 },
                                 icon: const Icon(
                                   Icons.rotate_90_degrees_cw,
@@ -104,10 +112,14 @@ class _ListBottomBar extends ConsumerState<ListBottomBar> {
                           ),
                           // 간격 높이기
                           Tooltip(
-                            message: "이미지 사이의 간격을 높입니다",
+                            message: "이미지 사이의 간격을 벌립니다",
                             child: IconButton(
                                 onPressed: () {
+                                  ref.read(listProvider.notifier).updatePadding(5);
+                                  debugPrint(ref.read(listProvider).pad.toString());
+                                  setState(() {
 
+                                  });
                                 },
                                 icon: const Icon(
                                   Icons.add,

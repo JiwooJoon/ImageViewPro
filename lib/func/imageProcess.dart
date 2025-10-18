@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 import 'package:image_view_pro/model/ImageModel.dart';
+import 'package:path/path.dart' as p;
 
 Future<img.Image?> getImage(String imgPath) async {
   final image = img.decodeImage(await File(imgPath).readAsBytes());
@@ -43,4 +44,9 @@ List<ImageModel> loadImagesPath(List<String?> imagePaths) {
   }
 
   return paths;
+}
+
+String getImageName(String path) {
+  final name = p.basenameWithoutExtension(path);
+  return name;
 }

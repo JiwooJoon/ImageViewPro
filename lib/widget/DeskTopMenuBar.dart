@@ -18,6 +18,7 @@ import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../func/pathToImageWithIsolate.dart';
 
@@ -351,9 +352,10 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   onPressed: () async {
                     imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
 
+
                     if (!Platform.isMacOS) {
 
-                      showDialog(
+                      final editedImage = await showDialog(
                           fullscreenDialog: true,
                           context: context,
                           builder: (context) {
@@ -365,6 +367,16 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                             );
                           }
                       );
+                      String? selectedPath = await FilePicker.platform.getDirectoryPath(
+                        dialogTitle: "저장할 폴더를 고르세요",
+                        lockParentWindow: true
+                      );
+
+                      final imgName = getImageName(state.images[state.curIndex].path);
+                      final outPutPath = "$selectedPath/${imgName}_edited.png".replaceAll(r"\", "/");
+
+                      debugPrint(outPutPath);
+                      await File(outPutPath.toString()).writeAsBytes(editedImage);
                     }
                   },
                   child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
@@ -469,18 +481,32 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
               child: const MenuAcceleratorLabel("옵션 (O)"),
             ),
 
-            // 크기 초기화
-            MenuItemButton(
-              onPressed: () {
-
-              },
-              child: Text(
-                  "크기 초기화"
-              ),
-            )
-
           ],
-        )
+        ),
+        const Spacer(),
+        // 크기 초기화
+        MenuItemButton(
+          onPressed: () {
+            ref.read(stateProvider.notifier).updateZoom(1.0);
+          },
+          child: const Text(
+              "크기 초기화"
+          ),
+        ),
+        // 이어 보기
+        MenuItemButton(
+          onPressed: () {
+            if (ref.read(lookModeProvider) == "Long") {
+              ref.read(lookModeProvider.notifier).state = "Cut";
+              ref.read(stateProvider.notifier).updateZoom(1.0);
+            } else {
+              ref.read(lookModeProvider.notifier).state = "Long";
+              ref.read(stateProvider.notifier).updateZoom(0.6);
+            }
+          },
+          child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
+        ),
+        const SizedBox(width: 20,)
       ],
     );
   }

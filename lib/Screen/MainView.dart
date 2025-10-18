@@ -800,9 +800,8 @@ class _MainView extends ConsumerState<MainView> {
                                                         //       ),
                                                         //   ],
                                                         // ),
-                                                        child: ListView.builder(
+                                                        child: ListView.separated(
                                                           scrollDirection: ref.read(listProvider).ax,
-                                                          padding: EdgeInsets.zero,
                                                           controller: _scrollController,
                                                           physics: const AlwaysScrollableScrollPhysics(),
                                                           itemCount: state.images.length,
@@ -811,7 +810,11 @@ class _MainView extends ConsumerState<MainView> {
                                                               image: ref.read(imageProviderProvider)[index],
                                                               fit: BoxFit.contain,
                                                             );
-                                                          }
+                                                          },
+                                                          separatorBuilder: (BuildContext context, int index)
+                                                            => ref.read(listProvider).ax == Axis.horizontal ?
+                                                              SizedBox(width: ref.read(listProvider).pad,)
+                                                            : SizedBox(height: ref.read(listProvider).pad,),
                                                         ),
                                                       ),
                                                     ),
@@ -846,104 +849,6 @@ class _MainView extends ConsumerState<MainView> {
                       child: OpacityWidget(
                           enable: ref.read(avoidWidgetProvider),
                           child: const ListBottomBar()
-                      )
-                  ),
-
-                  // 왼쪽으로 돌리기 버튼
-                  Positioned(
-                      bottom: 20,
-                      left: MediaQuery.of(context).size.width * 0.5 - 450,
-                      child: OpacityWidget(
-                        enable: ref.read(avoidWidgetProvider),
-                        child: ScaleHoveredWidget(
-                            customWidget: IconButton(
-                              onPressed: () {
-                                ref.read(frontImageProvider.notifier).state = "";
-                                ref.read(backImageProvider.notifier).state = "";
-
-                                if (ref.read(imageAngleProvider) == 360 && state.images.isNotEmpty) {
-                                  ref.read(imageAngleProvider.notifier).state = 0;
-                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
-                                } else if (state.images.isNotEmpty) {
-                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) + 90;
-                                }
-                                debugPrint(ref.read(imageAngleProvider).toString());
-                              },
-                              icon: const Icon(
-                                Icons.rotate_90_degrees_cw_outlined,
-                                size: 50,
-                              ),
-                            )
-                        ),
-                      )
-                  ),
-
-                  // 오른쪽으로 돌리기 버튼
-                  Positioned(
-                      bottom: 20,
-                      right: MediaQuery.of(context).size.width * 0.5 -450,
-                      child: OpacityWidget(
-                        enable: ref.read(avoidWidgetProvider),
-                        child: ScaleHoveredWidget(
-                            customWidget: IconButton(
-                              onPressed: () {
-                                ref.read(frontImageProvider.notifier).state = "";
-                                ref.read(backImageProvider.notifier).state = "";
-
-                                if (ref.read(imageAngleProvider) == -360 && state.images.isNotEmpty) {
-                                  ref.read(imageAngleProvider.notifier).state = 0;
-                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
-                                } else if (state.images.isNotEmpty) {
-                                  ref.read(imageAngleProvider.notifier).state = ref.read(imageAngleProvider) - 90;
-                                }
-                                debugPrint(ref.read(imageAngleProvider).toString());
-                              },
-                              icon: const Icon(
-                                Icons.rotate_90_degrees_ccw_outlined,
-                                size: 50,
-                              ),
-                            )
-                        ),
-                      )
-                  ),
-
-
-                  Positioned(
-                      top: 40,
-                      right: 30,
-                      child: OpacityWidget(
-                        enable: ref.read(avoidWidgetProvider),
-                        child: ScaleHoveredWidget(
-                          customWidget: OutlinedButton(
-                            onPressed: () {
-                              ref.read(stateProvider.notifier).updateZoom(1.0);
-                            },
-                            child: const Text("크기 초기화")
-                        )
-                                            ),
-                      )
-                  ),
-
-                  Positioned(
-                      top: 90,
-                      right: 30,
-                      child: OpacityWidget(
-                        enable: ref.read(avoidWidgetProvider),
-                        child: ScaleHoveredWidget(
-                          customWidget: OutlinedButton(
-                              onPressed: () {
-                                if (ref.read(lookModeProvider) == "Long") {
-                                  ref.read(lookModeProvider.notifier).state = "Cut";
-                                  ref.read(stateProvider.notifier).updateZoom(1.0);
-                                } else {
-                                  ref.read(lookModeProvider.notifier).state = "Long";
-                                  ref.read(stateProvider.notifier).updateZoom(0.6);
-                                  _scrollController = ScrollController();
-                                }
-                              },
-                              child: ref.read(lookModeProvider) == "Cut" ? const Text("이어 보기") : const Text("끊어 보기")
-                          ),
-                        ),
                       )
                   ),
 

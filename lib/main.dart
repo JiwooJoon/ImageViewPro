@@ -115,6 +115,12 @@ class ListProv extends StateNotifier<ListModel> {
   void updateDirectionToV() {
     state = state.copyWith(ax: Axis.vertical);
   }
+  void updatePadding(double pad) {
+    state = state.copyWith(pad: state.pad + pad);
+  }
+  void changePadding(double pad) {
+    state = state.copyWith(pad: pad);
+  }
 }
 
 // 실제 프로바이더 생성
