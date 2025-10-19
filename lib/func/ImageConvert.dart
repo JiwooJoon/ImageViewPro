@@ -70,7 +70,7 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
 
     // 2. 스케일
     if (scaleValue != 1.0) {
-      image = img.copyResize(
+      image = await img.copyResize(
         image,
         width: (image.width * scaleValue).toInt(),
         height: (image.height * scaleValue).toInt(),
@@ -79,12 +79,12 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
 
     // 3. 회전 (degree)
     if (curAngle != 0) {
-      image = img.copyRotate(image, angle: curAngle);
+      image = await img.copyRotate(image, angle: curAngle);
     }
 
     // 4. 플립
     if (flipDir != null) {
-      image = img.copyFlip(image, direction: flipDir);
+      image = await img.copyFlip(image, direction: flipDir);
     }
 
     // 5. 출력 경로 설정
@@ -93,17 +93,14 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
     late final String outPath;
 
     if (howToSave == "각 폴더에") {
-      outPath = p.join(dir, "$name(1).$extValue");
+      outPath = p.join(dir, "$name(1).$extValue").replaceAll(r"\", "/");
     } else if (howToSave == "특정 폴더에") {
       outPath = p.join(outputPath, "$name.$extValue").replaceAll(r"\", "/");
     } else {
-      outPath = p.join(dir, "lal_converted", "$name(1).$extValue");
+      outPath = p.join(dir, "lal_converted", "$name(1).$extValue").replaceAll(r"\", "/");
     }
 
     final outDir = Directory(p.dirname(outPath));
-    if (!outDir.existsSync()) {
-      outDir.createSync(recursive: true);
-    }
 
     // 6. 인코딩 및 저장
     List<int> encoded;
@@ -111,6 +108,8 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
       encoded = img.encodePng(image);
     } else if (extValue.toLowerCase() == 'jpg' || extValue.toLowerCase() == 'jpeg') {
       encoded = img.encodeJpg(image);
+    } else if (extValue.toLowerCase() == 'bmp') {
+      encoded = img.encodeBmp(image);
     } else {
       throw Exception('지원하지 않는 확장자: $extValue');
     }

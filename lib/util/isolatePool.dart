@@ -22,8 +22,8 @@ Future<ImageModel> _decodeImage(String path) async {
 
   final thumb = img.copyResize(decoded, width: 20, height: 20);
   return ImageModel(
-    width: thumb.width.toDouble(),
-    height: thumb.height.toDouble(),
+    width: thumb.width,
+    height: thumb.height,
     path: path,
   );
 }

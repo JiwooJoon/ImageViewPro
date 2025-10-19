@@ -26,7 +26,7 @@ Future<ImageModel> _readAndDecodeImageInIsolate(String path) async {
     height: 1,
   );
 
-  return ImageModel(height: thumbnail.height.toDouble(), width: thumbnail.width.toDouble(), path: path);
+  return ImageModel(height: thumbnail.height, width: thumbnail.width, path: path);
 }
 
 // 메인 isolate에서 실행할 함수

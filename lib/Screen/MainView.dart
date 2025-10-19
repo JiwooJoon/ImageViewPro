@@ -11,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,6 +66,8 @@ class _MainView extends ConsumerState<MainView> {
   bool? _isLoadingImages;
 
   late ScrollController _scrollController;
+
+  final PageStorageKey<String> _listViewKey = PageStorageKey<String>('MyPermanentImageListView');
 
 
   @override
@@ -129,6 +132,7 @@ class _MainView extends ConsumerState<MainView> {
     final isConverting = ref.watch(converterProvider);
     final isModaling = ref.watch(modalProvider);
     _isLoadingImages = ref.watch(imageLoadProvider);
+    final imageListProvider = ref.watch(imageProviderProvider);
 
     // 스크롤 모드용
     bool _isCtrlPressed = false;
@@ -346,7 +350,7 @@ class _MainView extends ConsumerState<MainView> {
                           } else {
                             List<String> paths = details.files.map((file) => file.path).toList();
 
-                            final imgPaths = loadImagesPath(paths);
+                            final imgPaths = await loadImagesPath(paths);
 
                             ref.read(stateProvider.notifier).addImages(imgPaths);
 
@@ -576,7 +580,7 @@ class _MainView extends ConsumerState<MainView> {
                                                               }
 
                                                               // 여러개 라면
-                                                              final imgPaths = loadImagesPath(paths);
+                                                              final imgPaths = await loadImagesPath(paths);
                                                               ref.read(stateProvider.notifier).addImages(imgPaths);
 
                                                               final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
@@ -634,192 +638,188 @@ class _MainView extends ConsumerState<MainView> {
                                             )
                                           else
 
-                                            ref.read(lookModeProvider) == "Cut" ? Center(
-                                              child: InteractiveViewer(
-                                                minScale: 0.5,
-                                                maxScale: 3.0,
-                                                panEnabled: true, // 드래그 이동 가능
-                                                scaleEnabled: false, // 줌인/줌아웃 가능
-                                                boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
-                                                alignment: Alignment.center, // 확대/축소 기준을 중앙으로
-                                                child: SizedBox(
-                                                  width: MediaQuery.of(context).size.width,
-                                                  height: MediaQuery.of(context).size.height,
-                                                  child: Transform.scale(
-                                                    scale: state.curZoom,
-                                                    alignment: Alignment.center,
-                                                    child: IntrinsicWidth(
-                                                      child: Flex(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        direction: Axis.horizontal,
-                                                        children: [
-                                                          if (ref.read(frontImageProvider) != "")
-                                                            Flexible(
-                                                              child: Tooltip(
-                                                                message: "오른쪽 클릭시 삭제됩니다.",
-                                                                child: MouseRegion(
-                                                                  cursor: SystemMouseCursors.click,
-                                                                  child: GestureDetector(
-                                                                    onSecondaryTap: () {
-                                                                      ref.read(frontImageProvider.notifier).state = "";
-                                                                    },
-                                                                    child: Image.file(
-                                                                        File(ref.read(frontImageProvider)),
-                                                                        fit: BoxFit.contain
+                                            if(ref.read(lookModeProvider) == "Cut")
+                                              Center(
+                                                child: InteractiveViewer(
+                                                  minScale: 0.5,
+                                                  maxScale: 3.0,
+                                                  panEnabled: true, // 드래그 이동 가능
+                                                  scaleEnabled: false, // 줌인/줌아웃 가능
+                                                  boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
+                                                  alignment: Alignment.center, // 확대/축소 기준을 중앙으로
+                                                  child: SizedBox(
+                                                    width: MediaQuery.of(context).size.width,
+                                                    height: MediaQuery.of(context).size.height,
+                                                    child: Transform.scale(
+                                                      scale: state.curZoom,
+                                                      alignment: Alignment.center,
+                                                      child: IntrinsicWidth(
+                                                        child: Flex(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          direction: Axis.horizontal,
+                                                          children: [
+                                                            if (ref.read(frontImageProvider) != "")
+                                                              Flexible(
+                                                                child: Tooltip(
+                                                                  message: "오른쪽 클릭시 삭제됩니다.",
+                                                                  child: MouseRegion(
+                                                                    cursor: SystemMouseCursors.click,
+                                                                    child: GestureDetector(
+                                                                      onSecondaryTap: () {
+                                                                        ref.read(frontImageProvider.notifier).state = "";
+                                                                      },
+                                                                      child: Image.file(
+                                                                          File(ref.read(frontImageProvider)),
+                                                                          fit: BoxFit.contain
+                                                                      ),
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
-                                                            ),
-                                                          for (int i = state.curIndex;
-                                                          i < state.curIndex + state.curSize && i < state.images.length;
-                                                          i++)
-                                                            Flexible(
-                                                              child: Transform(
-                                                                alignment: Alignment.center,
-                                                                transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
-                                                                  ..scale(1.0, 1.0, 1.0),
-                                                                child: ContextMenuRegion(
-                                                                  contextMenu: ContextMenu(
-                                                                    entries: [
-                                                                      ref.read(favPathProvider).contains(state.images[i].path) ?
-                                                                      MenuItem(
-                                                                          label: "즐겨찾기 제거",
-                                                                          icon: Icons.favorite,
-                                                                          onSelected: () async {
-                                                                            ref.read(favPathProvider).remove(state.images[i].path);
-                                                                            Map<String, List<String>> jsonIn = {
-                                                                              "fav" : ref.read(favPathProvider)
-                                                                            };
+                                                            for (int i = state.curIndex;
+                                                            i < state.curIndex + state.curSize && i < state.images.length;
+                                                            i++)
+                                                              Flexible(
+                                                                child: Transform(
+                                                                  alignment: Alignment.center,
+                                                                  transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
+                                                                    ..scale(1.0, 1.0, 1.0),
+                                                                  child: ContextMenuRegion(
+                                                                    contextMenu: ContextMenu(
+                                                                      entries: [
+                                                                        ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                        MenuItem(
+                                                                            label: "즐겨찾기 제거",
+                                                                            icon: Icons.favorite,
+                                                                            onSelected: () async {
+                                                                              ref.read(favPathProvider).remove(state.images[i].path);
+                                                                              Map<String, List<String>> jsonIn = {
+                                                                                "fav" : ref.read(favPathProvider)
+                                                                              };
 
-                                                                            await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
 
-                                                                          }
-                                                                      ) :
-                                                                      MenuItem(
-                                                                          label: "즐겨찾기 추가",
-                                                                          icon: Icons.favorite_border,
-                                                                          onSelected: () async {
-                                                                            ref.read(favPathProvider).add(state.images[i].path);
-                                                                            Map<String, List<String>> jsonIn = {
-                                                                              "fav" : ref.read(favPathProvider)
-                                                                            };
+                                                                            }
+                                                                        ) :
+                                                                        MenuItem(
+                                                                            label: "즐겨찾기 추가",
+                                                                            icon: Icons.favorite_border,
+                                                                            onSelected: () async {
+                                                                              ref.read(favPathProvider).add(state.images[i].path);
+                                                                              Map<String, List<String>> jsonIn = {
+                                                                                "fav" : ref.read(favPathProvider)
+                                                                              };
 
-                                                                            await _favFile!.writeAsString(jsonEncode(jsonIn));
-                                                                          }
-                                                                      ),
-                                                                      MenuItem(
-                                                                          label: "목록에서 제거",
-                                                                          icon: Icons.remove,
-                                                                          onSelected: () async {
-                                                                            ref.read(stateProvider).images.removeAt(i);
-                                                                            setState(() {
+                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                            }
+                                                                        ),
+                                                                        MenuItem(
+                                                                            label: "목록에서 제거",
+                                                                            icon: Icons.remove,
+                                                                            onSelected: () async {
+                                                                              ref.read(stateProvider).images.removeAt(i);
+                                                                              setState(() {
 
-                                                                            });
-                                                                          }
-                                                                      ),
-                                                                    ]
-                                                                  ),
-                                                                  // child: Image.file(
-                                                                  //   File(state.images[i].path),
-                                                                  //   fit: BoxFit.contain,
-                                                                  // ),
-                                                                  child: Image(
-                                                                    image: ref.read(imageProviderProvider)[i],
-                                                                    fit: BoxFit.contain,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          if (ref.read(backImageProvider) != "")
-                                                            Flexible(
-                                                              child: Tooltip(
-                                                                message: "오른쪽 클릭시 삭제됩니다.",
-                                                                child: MouseRegion(
-                                                                  cursor: SystemMouseCursors.click,
-                                                                  child: GestureDetector(
-                                                                    onSecondaryTap: () {
-                                                                      ref.read(backImageProvider.notifier).state = "";
-                                                                    },
-                                                                    child: Image.file(
-                                                                        File(ref.read(backImageProvider)),
-                                                                        fit: BoxFit.contain
+                                                                              });
+                                                                            }
+                                                                        ),
+                                                                      ]
+                                                                    ),
+                                                                    // child: Image.file(
+                                                                    //   File(state.images[i].path),
+                                                                    //   fit: BoxFit.contain,
+                                                                    // ),
+                                                                    child: Image(
+                                                                      image: imageListProvider[i],
+                                                                      fit: BoxFit.contain,
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                    )
+                                                            if (ref.read(backImageProvider) != "")
+                                                              Flexible(
+                                                                child: Tooltip(
+                                                                  message: "오른쪽 클릭시 삭제됩니다.",
+                                                                  child: MouseRegion(
+                                                                    cursor: SystemMouseCursors.click,
+                                                                    child: GestureDetector(
+                                                                      onSecondaryTap: () {
+                                                                        ref.read(backImageProvider.notifier).state = "";
+                                                                      },
+                                                                      child: Image.file(
+                                                                          File(ref.read(backImageProvider)),
+                                                                          fit: BoxFit.contain
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      )
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ) : Listener(
-                                                  behavior: HitTestBehavior.opaque,
-                                                  onPointerSignal: (event) {
-                                                    if (event is PointerScrollEvent) {
-                                                      if (HardwareKeyboard.instance.isControlPressed) {
-                                                        final zoomDelta = event.scrollDelta.dy < 0 ? 0.1 : -0.1;
-                                                        setState(() {
-                                                          ref.read(stateProvider.notifier).updateZoom(
-                                                            (state.curZoom + zoomDelta).clamp(0.5, 5.0),
-                                                          );
-                                                        });
-                                                        return;
-                                                      }
+                                              )
+                                            else
+                                              Listener(
+                                                behavior: HitTestBehavior.opaque,
+                                                onPointerSignal: (event) {
+                                                  if (event is PointerScrollEvent) {
+                                                    if (HardwareKeyboard.instance.isControlPressed) {
+                                                      final zoomDelta = event.scrollDelta.dy < 0 ? 0.1 : -0.1;
+                                                      setState(() {
+                                                        ref.read(stateProvider.notifier).updateZoom(
+                                                          (state.curZoom + zoomDelta).clamp(0.5, 5.0),
+                                                        );
+                                                      });
+                                                      return;
                                                     }
-                                                  },
-                                                  child: AbsorbPointer(
-                                                    absorbing: HardwareKeyboard.instance.isControlPressed,
+                                                  }
+                                                },
+                                                child: AbsorbPointer(
+                                                  absorbing: HardwareKeyboard.instance.isControlPressed,
+                                                  child: Center(
                                                     child: SizedBox(
                                                       height: ref.read(listProvider).ax == Axis.vertical ?
-                                                        MediaQuery.of(context).size.height * 0.9
-                                                      : 500 * state.curZoom,
-                                                      width: ref.read(listProvider).ax == Axis.vertical ?
-                                                      500 * state.curZoom
-                                                      : MediaQuery.of(context).size.width * 0.8,
+                                                      MediaQuery.of(context).size.height * 0.9
+                                                          : 500 * state.curZoom,
+                                                      width: MediaQuery.of(context).size.width,
                                                       child: Scrollbar(
                                                         controller: _scrollController,
                                                         thumbVisibility: true,
                                                         trackVisibility: true,
-                                                        // child: ListView(
-                                                        //   padding: EdgeInsets.zero,
-                                                        //   controller: _scrollController,
-                                                        //   physics: const AlwaysScrollableScrollPhysics(),
-                                                        //   children: [
-                                                        //     for (int i = 0; i < state.images.length; i++)
-                                                        //       // Image.file(
-                                                        //       //   key: ValueKey(state.images[i].path),
-                                                        //       //   File(state.images[i].path),
-                                                        //       //   fit: BoxFit.cover,
-                                                        //       // ),
-                                                        //       Image(
-                                                        //         image: ref.read(imageProviderProvider)[i],
-                                                        //         fit: BoxFit.contain,
-                                                        //       ),
-                                                        //   ],
-                                                        // ),
                                                         child: ListView.separated(
+                                                          key: _listViewKey,
                                                           scrollDirection: ref.read(listProvider).ax,
                                                           controller: _scrollController,
                                                           physics: const AlwaysScrollableScrollPhysics(),
                                                           itemCount: state.images.length,
                                                           itemBuilder: (context, index) {
+                                                            final imgProvider = imageListProvider[index];
                                                             return Image(
-                                                              image: ref.read(imageProviderProvider)[index],
+                                                              key: ValueKey('image_$index'),
+                                                              image: imgProvider,
                                                               fit: BoxFit.contain,
+                                                              gaplessPlayback: true,
+                                                              height: ref.read(listProvider).ax == Axis.vertical ?
+                                                              MediaQuery.of(context).size.height * 0.4 * state.curZoom
+                                                                  : 500 * state.curZoom,
+                                                              width: ref.read(listProvider).ax == Axis.vertical ?
+                                                              500 * state.curZoom
+                                                                  : MediaQuery.of(context).size.width * 0.1 * state.curZoom,
                                                             );
                                                           },
                                                           separatorBuilder: (BuildContext context, int index)
-                                                            => ref.read(listProvider).ax == Axis.horizontal ?
-                                                              SizedBox(width: ref.read(listProvider).pad,)
-                                                            : SizedBox(height: ref.read(listProvider).pad,),
+                                                          => ref.read(listProvider).ax == Axis.horizontal ?
+                                                          SizedBox(width: ref.read(listProvider).pad,)
+                                                              : SizedBox(height: ref.read(listProvider).pad,),
                                                         ),
                                                       ),
                                                     ),
                                                   ),
-                                                )
+                                                ),
+                                              )
 
 
                                         ]

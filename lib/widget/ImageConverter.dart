@@ -62,7 +62,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
 
     // 초기 저장하는 곳 설정
     final appDir = await getApplicationDocumentsDirectory();
-    _outputPath = Directory("${appDir.path}/converted").toString();
+    _outputPath = Directory("${appDir.path}/converted").toString().replaceAll(r"\", "/");
 
   }
 
@@ -441,7 +441,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                                       ),
                                       child: DropdownButton(
                                           value: _extValue,
-                                          items: ["jpg", "png", "webp", "bmp"].map((e) => DropdownMenuItem(
+                                          items: ["jpg", "png", "bmp"].map((e) => DropdownMenuItem(
                                               value: e,
                                               child: Text(e)
                                           )).toList(),

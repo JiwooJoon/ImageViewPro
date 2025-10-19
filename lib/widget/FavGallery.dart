@@ -374,7 +374,7 @@ class _FavGallery extends ConsumerState<FavGallery> {
 
                     debugPrint(state.options['clientId']);
 
-                    final images = loadImagesPath(list);
+                    final images = await loadImagesPath(list);
 
                     state.images.addAll(images);
                     final providers = images.map((p) => FileImage(File(p.path))).toList();

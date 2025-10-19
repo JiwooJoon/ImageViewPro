@@ -1,8 +1,8 @@
 import 'package:exif/exif.dart';
 
 class ImageModel {
-  double height;
-  double width;
+  int height;
+  int width;
   String path;
 
   @override

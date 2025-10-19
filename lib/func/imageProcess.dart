@@ -20,6 +20,7 @@ Future<List<ImageModel>> loadImagesPathFromFolder(String folderPath) async {
   await for (final entity in dir.list(recursive: true, followLinks: false)) {
     if (entity is File) {
       if (exts.any((e) => entity.path.toLowerCase().endsWith(e))) {
+
         paths.add(
           ImageModel(height: 1, width: 1, path: entity.path)
         );
@@ -49,4 +50,18 @@ List<ImageModel> loadImagesPath(List<String?> imagePaths) {
 String getImageName(String path) {
   final name = p.basenameWithoutExtension(path);
   return name;
+}
+
+Future<int?> getImageHeight(String path) async {
+  img.Image? image;
+  image = img.decodeImage(await File(path).readAsBytes());
+
+  return image?.height;
+}
+
+Future<int?> getImageWidth(String path) async {
+  img.Image? image;
+  image = img.decodeImage(await File(path).readAsBytes());
+
+  return image?.width;
 }

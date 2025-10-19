@@ -130,7 +130,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                         List<String?> paths = result!.paths;
                         // 파일 불러오기
-                        final imgPaths = loadImagesPath(paths);
+                        final imgPaths = await loadImagesPath(paths);
 
                         ref.read(stateProvider.notifier).clearImages();
                         ref.read(imageProviderProvider.notifier).state.clear();
@@ -194,7 +194,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                           );
                           debugPrint(result.toString());
 
-                          final imgPaths = loadImagesPath(result!.paths);
+                          final imgPaths = await loadImagesPath(result!.paths);
 
                           ref.read(stateProvider.notifier).addImages(imgPaths);
                           debugPrint("가져온 이미지의 수 : ${state.images.length}");

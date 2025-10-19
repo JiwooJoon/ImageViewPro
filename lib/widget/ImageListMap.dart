@@ -63,6 +63,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
   Widget build(BuildContext context) {
     final state = ref.watch(stateProvider);
     _imageModels = state.images;
+    final imageListProvider = ref.watch(imageProviderProvider);
 
 
     if (_itemKeys.length != _imageModels.length) {
@@ -148,7 +149,7 @@ class _ImageListMap extends ConsumerState<ImageListMap> {
                                         )
                                       ),
                                       child: Image(
-                                        image: FileImage(File(_imageModels[index].path)),
+                                        image: imageListProvider[index],
                                         width: 50,
                                         height: 45,
                                         fit: BoxFit.scaleDown,

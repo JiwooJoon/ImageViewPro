@@ -317,7 +317,7 @@ class _VtoDGallery extends ConsumerState<VtoDGallery> {
                                           }
                                         });
 
-                                        uploadFile(state.options, state.storage, savedImages, "byLaL", ctx);
+                                        uploadFile(state.options, state.storage, savedImages, _folderNameController.value.toString(), ctx);
 
                                         Navigator.of(ctx).pop();
 

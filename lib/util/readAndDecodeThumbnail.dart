@@ -10,7 +10,7 @@ ImageModel _readAndDecodeThumbnail(String path) {
   final thumbnail = img.copyResize(decoded, width: 20, height: 20);
   return ImageModel(
     path: path,
-    width: thumbnail.width.toDouble(),
-    height: thumbnail.height.toDouble(),
+    width: thumbnail.width,
+    height: thumbnail.height,
   );
 }

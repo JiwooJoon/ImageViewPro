@@ -17,12 +17,10 @@ class ListBottomBar extends ConsumerStatefulWidget {
 class _ListBottomBar extends ConsumerState<ListBottomBar> {
 
   bool _isHover = false;
-  late double _curSlide = ref.read(stateProvider).curIndex.toDouble();
 
   @override
   void initState() {
     super.initState();
-    ref.read(sliderProvider.notifier).state = ref.read(stateProvider).curIndex.toDouble();
   }
 
   @override
