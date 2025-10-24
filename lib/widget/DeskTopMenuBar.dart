@@ -223,8 +223,9 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ref.read(stateProvider.notifier).updateIndex(0);
                       ref.read(stateProvider.notifier).updateZoom(1.0);
                       ref.read(stateProvider.notifier).updateSize(1);
-                      ref.read(frontImageProvider.notifier).state = "";
-                      ref.read(backImageProvider.notifier).state = "";
+                      ref.read(imageProviderProvider.notifier).state.clear();
+                      ref.read(leftViewProvider.notifier).clearImages();
+                      ref.read(rightViewProvider.notifier).clearImages();
                       debugPrint(state.images.toString());
                     });
 

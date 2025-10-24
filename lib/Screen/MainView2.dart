@@ -1,23 +1,28 @@
 //
 // import 'dart:async';
+// import 'dart:convert';
 // import 'dart:io';
 // import 'dart:ui' as ui;
+// import 'dart:math' as math;
 //
 // import 'package:another_flushbar/flushbar.dart';
 // import 'package:desktop_multi_window/desktop_multi_window.dart';
-// import 'package:exif/exif.dart';
 // import 'package:file_picker/file_picker.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/gestures.dart';
 // import 'package:flutter/material.dart';
+// import 'package:flutter/rendering.dart';
 // import 'package:flutter/services.dart';
+// import 'package:flutter_context_menu/flutter_context_menu.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:desktop_drop/desktop_drop.dart';
 // import 'package:googleapis/drive/v2.dart' as drive;
-// import 'package:image_view_pro/func/getDirectoryPaths.dart';
 // import 'package:image_view_pro/func/jsonDeIn.dart';
-// import 'package:image_view_pro/func/pathToImageWithIsolate.dart';
 // import 'package:image_view_pro/widget/DtoV.dart';
+// import 'package:image_view_pro/widget/FavGallery.dart';
+// import 'package:image_view_pro/widget/ImageConverter.dart';
+// import 'package:image_view_pro/widget/ListBottomBar.dart';
+// import 'package:image_view_pro/widget/OpacityWidget.dart';
 // import 'package:image_view_pro/widget/VtoD.dart';
 // import 'package:path/path.dart' as p;
 //
@@ -25,10 +30,13 @@
 // import 'package:image_view_pro/model/ImageModel.dart';
 // import 'package:image_view_pro/model/window_info.dart';
 // import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
-// import 'package:image_view_pro/widget/ImageListMap.dart';
 // import 'package:image_view_pro/widget/LoadingOverlay.dart';
-// import '../widget/ControllerButton.dart';
+// import 'package:path_provider/path_provider.dart';
+// import '../func/imageProcess.dart';
+// import '../widget/BottomBar.dart';
 // import 'package:image_view_pro/func/aboutWindow.dart';
+//
+// import '../widget/ScaledHoverWidget.dart';
 //
 // class MainView extends ConsumerStatefulWidget {
 //   const MainView({super.key});
@@ -41,6 +49,7 @@
 //   bool isControllerWatched = true;
 //   bool isOrderWatched = false;
 //   Timer? _orderTimer;
+//   File? _favFile;
 //
 //   List<String> droppedFiles = [];
 //   bool isDragging = false;
@@ -50,38 +59,64 @@
 //
 //   bool _isMovingOnLeft = false;
 //   bool _isMovingOnRight = false;
+//   bool _isCtrlPressed = false; // 리스트 뷰에서 컨트롤키/일반키 스크롤 구분을 위함
 //
 //   final List<WindowInfo> _windows = [];
+//   late StreamSubscription<ImageModel>? _imageSubscription = ref.read(subscriptProvider);
+//   bool? _isLoadingImages;
 //
-//   Future<ui.Image> getImageSize(String path) async {
-//     // 파일 경로에서 바이트 데이터를 읽어온다
-//     Uint8List bytes = await File(path).readAsBytes();
+//   late ScrollController _scrollController;
 //
-//     // 바이트 데이터를 디코딩하여 이미지 정보를 얻는다
-//     ui.Image image = await ui.instantiateImageCodecFromBuffer(
-//       await ui.ImmutableBuffer.fromUint8List(bytes),
-//     ).then((codec) => codec.getNextFrame()).then((frameInfo) => frameInfo.image);
-//
-//     return image;
-//   }
-//
-//   Future<Uint8List> getImageBytes(String path) async {
-//     // 파일 경로에서 바이트 데이터를 읽어온다
-//     Uint8List bytes = await File(path).readAsBytes();
-//
-//     return bytes;
-//   }
+//   final PageStorageKey<String> _listViewKey = PageStorageKey<String>('MyPermanentImageListView');
 //
 //
 //   @override
 //   void initState() {
 //
 //     super.initState();
+//
 //     DesktopMultiWindow.setMethodHandler(handleMethodCall);
+//     _loadFav();
+//     _scrollController = ScrollController();
 //   }
+//
 //
 //   Future<void> _loadOpt() async {
 //     ref.read(stateProvider.notifier).updateOption(await loadOpt());
+//   }
+//
+//   Future<void> _loadFav() async {
+//
+//     final appDir = await getApplicationDocumentsDirectory();
+//     final favDir = Directory("${appDir.path}/fav");
+//     _favFile = File("${favDir.path}/favi.json");
+//     Map<String, List<String>> jsonIn = {
+//       "fav" : []
+//     };
+//     Map<String, dynamic> favList = {};
+//
+//
+//     if (await _favFile!.exists()) {
+//       final readedFile = await _favFile!.readAsString();
+//       favList = jsonDecode(readedFile);
+//     } else {
+//       await _favFile!.writeAsString(jsonEncode(jsonIn));
+//     }
+//
+//     List<String> list = [];
+//
+//     for (var item in favList['fav']) {
+//       list.add(item);
+//     }
+//
+//     ref.read(favPathProvider).addAll(list);
+//   }
+//
+//
+//   @override
+//   void dispose() {
+//     _scrollController.dispose();
+//     super.dispose();
 //   }
 //
 //
@@ -93,6 +128,15 @@
 //     final isLoading = ref.watch(loadingProvider);
 //     final isUploading = ref.watch(uploadGProvider);
 //     final isDriving = ref.watch(driveGProvider);
+//     final isFavorite = ref.watch(favProvider);
+//     final isConverting = ref.watch(converterProvider);
+//     final isModaling = ref.watch(modalProvider);
+//     _isLoadingImages = ref.watch(imageLoadProvider);
+//     final imageListProvider = ref.watch(imageProviderProvider);
+//
+//     // 스크롤 모드용
+//     bool _isCtrlPressed = false;
+//     double _zoom = 1.0;
 //
 //     state.options['clientId'] = "787172715400-1i0fmjjlv6hsulsii8dsjrhaulqn9foa.apps.googleusercontent.com";
 //     state.options['scope'] = [drive.DriveApi.driveScope];
@@ -130,98 +174,54 @@
 //
 //     });
 //
-//     void convertSizePlusOrMinus({required bool isPlus}) {
-//       if (isPlus) {
-//         setState(() {
-//           isOrderWatched = true;
-//           if (state.curSize < 6 && state.curIndex < (state.images.length - state.curSize)) {
-//             ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
-//           } else {
-//             // todo: 스낵바
-//             if (kDebugMode) {
-//               print("탑에 도달했습니다.");
-//             }
-//           }
-//         });
-//
-//         _orderTimer?.cancel();
-//
-//         _orderTimer = Timer(const Duration(seconds: 1), () {
-//           setState(() {
-//             if (mounted) {
-//               isOrderWatched = false;
-//             }
-//           });
-//         });
-//       } else {
-//         setState(() {
-//           isOrderWatched = true;
-//           if (state.curSize < 6 && state.curIndex > 0) {
-//             ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
-//             ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
-//           } else {
-//             // TODO: 스낵바 넣을 것
-//             if (kDebugMode) {
-//               print("처음 이미지입니다.");
-//             }
-//           }
-//         });
-//         _orderTimer?.cancel();
-//
-//         _orderTimer = Timer(const Duration(seconds: 1), () {
-//           setState(() {
-//             if (mounted) {
-//               isOrderWatched = false;
-//             }
-//           });
-//         });
-//       }
-//     }
-//
 //     void convertIndexPlusOrMinus({required bool isPlus}) {
-//       if (isPlus) {
-//         setState(() {
-//           isOrderWatched = true;
-//           if (state.curIndex < (state.images.length - state.curSize)) {
-//             ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
-//           } else {
-//             if (kDebugMode) {
-//               print("탑에 도달했습니다.");
-//             }
-//           }
-//         });
-//
-//         _orderTimer?.cancel();
-//
-//         _orderTimer = Timer(const Duration(seconds: 1), () {
+//       if (ref.read(lookModeProvider) == "Cut") {
+//         if (isPlus) {
 //           setState(() {
-//             if (mounted) {
-//               isOrderWatched = false;
+//             isOrderWatched = true;
+//             if (state.curIndex < (state.images.length - state.curSize)) {
+//               ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+//               ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state + 1;
+//             } else {
+//               if (kDebugMode) {
+//                 print("탑에 도달했습니다.");
+//               }
 //             }
 //           });
-//         });
-//       } else {
-//         setState(() {
-//           isOrderWatched = true;
 //
-//           if (state.curIndex > 0) {
-//             ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
-//           } else {
-//             if (kDebugMode) {
-//               print("처음 이미지입니다.");
-//             }
-//           }
-//         });
+//           _orderTimer?.cancel();
 //
-//         _orderTimer?.cancel();
-//
-//         _orderTimer = Timer(const Duration(seconds: 1), () {
+//           _orderTimer = Timer(const Duration(seconds: 1), () {
+//             setState(() {
+//               if (mounted) {
+//                 isOrderWatched = false;
+//               }
+//             });
+//           });
+//         } else {
 //           setState(() {
-//             if (mounted) {
-//               isOrderWatched = false;
+//             isOrderWatched = true;
+//
+//             if (state.curIndex > 0) {
+//               ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
+//               ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state - 1;
+//             } else {
+//               if (kDebugMode) {
+//                 print("처음 이미지입니다.");
+//               }
 //             }
 //           });
-//         });
+//
+//           _orderTimer?.cancel();
+//
+//           _orderTimer = Timer(const Duration(seconds: 1), () {
+//             setState(() {
+//               if (mounted) {
+//                 isOrderWatched = false;
+//               }
+//             });
+//           });
+//         }
 //       }
 //     }
 //
@@ -305,35 +305,23 @@
 //
 //                               // 폴더를 드랍했다면
 //                               if (entity == FileSystemEntityType.directory) {
-//                                 ref.read(loadingProvider.notifier).state = true;
 //
 //                                 try {
 //                                   debugPrint("${file.name}은 폴더.");
 //
-//                                   List<String> paths = await getDirectoryPaths(file.path);
-//                                   debugPrint(paths.toString());
+//                                   final path0 = await loadImagesPathFromFolder(file.path);
+//                                   ref.read(stateProvider.notifier).addImages(path0);
 //
-//                                   const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+//                                   final providers = path0.map((p) => FileImage(File(p.path))).toList();
+//                                   ref.read(imageProviderProvider.notifier).state = providers;
 //
-//                                   List<String> iPaths = paths
-//                                       .where((path) =>
-//                                       imageExtensions.any((e) => path.endsWith(e))
-//                                   ).toList();
-//                                   debugPrint(iPaths.toString());
 //
-//                                   final tempResult = await pathToImages(paths: iPaths);
-//                                   debugPrint("temResult : ${tempResult.toString()}");
-//
-//                                   ref.read(stateProvider.notifier).addImages(tempResult);
-//
-//                                   debugPrint(tempResult.toString());
 //                                 } on Exception catch (e) {
 //                                   // TODO
 //                                 } finally {
-//                                   ref.read(loadingProvider.notifier).state = false;
 //                                 }
 //
-//
+//                                 // 파일 이라면
 //                               } else if (entity == FileSystemEntityType.file) {
 //                                 // 이미지 확인
 //                                 const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
@@ -342,38 +330,37 @@
 //                                 if (imageExtensions.any((e) => ext.endsWith(e))) {
 //                                   debugPrint("${file.name}은 이미지 파일!");
 //
-//                                   ui.Image image = await getImageSize(file.path);
-//                                   String name = p.basenameWithoutExtension(file.path);
-//
-//
 //                                   ref.read(stateProvider.notifier).addImage(
 //                                       ImageModel(
-//                                         height: image.height.toDouble(),
-//                                         width: image.width.toDouble(),
+//                                         height: 1,
+//                                         width: 1,
 //                                         path: file.path,
 //                                       )
 //                                   );
 //
-//                                   setState(() {
-//                                   });
+//                                   ref.read(imageProviderProvider.notifier).state.add(
+//                                       FileImage(File(file.path))
+//                                   );
 //
 //                                 } else {
 //
 //                                 }
 //                               }
+//                               // 여러개의 이미지인 경우
 //                             } else {
 //                               List<String> paths = details.files.map((file) => file.path).toList();
 //
-//                               final tempResult = await pathToImages(paths: paths);
+//                               final imgPaths = await loadImagesPath(paths);
 //
-//                               ref.read(stateProvider.notifier).addImages(tempResult);
+//                               ref.read(stateProvider.notifier).addImages(imgPaths);
 //
-//                               setState(() {
-//                                 debugPrint(tempResult.toString());
-//                               });
+//                               final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+//                               ref.read(imageProviderProvider.notifier).state = providers;
+//
 //                             }
 //
 //                             setState(() {
+//                               ref.read(stateProvider.notifier).updateIndex(0);
 //                             });
 //                           },
 //
@@ -402,27 +389,42 @@
 //                           )
 //                       ),
 //                     Positioned.fill(
-//                       child: DragTarget <ImageModel> (
+//                       child: DragTarget (
 //                         onMove: (details) {
-//                           debugPrint("DragTarget : ${details.offset}");
-//                           if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
-//                             _isMovingOnLeft = true;
-//                             _isMovingOnRight = false;
-//                           } else {
-//                             _isMovingOnLeft = false;
-//                             _isMovingOnRight = true;
+//                           if (ref.read(lookModeProvider) == "Cut") {
+//                             debugPrint("DragTarget : ${details.offset}");
+//                             if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
+//                               _isMovingOnLeft = true;
+//                               _isMovingOnRight = false;
+//                             } else {
+//                               _isMovingOnLeft = false;
+//                               _isMovingOnRight = true;
+//                             }
 //                           }
 //                         },
 //                         onAcceptWithDetails: (details) {
-//                           _isMovingOnLeft = false;
-//                           _isMovingOnRight = false;
-//                           if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
-//                             debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 왼쪽에 놓았습니다.");
-//                             ref.read(frontImageProvider.notifier).state = details.data.path;
+//
+//                           if (details.data.runtimeType == ImageModel) {
+//                             if (ref.read(lookModeProvider) == "Cut") {
+//                               _isMovingOnLeft = false;
+//                               _isMovingOnRight = false;
+//
+//                               ImageModel im = details.data as ImageModel;
+//
+//
+//                               if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
+//
+//
+//                                 debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(im.path)} 는 왼쪽에 놓았습니다.");
+//                                 ref.read(frontImageProvider.notifier).state = im.path;
+//                               } else {
+//                                 debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(im.path)} 는 오른쪽에 놓았습니다.");
+//                                 ref.read(backImageProvider.notifier).state = im.path;
+//                               }
+//                             }
 //                           } else {
-//                             debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 오른쪽에 놓았습니다.");
-//                             ref.read(backImageProvider.notifier).state = details.data.path;
 //                           }
+//
 //
 //                           setState(() {
 //
@@ -433,6 +435,7 @@
 //                           _isMovingOnRight = false;
 //                         },
 //
+//                         // 이미지 화면
 //                         builder: (BuildContext context, List<Object?> candidateData, List<dynamic> rejectedData) {
 //                           return FocusableActionDetector(
 //                             autofocus: true,
@@ -440,78 +443,80 @@
 //                             actions: const <Type, Action<Intent>>{},
 //                             child: Listener(
 //                               onPointerSignal: (PointerSignalEvent event) {
-//                                 // 마우스 휠 이벤트인지 확인
-//                                 if (event is PointerScrollEvent) {
-//                                   // 컨트롤 키 확인
-//                                   if (HardwareKeyboard.instance.isControlPressed) {
-//                                     // 스크롤 방향에 따라서 확인
-//                                     if (kDebugMode) {
-//                                       print("scrolled.");
-//                                     }
 //
-//                                     setState(() {
+//                                 if (ref.read(lookModeProvider) == "Cut") {
+//
+//                                   // 마우스 휠 이벤트인지 확인
+//                                   if (event is PointerScrollEvent) {
+//
+//                                     // 컨트롤 키 확인
+//                                     if (HardwareKeyboard.instance.isControlPressed) {
+//                                       // 스크롤 방향에 따라서 확인
 //                                       if (kDebugMode) {
-//                                         print(state.curZoom);
-//                                       }
-//                                       if (event.scrollDelta.dy < 0) {
-//                                         if (state.curZoom < 2.0) {
-//                                           ref.read(stateProvider.notifier).updateZoom(state.curZoom + 0.05);
-//                                         } else {
-//                                           ref.read(stateProvider.notifier).updateZoom(2.0);
-//                                         }
-//                                       } else {
-//                                         if (state.curZoom > 0.05) {
-//                                           ref.read(stateProvider.notifier).updateZoom(state.curZoom - 0.05);
-//                                         } else {
-//                                           ref.read(stateProvider.notifier).updateZoom(0.05);
-//                                         }
-//                                       }
-//                                     });
-//                                   } else {
-//                                     // 컨트롤 키가 안눌렸다면
-//                                     setState(() {
-//                                       isOrderWatched = true;
-//
-//                                       if (event.scrollDelta.dy > 0) {
-//                                         if (state.curIndex < (state.images.length + state.curSize) - 2) {
-//                                           convertIndexPlusOrMinus(isPlus: true);
-//                                         } else {
-//                                           if (kDebugMode) {
-//                                             print("탑에 도달했습니다.");
-//                                           }
-//                                         }
-//                                       } else {
-//                                         if (state.curIndex > 0) {
-//                                           convertIndexPlusOrMinus(isPlus: false);
-//                                         } else {
-//                                           if (kDebugMode) {
-//                                             print("바텀에 도달했습니다.");
-//                                           }
-//                                         }
+//                                         print("scrolled.");
 //                                       }
 //
-//                                       _orderTimer?.cancel();
-//
-//                                       _orderTimer = Timer(const Duration(seconds: 2), () {
-//                                         setState(() {
-//                                           if (mounted) {
-//                                             isOrderWatched = false;
+//                                       setState(() {
+//                                         if (kDebugMode) {
+//                                           print(state.curZoom);
+//                                         }
+//                                         if (event.scrollDelta.dy < 0) {
+//                                           if (state.curZoom < 2.0) {
+//                                             ref.read(stateProvider.notifier).updateZoom(state.curZoom + 0.05);
+//                                           } else {
+//                                             ref.read(stateProvider.notifier).updateZoom(2.0);
 //                                           }
+//                                         } else {
+//                                           if (state.curZoom > 0.05) {
+//                                             ref.read(stateProvider.notifier).updateZoom(state.curZoom - 0.05);
+//                                           } else {
+//                                             ref.read(stateProvider.notifier).updateZoom(0.05);
+//                                           }
+//                                         }
+//                                       });
+//                                     } else {
+//                                       // 컨트롤 키가 안눌렸다면
+//                                       setState(() {
+//                                         isOrderWatched = true;
+//
+//                                         if (event.scrollDelta.dy > 0) {
+//                                           if (state.curIndex < (state.images.length + state.curSize) - 2) {
+//                                             convertIndexPlusOrMinus(isPlus: true);
+//                                           } else {
+//                                             if (kDebugMode) {
+//                                               print("탑에 도달했습니다.");
+//                                             }
+//                                           }
+//                                         } else {
+//                                           if (state.curIndex > 0) {
+//                                             convertIndexPlusOrMinus(isPlus: false);
+//                                           } else {
+//                                             if (kDebugMode) {
+//                                               print("바텀에 도달했습니다.");
+//                                             }
+//                                           }
+//                                         }
+//
+//                                         _orderTimer?.cancel();
+//
+//                                         _orderTimer = Timer(const Duration(seconds: 2), () {
+//                                           setState(() {
+//                                             if (mounted) {
+//                                               isOrderWatched = false;
+//                                             }
+//                                           });
 //                                         });
 //                                       });
-//                                     });
+//                                     }
 //                                   }
+//
 //                                 }
 //                               },
 //                               child: Stack(
 //
 //                                 children: [
-//
-//
-//
-//
 //                                   // 이미지 컨테이너, 파일 불러오기
-//                                   Positioned(
+//                                   Positioned.fill(
 //                                     top: 0,
 //                                     bottom: 0,
 //                                     left: 0,
@@ -531,26 +536,104 @@
 //                                                   child: GestureDetector(
 //
 //                                                     onTap: () async {
-//                                                       // 파일 불러오기
-//                                                       FilePickerResult? result = await FilePicker.platform.pickFiles(
-//                                                           allowMultiple: true
+//                                                       showContextMenu(
+//                                                           context,
+//                                                           contextMenu: ContextMenu(
+//                                                               position: Offset(MediaQuery.of(context).size.width * 0.5, MediaQuery.of(context).size.height * 0.5),
+//                                                               entries: [
+//                                                                 // 파일 불러오기
+//                                                                 MenuItem(
+//                                                                     label: "파일 불러오기",
+//                                                                     icon: Icons.file_open,
+//                                                                     onSelected: () async {
+//                                                                       // 파일 불러오기
+//                                                                       FilePickerResult? result = await FilePicker.platform.pickFiles(
+//                                                                           allowMultiple: true,
+//                                                                           lockParentWindow: true
+//                                                                       );
+//
+//
+//                                                                       List<String?> paths = result!.paths;
+//
+//                                                                       // 가져온 이미지가 한개라면
+//                                                                       if (paths.length == 1) {
+//                                                                         const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+//                                                                         final path = paths.first;
+//
+//                                                                         final ext = path?.toLowerCase();
+//
+//                                                                         if (imageExtensions.any((e) => ext!.endsWith(e))) {
+//                                                                           debugPrint("${path}은 이미지 파일!");
+//
+//                                                                           ref.read(stateProvider.notifier).addImage(
+//                                                                               ImageModel(
+//                                                                                 height: 1,
+//                                                                                 width: 1,
+//                                                                                 path: path!,
+//                                                                               )
+//                                                                           );
+//
+//                                                                           ref.read(imageProviderProvider.notifier).state.add(
+//                                                                               FileImage(
+//                                                                                   File(path)
+//                                                                               )
+//                                                                           );
+//
+//                                                                           return;
+//                                                                         }
+//                                                                       } else {
+//
+//                                                                       }
+//
+//                                                                       // 여러개 라면
+//                                                                       final imgPaths = await loadImagesPath(paths);
+//                                                                       ref.read(stateProvider.notifier).addImages(imgPaths);
+//
+//                                                                       final providers = imgPaths.map((p) => FileImage(File(p.path))).toList();
+//                                                                       ref.read(imageProviderProvider.notifier).state = providers;
+//
+//
+//                                                                       setState(() {
+//                                                                         if (kDebugMode) {
+//                                                                           ref.read(stateProvider.notifier).updateIndex(0);
+//                                                                           print(state.images.toString());
+//                                                                         }
+//                                                                       });
+//                                                                     }
+//                                                                 ),
+//
+//                                                                 // 폴더
+//                                                                 MenuItem(
+//                                                                     label: "폴더 불러오기",
+//                                                                     icon: Icons.folder,
+//                                                                     onSelected: () async {
+//                                                                       try {
+//                                                                         String? result = await FilePicker.platform.getDirectoryPath(
+//                                                                             lockParentWindow: true
+//                                                                         );
+//                                                                         debugPrint("$result는 폴더.");
+//
+//                                                                         /// loadFolderImagesSafe(result!);
+//                                                                         // 이전에 사용한
+//                                                                         final paths = await loadImagesPathFromFolder(result!);
+//
+//                                                                         ref.read(stateProvider.notifier).addImages(paths);
+//                                                                         debugPrint("가져온 이미지의 수 : ${state.images.length}");
+//
+//                                                                         final providers = paths.map((p) => FileImage(File(p.path))).toList();
+//                                                                         ref.read(imageProviderProvider.notifier).state = providers;
+//
+//                                                                       } on Exception catch (e) {
+//                                                                         // TODO
+//                                                                       } finally {
+//
+//                                                                       }
+//                                                                     }
+//                                                                 )
+//                                                               ]
+//                                                           )
 //                                                       );
-//                                                       if (kDebugMode) {
-//                                                         print(result);
-//                                                       }
 //
-//                                                       List<String?> paths = result!.paths;
-//
-//                                                       final tempResult = await pathToImages(paths: paths);
-//
-//
-//
-//                                                       setState(() {
-//                                                         if (kDebugMode) {
-//                                                           ref.read(stateProvider.notifier).addImages(tempResult);
-//                                                           print(state.images.toString());
-//                                                         }
-//                                                       });
 //                                                     },
 //                                                     child: const Text('이미지, 혹은 디렉터리를 새로 가져와주세요.',
 //                                                       style: TextStyle(
@@ -561,148 +644,190 @@
 //                                               )
 //                                             else
 //
-//                                               Center(
-//                                                 child: InteractiveViewer(
-//                                                   minScale: 0.5,
-//                                                   maxScale: 2.0,
-//                                                   panEnabled: true, // 드래그 이동 가능
-//                                                   scaleEnabled: false, // 줌인/줌아웃 가능
-//                                                   boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
-//                                                   alignment: Alignment.center, // 확대/축소 기준을 중앙으로
-//                                                   clipBehavior: Clip.none,
-//                                                   child: SizedBox(
-//                                                     width: MediaQuery.of(context).size.width,
-//                                                     height: MediaQuery.of(context).size.height,
-//                                                     child: Transform.scale(
-//                                                       scale: state.curZoom,
-//                                                       alignment: Alignment.center,
-//                                                       child: Flex(
-//                                                         clipBehavior: Clip.none,
-//                                                         mainAxisAlignment: MainAxisAlignment.center,
-//                                                         direction: Axis.horizontal,
-//                                                         spacing: 0,
-//                                                         // crossAxisAlignment: CrossAxisAlignment.center,
+//                                               if(ref.read(lookModeProvider) == "Cut")
+//                                                 Center(
+//                                                   child: InteractiveViewer(
+//                                                     minScale: 0.5,
+//                                                     maxScale: 3.0,
+//                                                     panEnabled: true, // 드래그 이동 가능
+//                                                     scaleEnabled: false, // 줌인/줌아웃 가능
+//                                                     boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
+//                                                     alignment: Alignment.center, // 확대/축소 기준을 중앙으로
+//                                                     child: SizedBox(
+//                                                       width: MediaQuery.of(context).size.width,
+//                                                       height: MediaQuery.of(context).size.height,
+//                                                       child: Transform.scale(
+//                                                           scale: state.curZoom,
+//                                                           alignment: Alignment.center,
+//                                                           child: IntrinsicWidth(
+//                                                             child: Flex(
+//                                                               mainAxisAlignment: MainAxisAlignment.center,
+//                                                               direction: Axis.horizontal,
+//                                                               children: [
+//                                                                 if (ref.read(frontImageProvider) != "")
+//                                                                   Flexible(
+//                                                                     child: Tooltip(
+//                                                                       message: "오른쪽 클릭시 삭제됩니다.",
+//                                                                       child: MouseRegion(
+//                                                                         cursor: SystemMouseCursors.click,
+//                                                                         child: GestureDetector(
+//                                                                           onSecondaryTap: () {
+//                                                                             ref.read(frontImageProvider.notifier).state = "";
+//                                                                           },
+//                                                                           child: Image.file(
+//                                                                               File(ref.read(frontImageProvider)),
+//                                                                               fit: BoxFit.contain
+//                                                                           ),
+//                                                                         ),
+//                                                                       ),
+//                                                                     ),
+//                                                                   ),
+//                                                                 for (int i = state.curIndex;
+//                                                                 i < state.curIndex + state.curSize && i < state.images.length;
+//                                                                 i++)
+//                                                                   Flexible(
+//                                                                     child: Transform(
+//                                                                       alignment: Alignment.center,
+//                                                                       transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
+//                                                                         ..scale(1.0, 1.0, 1.0),
+//                                                                       child: ContextMenuRegion(
+//                                                                         contextMenu: ContextMenu(
+//                                                                             entries: [
+//                                                                               ref.read(favPathProvider).contains(state.images[i].path) ?
+//                                                                               MenuItem(
+//                                                                                   label: "즐겨찾기 제거",
+//                                                                                   icon: Icons.favorite,
+//                                                                                   onSelected: () async {
+//                                                                                     ref.read(favPathProvider).remove(state.images[i].path);
+//                                                                                     Map<String, List<String>> jsonIn = {
+//                                                                                       "fav" : ref.read(favPathProvider)
+//                                                                                     };
 //
-//                                                         children: [
-//                                                           if (ref.read(frontImageProvider) != "")
-//                                                             Expanded(
-//                                                               flex: 1,
-//                                                               child: Image.file(
-//                                                                 File(ref.read(frontImageProvider)),
-//                                                                 fit: BoxFit.contain,
-//                                                               ),
+//                                                                                     await _favFile!.writeAsString(jsonEncode(jsonIn));
+//
+//                                                                                   }
+//                                                                               ) :
+//                                                                               MenuItem(
+//                                                                                   label: "즐겨찾기 추가",
+//                                                                                   icon: Icons.favorite_border,
+//                                                                                   onSelected: () async {
+//                                                                                     ref.read(favPathProvider).add(state.images[i].path);
+//                                                                                     Map<String, List<String>> jsonIn = {
+//                                                                                       "fav" : ref.read(favPathProvider)
+//                                                                                     };
+//
+//                                                                                     await _favFile!.writeAsString(jsonEncode(jsonIn));
+//                                                                                   }
+//                                                                               ),
+//                                                                               MenuItem(
+//                                                                                   label: "목록에서 제거",
+//                                                                                   icon: Icons.remove,
+//                                                                                   onSelected: () async {
+//                                                                                     ref.read(stateProvider).images.removeAt(i);
+//                                                                                     setState(() {
+//
+//                                                                                     });
+//                                                                                   }
+//                                                                               ),
+//                                                                             ]
+//                                                                         ),
+//                                                                         child: Image(
+//                                                                           image: imageListProvider[i],
+//                                                                           fit: BoxFit.contain,
+//                                                                         ),
+//                                                                       ),
+//                                                                     ),
+//                                                                   ),
+//                                                                 if (ref.read(backImageProvider) != "")
+//                                                                   Flexible(
+//                                                                     child: Tooltip(
+//                                                                       message: "오른쪽 클릭시 삭제됩니다.",
+//                                                                       child: MouseRegion(
+//                                                                         cursor: SystemMouseCursors.click,
+//                                                                         child: GestureDetector(
+//                                                                           onSecondaryTap: () {
+//                                                                             ref.read(backImageProvider.notifier).state = "";
+//                                                                           },
+//                                                                           child: Image.file(
+//                                                                               File(ref.read(backImageProvider)),
+//                                                                               fit: BoxFit.contain
+//                                                                           ),
+//                                                                         ),
+//                                                                       ),
+//                                                                     ),
+//                                                                   ),
+//                                                               ],
 //                                                             ),
-//                                                           for (int i = state.curIndex;
-//                                                           i < state.curIndex + state.curSize && i < state.images.length;
-//                                                           i++)
-//                                                             Expanded(
-//                                                               flex: 1,
-//                                                               child: Image.file(
-//                                                                 File(state.images[i].path),
-//                                                                 fit: BoxFit.contain,
-//                                                               ),
-//                                                             ),
-//                                                           if (ref.read(backImageProvider) != "")
-//                                                             Expanded(
-//                                                               flex: 1,
-//                                                               child: Image.file(
-//                                                                 File(ref.read(backImageProvider)),
-//                                                                 fit: BoxFit.contain,
-//                                                               ),
-//                                                             ),
-//                                                         ],
+//                                                           )
 //                                                       ),
-//
-//
 //                                                     ),
 //                                                   ),
-//                                                 ),
-//                                               )
+//                                                 )
+//                                               else
+//                                                 Listener(
+//                                                   behavior: HitTestBehavior.opaque,
+//                                                   onPointerSignal: (event) {
+//                                                     if (event is PointerScrollEvent) {
+//                                                       if (HardwareKeyboard.instance.isControlPressed) {
+//                                                         final zoomDelta = event.scrollDelta.dy < 0 ? 0.1 : -0.1;
+//                                                         setState(() {
+//                                                           ref.read(stateProvider.notifier).updateZoom(
+//                                                             (state.curZoom + zoomDelta).clamp(0.5, 5.0),
+//                                                           );
+//                                                         });
+//                                                         return;
+//                                                       }
+//                                                     }
+//                                                   },
+//                                                   child: AbsorbPointer(
+//                                                     absorbing: HardwareKeyboard.instance.isControlPressed,
+//                                                     child: Center(
+//                                                       child: SizedBox(
+//                                                         height: ref.read(listProvider).ax == Axis.vertical ?
+//                                                         MediaQuery.of(context).size.height * 0.9
+//                                                             : 500 * state.curZoom,
+//                                                         width: MediaQuery.of(context).size.width,
+//                                                         child: Scrollbar(
+//                                                           controller: _scrollController,
+//                                                           thumbVisibility: true,
+//                                                           trackVisibility: true,
+//                                                           child: ListView.separated(
+//                                                             key: _listViewKey,
+//                                                             scrollDirection: ref.read(listProvider).ax,
+//                                                             controller: _scrollController,
+//                                                             physics: const AlwaysScrollableScrollPhysics(),
+//                                                             itemCount: state.images.length,
+//                                                             itemBuilder: (context, index) {
+//                                                               final imgProvider = imageListProvider[index];
+//                                                               return Image(
+//                                                                 key: ValueKey('image_$index'),
+//                                                                 image: imgProvider,
+//                                                                 fit: BoxFit.contain,
+//                                                                 gaplessPlayback: true,
+//                                                                 height: ref.read(listProvider).ax == Axis.vertical ?
+//                                                                 MediaQuery.of(context).size.height * 0.4 * state.curZoom
+//                                                                     : 500 * state.curZoom,
+//                                                                 width: ref.read(listProvider).ax == Axis.vertical ?
+//                                                                 500 * state.curZoom
+//                                                                     : MediaQuery.of(context).size.width * 0.1 * state.curZoom,
+//                                                               );
+//                                                             },
+//                                                             separatorBuilder: (BuildContext context, int index)
+//                                                             => ref.read(listProvider).ax == Axis.horizontal ?
+//                                                             SizedBox(width: ref.read(listProvider).pad,)
+//                                                                 : SizedBox(height: ref.read(listProvider).pad,),
+//                                                           ),
+//                                                         ),
+//                                                       ),
+//                                                     ),
+//                                                   ),
+//                                                 )
 //
 //
 //                                           ]
 //                                       ),
 //                                     ),
 //                                   ),
-//                                   // Positioned(
-//                                   //     left: 0,
-//                                   //     right: 0,
-//                                   //     bottom: 30,
-//                                   //     child: MouseRegion(
-//                                   //       onEnter: (event) {
-//                                   //         setState(() {
-//                                   //           isControllerWatched = true;
-//                                   //           if (kDebugMode) {
-//                                   //             print(1);
-//                                   //           }
-//                                   //         });
-//                                   //       },
-//                                   //       onExit: (event) {
-//                                   //         setState(() {
-//                                   //           isControllerWatched = false;
-//                                   //           if (kDebugMode) {
-//                                   //             print(2);
-//                                   //           }
-//                                   //         });
-//                                   //       },
-//                                   //
-//                                   //       child: Center(
-//                                   //         child: AnimatedOpacity(
-//                                   //           opacity: isControllerWatched ? 0.5 : 0.0,
-//                                   //           duration: const Duration(milliseconds: 600),
-//                                   //           child: Container(
-//                                   //             decoration: BoxDecoration(
-//                                   //                 color: Colors.grey,
-//                                   //                 boxShadow: [
-//                                   //                   BoxShadow(
-//                                   //                       color: Colors.black.withOpacity(0.15),
-//                                   //                       blurRadius: 3.0,
-//                                   //                       spreadRadius: 5,
-//                                   //                       offset: const Offset(0, 5)
-//                                   //                   )
-//                                   //                 ]
-//                                   //             ),
-//                                   //             height: MediaQuery.of(context).size.height * 0.1,
-//                                   //             width: 600,
-//                                   //             child: Padding(
-//                                   //               padding: const EdgeInsets.only(left: 30.0, right: 30.0),
-//                                   //               child: Row(
-//                                   //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                                   //                 children: [
-//                                   //
-//                                   //                   // 뒤로 붙이기 버튼
-//                                   //                   ControllerButton(btnCallback: () {
-//                                   //                     convertSizePlusOrMinus(isPlus: false);
-//                                   //                   }, icon: const Icon(Icons.keyboard_double_arrow_left_sharp, size: 35,),),
-//                                   //
-//                                   //                   // 뒤로가기 버튼
-//                                   //                   ControllerButton(btnCallback: () {
-//                                   //                     convertIndexPlusOrMinus(isPlus: false);
-//                                   //                   }, icon: const Icon(Icons.arrow_back_ios_new, size: 35,),),
-//                                   //                   // 중앙 현재 줌 사이즈
-//                                   //                   Text(
-//                                   //                     "${(state.curZoom * 100).toInt()}%",
-//                                   //                     style: const TextStyle(
-//                                   //                         fontWeight: FontWeight.w500
-//                                   //                     ),
-//                                   //                   ),
-//                                   //                   // 앞으로 가기 버튼
-//                                   //                   ControllerButton(btnCallback: () {
-//                                   //                     convertIndexPlusOrMinus(isPlus: true);
-//                                   //                   }, icon: const Icon(Icons.arrow_forward_ios, size: 35,),),
-//                                   //                   // 앞으로 붙이기
-//                                   //                   ControllerButton(btnCallback: () {
-//                                   //                     convertSizePlusOrMinus(isPlus: true);
-//                                   //                   }, icon: const Icon(Icons.keyboard_double_arrow_right_sharp, size: 35,),)
-//                                   //                 ],
-//                                   //               ),
-//                                   //             ),
-//                                   //
-//                                   //           ),
-//                                   //         ),
-//                                   //       ),
-//                                   //     )
-//                                   // ),
 //                                 ],
 //                               ),
 //                             ),
@@ -710,25 +835,61 @@
 //                         },
 //                       ),
 //                     ),
-//                     // // 이미지 내비게이션
-//                     // Positioned(
-//                     //     bottom: 10,
-//                     //     left: 0,
-//                     //     child: SizedBox(
-//                     //       width: 400,
-//                     //       height: 100,
-//                     //       child: const ImageListMap(),
-//                     //     )
-//                     // ),
-//                     // 메뉴바
-//                     const Positioned(
-//                         top: 0,
-//                         child: DeskTopMenuBar()
+//
+//                     ref.read(lookModeProvider) == "Cut" ?
+//                     Positioned(
+//                         bottom: 20,
+//                         right: MediaQuery.of(context).size.width * 0.5 - 300,
+//                         child: OpacityWidget(
+//                             enable: ref.read(avoidWidgetProvider),
+//                             child: const BottomBar()
+//                         )
+//                     ) :
+//                     Positioned(
+//                         bottom: 20,
+//                         right: MediaQuery.of(context).size.width * 0.5 - 150,
+//                         child: OpacityWidget(
+//                             enable: ref.read(avoidWidgetProvider),
+//                             child: const ListBottomBar()
+//                         )
+//                     ),
+//
+//                     Positioned(
+//                         right: 20,
+//                         bottom: 25,
+//                         child: ref.read(avoidWidgetProvider) == false ? Tooltip(
+//                           message: "인터페이스를 가립니다.",
+//                           child: IconButton.outlined(
+//                               onPressed: () {
+//                                 ref.read(avoidWidgetProvider.notifier).state = true;
+//                               },
+//                               icon: const Icon(
+//                                 Icons.desktop_access_disabled,
+//                                 size: 55,
+//                               )
+//                           ),
+//                         ) : OpacityWidget(
+//                             enable: true,
+//                             child: Tooltip(
+//                               message: "인터페이스를 다시 표시합니다.",
+//                               child: IconButton.outlined(
+//                                   onPressed: () {
+//                                     ref.read(avoidWidgetProvider.notifier).state = false;
+//                                   },
+//                                   icon: const Icon(
+//                                     Icons.desktop_windows,
+//                                     size: 55,
+//                                   )
+//                               ),
+//                             )
+//                         )
 //                     ),
 //                   ]
 //               )
 //           ),
-//           if (isLoading)
+//
+//
+//           if (isLoading || isModaling)
 //             const ModalBarrier(
 //               dismissible: false,
 //               color: Colors.black38,
@@ -750,10 +911,39 @@
 //               child: DtoVGallery(),
 //             ),
 //
+//           if(isFavorite)
+//             const Positioned(
+//               top: 30,
+//               right: 20,
+//               child: FavGallery(),
+//             ),
+//
+//           if(isConverting)
+//             Positioned(
+//               top: MediaQuery.of(context).size.height * 0.5 - 300,
+//               right: MediaQuery.of(context).size.width * 0.5 - 400,
+//               child: ImageConverter(
+//                   images: state.images
+//               ),
+//             ),
+//
+//           Positioned(
+//               top: 0,
+//               child: OpacityWidget(
+//                   enable: ref.read(avoidWidgetProvider),
+//                   child: Container(
+//                     height: 30,
+//                     width: MediaQuery.of(context).size.width,
+//                     color: Colors.grey,
+//                     child: DeskTopMenuBar(),
+//                   )
+//               )
+//           ),
+//
 //
 //         ]
 //     );
 //
 //   }
 //
-// }
+// // }

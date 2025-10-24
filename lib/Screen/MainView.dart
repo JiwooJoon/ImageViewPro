@@ -23,6 +23,7 @@ import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
 import 'package:image_view_pro/widget/ListBottomBar.dart';
 import 'package:image_view_pro/widget/OpacityWidget.dart';
+import 'package:image_view_pro/widget/VerticalImageListMap.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
 
@@ -50,6 +51,7 @@ class _MainView extends ConsumerState<MainView> {
   bool isOrderWatched = false;
   Timer? _orderTimer;
   File? _favFile;
+  int _nowHoverdOn = 1;
 
   List<String> droppedFiles = [];
   bool isDragging = false;
@@ -61,6 +63,10 @@ class _MainView extends ConsumerState<MainView> {
   bool _isMovingOnRight = false;
   bool _isCtrlPressed = false; // 리스트 뷰에서 컨트롤키/일반키 스크롤 구분을 위함
 
+  // 사이드 뷰 이미지 리스트
+  int listMapDx = 0;
+  int listMapDy = 0;
+  bool _isLeft = true;
   final List<WindowInfo> _windows = [];
   late StreamSubscription<ImageModel>? _imageSubscription = ref.read(subscriptProvider);
   bool? _isLoadingImages;
@@ -133,6 +139,10 @@ class _MainView extends ConsumerState<MainView> {
     final isModaling = ref.watch(modalProvider);
     _isLoadingImages = ref.watch(imageLoadProvider);
     final imageListProvider = ref.watch(imageProviderProvider);
+    final leftList = ref.watch(leftViewProvider);
+    final rightList = ref.watch(rightViewProvider);
+
+    final sideListMapWatching = ref.watch(sideImageListMapProvider);
 
     // 스크롤 모드용
     bool _isCtrlPressed = false;
@@ -278,7 +288,7 @@ class _MainView extends ConsumerState<MainView> {
                     ),
 
 
-                  // 메인 화면
+                  // 메인 화면, 아직 빈화면
                   if (state.images.isEmpty)
                     DropTarget(
                         onDragEntered: (detail) {
@@ -388,8 +398,143 @@ class _MainView extends ConsumerState<MainView> {
                           ),
                         )
                     ),
+
+                  // 이미지를 한개 드롭했을 때.. 참고 이미지 추가 기능
+                  if (state.images.isNotEmpty)
+                    DropTarget(
+                        onDragEntered: (detail) {
+                          setState(() {
+                            isDragging = true;
+                          });
+                        },
+
+                        onDragExited: (detail) {
+                          setState(() {
+                            isDragging = false;
+                          });
+                        },
+
+                        onDragDone: (details) async {
+                          isDragging = false;
+                          if (details.files.isEmpty) return;
+
+                          final file = details.files.first;
+
+                          final entity = FileSystemEntity.typeSync(file.path);
+
+                          if (entity != FileSystemEntityType.file) {
+                            return;
+                          }
+
+                          // 이미지 확인
+
+
+                          if (details.files.length == 1) {
+                            final file = details.files.first;
+
+                            final entity = FileSystemEntity.typeSync(file.path);
+
+                            // 폴더를 드랍했다면
+                            if (entity == FileSystemEntityType.directory) {
+
+                              try {
+                                debugPrint("${file.name}은 폴더.");
+
+                                final path0 = await loadImagesPathFromFolder(file.path);
+
+                                for (var p in path0) {
+                                  if (details.localPosition.dx < MediaQuery.of(context).size.width * 0.5) {
+                                    // 왼족
+                                    ref.read(leftViewProvider.notifier).updateImage(p.path);
+                                  } else {
+                                    ref.read(rightViewProvider.notifier).updateImage(p.path);
+                                  }
+                                }
+
+                              } on Exception catch (e) {
+                                // TODO
+                              } finally {
+                              }
+
+                              // 파일 이라면
+                            } else if (entity == FileSystemEntityType.file) {
+                              // 이미지 확인
+                              // 이미지 확인
+                              const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+                              final ext = file.path.toLowerCase();
+
+                              if (imageExtensions.any((e) => ext.endsWith(e))) {
+                                debugPrint("${file.name}은 이미지 파일!");
+
+
+                                if (details.localPosition.dx < MediaQuery.of(context).size.width * 0.5) {
+                                  // 왼쪽
+                                  ref.read(frontImageProvider.notifier).state = file.path;
+                                  ref.read(leftViewProvider.notifier).updateImage(file.path);
+                                } else {
+                                  ref.read(backImageProvider.notifier).state = file.path;
+                                  ref.read(rightViewProvider.notifier).updateImage(file.path);
+                                }
+
+                              } else {
+                                return;
+                              }
+                            }
+                            // 여러개의 이미지인 경우
+                          } else {
+                            List<String> paths = details.files.map((file) => file.path).toList();
+
+                            final imgPaths = await loadImagesPath(paths);
+
+                            for (var p in imgPaths) {
+                              if (details.localPosition.dx < MediaQuery.of(context).size.width * 0.5) {
+                                // 왼족
+                                ref.read(leftViewProvider.notifier).updateImage(p.path);
+                              } else {
+                                ref.read(rightViewProvider.notifier).updateImage(p.path);
+                              }
+                            }
+
+                          }
+
+
+                          setState(() {
+                            if (details.localPosition.dx < MediaQuery.of(context).size.width * 0.5) {
+                              // 왼족
+                              ref.read(leftViewProvider.notifier).updateIndex(ref.read(leftViewProvider).list.length - 1);
+                            } else {
+                              ref.read(rightViewProvider.notifier).updateIndex(ref.read(rightViewProvider).list.length - 1);
+                            }
+
+                          });
+                        },
+
+                        child: Container(
+                          height: MediaQuery.of(context).size.height,
+                          width: MediaQuery.of(context).size.width,
+                          color: isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                          child: Center(
+                            child: isDragging
+                                ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.image, size: 100,),
+                                  Text("화면에 끌어와주세요.",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900, color: Colors.blueAccent,
+                                        fontSize: 50
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )
+                                : const SizedBox.shrink(),
+                          ),
+                        )
+                    ),
                   Positioned.fill(
-                    child: DragTarget <ImageModel> (
+                    child: DragTarget (
                       onMove: (details) {
                         if (ref.read(lookModeProvider) == "Cut") {
                           debugPrint("DragTarget : ${details.offset}");
@@ -403,19 +548,30 @@ class _MainView extends ConsumerState<MainView> {
                         }
                       },
                       onAcceptWithDetails: (details) {
-                        if (ref.read(lookModeProvider) == "Cut") {
-                          _isMovingOnLeft = false;
-                          _isMovingOnRight = false;
-                          if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
-                            debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 왼쪽에 놓았습니다.");
-                            ref.read(frontImageProvider.notifier).state = details.data.path;
-                            ref.read(backImageProvider.notifier).state = "";
-                          } else {
-                            debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(details.data.path)} 는 오른쪽에 놓았습니다.");
-                            ref.read(frontImageProvider.notifier).state = "";
-                            ref.read(backImageProvider.notifier).state = details.data.path;
+
+                        if (details.data.runtimeType == ImageModel) {
+                          if (ref.read(lookModeProvider) == "Cut") {
+                            _isMovingOnLeft = false;
+                            _isMovingOnRight = false;
+
+                            ImageModel im = details.data as ImageModel;
+
+
+                            if (details.offset.dx <= MediaQuery.of(context).size.width * 0.5) {
+
+
+                              debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(im.path)} 는 왼쪽에 놓았습니다.");
+                              ref.read(frontImageProvider.notifier).state = im.path;
+                              ref.read(leftViewProvider.notifier).updateImage(im.path);
+                            } else {
+                              debugPrint("드롭한 이미지, ${p.basenameWithoutExtension(im.path)} 는 오른쪽에 놓았습니다.");
+                              ref.read(backImageProvider.notifier).state = im.path;
+                              ref.read(rightViewProvider.notifier).updateImage(im.path);
+                            }
                           }
+                        } else {
                         }
+
 
                         setState(() {
 
@@ -426,6 +582,7 @@ class _MainView extends ConsumerState<MainView> {
                         _isMovingOnRight = false;
                       },
 
+                      // 이미지 화면
                       builder: (BuildContext context, List<Object?> candidateData, List<dynamic> rejectedData) {
                         return FocusableActionDetector(
                           autofocus: true,
@@ -467,22 +624,28 @@ class _MainView extends ConsumerState<MainView> {
                                   } else {
                                     // 컨트롤 키가 안눌렸다면
                                     setState(() {
-                                      isOrderWatched = true;
-
                                       if (event.scrollDelta.dy > 0) {
-                                        if (state.curIndex < (state.images.length + state.curSize) - 2) {
+                                        if (_nowHoverdOn == 0) { // 왼쪽
+                                          if (ref.read(leftViewProvider).index < ref.read(leftViewProvider).list.length - 1) {
+                                            ref.read(leftViewProvider.notifier).updateIndex(ref.read(leftViewProvider).index + 1);
+                                          }
+                                        } else if (_nowHoverdOn == 1) { // 중앙
                                           convertIndexPlusOrMinus(isPlus: true);
-                                        } else {
-                                          if (kDebugMode) {
-                                            print("탑에 도달했습니다.");
+                                        } else { // 오른쪽
+                                          if (ref.read(rightViewProvider).index < ref.read(rightViewProvider).list.length - 1) {
+                                            ref.read(rightViewProvider.notifier).updateIndex(ref.read(rightViewProvider).index + 1);
                                           }
                                         }
                                       } else {
-                                        if (state.curIndex > 0) {
+                                        if (_nowHoverdOn == 0) { // 왼쪽
+                                          if (ref.read(leftViewProvider).index > 0) {
+                                            ref.read(leftViewProvider.notifier).updateIndex(ref.read(leftViewProvider).index - 1);
+                                          }
+                                        } else if (_nowHoverdOn == 1) { // 중앙
                                           convertIndexPlusOrMinus(isPlus: false);
-                                        } else {
-                                          if (kDebugMode) {
-                                            print("바텀에 도달했습니다.");
+                                        } else { // 오른쪽
+                                          if (ref.read(rightViewProvider).index > 0) {
+                                            ref.read(rightViewProvider.notifier).updateIndex(ref.read(rightViewProvider).index - 1);
                                           }
                                         }
                                       }
@@ -499,16 +662,11 @@ class _MainView extends ConsumerState<MainView> {
                                     });
                                   }
                                 }
-
                               }
                             },
                             child: Stack(
 
                               children: [
-
-
-
-
                                 // 이미지 컨테이너, 파일 불러오기
                                 Positioned.fill(
                                   top: 0,
@@ -638,6 +796,7 @@ class _MainView extends ConsumerState<MainView> {
                                             )
                                           else
 
+                                            // 단일 뷰 모드
                                             if(ref.read(lookModeProvider) == "Cut")
                                               Center(
                                                 child: InteractiveViewer(
@@ -658,41 +817,18 @@ class _MainView extends ConsumerState<MainView> {
                                                           mainAxisAlignment: MainAxisAlignment.center,
                                                           direction: Axis.horizontal,
                                                           children: [
-                                                            if (ref.read(frontImageProvider) != "")
+                                                            // 왼쪽 뷰
+                                                            if (leftList.list.isNotEmpty)
                                                               Flexible(
-                                                                child: Tooltip(
-                                                                  message: "오른쪽 클릭시 삭제됩니다.",
-                                                                  child: MouseRegion(
-                                                                    cursor: SystemMouseCursors.click,
-                                                                    child: GestureDetector(
-                                                                      onSecondaryTap: () {
-                                                                        ref.read(frontImageProvider.notifier).state = "";
-                                                                      },
-                                                                      child: Image.file(
-                                                                          File(ref.read(frontImageProvider)),
-                                                                          fit: BoxFit.contain
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            for (int i = state.curIndex;
-                                                            i < state.curIndex + state.curSize && i < state.images.length;
-                                                            i++)
-                                                              Flexible(
-                                                                child: Transform(
-                                                                  alignment: Alignment.center,
-                                                                  transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
-                                                                    ..scale(1.0, 1.0, 1.0),
-                                                                  child: ContextMenuRegion(
-                                                                    contextMenu: ContextMenu(
+                                                                child: ContextMenuRegion(
+                                                                  contextMenu: ContextMenu(
                                                                       entries: [
-                                                                        ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                        ref.read(favPathProvider).contains(leftList.list[leftList.index]) ?
                                                                         MenuItem(
                                                                             label: "즐겨찾기 제거",
                                                                             icon: Icons.favorite,
                                                                             onSelected: () async {
-                                                                              ref.read(favPathProvider).remove(state.images[i].path);
+                                                                              ref.read(favPathProvider).remove(leftList.list[leftList.index]);
                                                                               Map<String, List<String>> jsonIn = {
                                                                                 "fav" : ref.read(favPathProvider)
                                                                               };
@@ -705,7 +841,7 @@ class _MainView extends ConsumerState<MainView> {
                                                                             label: "즐겨찾기 추가",
                                                                             icon: Icons.favorite_border,
                                                                             onSelected: () async {
-                                                                              ref.read(favPathProvider).add(state.images[i].path);
+                                                                              ref.read(favPathProvider).add(leftList.list[leftList.index]);
                                                                               Map<String, List<String>> jsonIn = {
                                                                                 "fav" : ref.read(favPathProvider)
                                                                               };
@@ -717,38 +853,166 @@ class _MainView extends ConsumerState<MainView> {
                                                                             label: "목록에서 제거",
                                                                             icon: Icons.remove,
                                                                             onSelected: () async {
-                                                                              ref.read(stateProvider).images.removeAt(i);
+                                                                              ref.read(leftViewProvider.notifier).removeImage(leftList.list[leftList.index]);
+                                                                              if (leftList.index == leftList.list.length) {
+                                                                                ref.read(leftViewProvider.notifier).updateIndex(leftList.index - 1);
+                                                                              }
                                                                               setState(() {
 
                                                                               });
                                                                             }
                                                                         ),
                                                                       ]
-                                                                    ),
-                                                                    // child: Image.file(
-                                                                    //   File(state.images[i].path),
-                                                                    //   fit: BoxFit.contain,
-                                                                    // ),
-                                                                    child: Image(
-                                                                      image: imageListProvider[i],
-                                                                      fit: BoxFit.contain,
+                                                                  ),
+                                                                  child: GestureDetector(
+                                                                    onTapDown: (details) {
+                                                                      listMapDx = details.globalPosition.dx.toInt();
+                                                                      listMapDy = details.globalPosition.dy.toInt();
+
+                                                                      _isLeft = true;
+                                                                      ref.read(sideImageListMapProvider.notifier).state = true;
+                                                                    },
+                                                                    child: MouseRegion(
+                                                                      onEnter: (e) {
+                                                                        _nowHoverdOn = 0;
+                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                      },
+                                                                      child: Image(
+                                                                        image: FileImage(File(leftList.list[leftList.index])),
+                                                                        fit: BoxFit.contain,
+                                                                      ),
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
-                                                            if (ref.read(backImageProvider) != "")
+
+                                                            // 중앙 뷰
+                                                            for (int i = state.curIndex;
+                                                            i < state.curIndex + state.curSize && i < state.images.length;
+                                                            i++)
                                                               Flexible(
-                                                                child: Tooltip(
-                                                                  message: "오른쪽 클릭시 삭제됩니다.",
-                                                                  child: MouseRegion(
-                                                                    cursor: SystemMouseCursors.click,
-                                                                    child: GestureDetector(
-                                                                      onSecondaryTap: () {
-                                                                        ref.read(backImageProvider.notifier).state = "";
+                                                                child: Transform(
+                                                                  alignment: Alignment.center,
+                                                                  transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
+                                                                    ..scale(1.0, 1.0, 1.0),
+                                                                  child: ContextMenuRegion(
+                                                                    contextMenu: ContextMenu(
+                                                                        entries: [
+                                                                          ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                          MenuItem(
+                                                                              label: "즐겨찾기 제거",
+                                                                              icon: Icons.favorite,
+                                                                              onSelected: () async {
+                                                                                ref.read(favPathProvider).remove(state.images[i].path);
+                                                                                Map<String, List<String>> jsonIn = {
+                                                                                  "fav" : ref.read(favPathProvider)
+                                                                                };
+
+                                                                                await _favFile!.writeAsString(jsonEncode(jsonIn));
+
+                                                                              }
+                                                                          ) :
+                                                                          MenuItem(
+                                                                              label: "즐겨찾기 추가",
+                                                                              icon: Icons.favorite_border,
+                                                                              onSelected: () async {
+                                                                                ref.read(favPathProvider).add(state.images[i].path);
+                                                                                Map<String, List<String>> jsonIn = {
+                                                                                  "fav" : ref.read(favPathProvider)
+                                                                                };
+
+                                                                                await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                              }
+                                                                          ),
+                                                                          MenuItem(
+                                                                              label: "목록에서 제거",
+                                                                              icon: Icons.remove,
+                                                                              onSelected: () async {
+                                                                                ref.read(stateProvider).images.removeAt(i);
+                                                                                setState(() {
+
+                                                                                });
+                                                                              }
+                                                                          ),
+                                                                        ]
+                                                                    ),
+                                                                    child: MouseRegion(
+                                                                      onEnter: (e) {
+                                                                        _nowHoverdOn = 1;
+                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
                                                                       },
-                                                                      child: Image.file(
-                                                                          File(ref.read(backImageProvider)),
-                                                                          fit: BoxFit.contain
+                                                                      child: Image(
+                                                                        image: imageListProvider[i],
+                                                                        fit: BoxFit.contain,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+
+                                                            // 오른뷰
+                                                            if (rightList.list.isNotEmpty)
+                                                              Flexible(
+                                                                child: ContextMenuRegion(
+                                                                  contextMenu: ContextMenu(
+                                                                      entries: [
+                                                                        ref.read(favPathProvider).contains(rightList.list[rightList.index]) ?
+                                                                        MenuItem(
+                                                                            label: "즐겨찾기 제거",
+                                                                            icon: Icons.favorite,
+                                                                            onSelected: () async {
+                                                                              ref.read(favPathProvider).remove(rightList.list[rightList.index]);
+                                                                              Map<String, List<String>> jsonIn = {
+                                                                                "fav" : ref.read(favPathProvider)
+                                                                              };
+
+                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
+
+                                                                            }
+                                                                        ) :
+                                                                        MenuItem(
+                                                                            label: "즐겨찾기 추가",
+                                                                            icon: Icons.favorite_border,
+                                                                            onSelected: () async {
+                                                                              ref.read(favPathProvider).add(rightList.list[rightList.index]);
+                                                                              Map<String, List<String>> jsonIn = {
+                                                                                "fav" : ref.read(favPathProvider)
+                                                                              };
+
+                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                            }
+                                                                        ),
+                                                                        MenuItem(
+                                                                            label: "목록에서 제거",
+                                                                            icon: Icons.remove,
+                                                                            onSelected: () async {
+                                                                              ref.read(rightViewProvider.notifier).removeImage(rightList.list[rightList.index]);
+                                                                              if (rightList.index == rightList.list.length) {
+                                                                                ref.read(rightViewProvider.notifier).updateIndex(rightList.index - 1);
+                                                                              }
+                                                                              setState(() {
+
+                                                                              });
+                                                                            }
+                                                                        ),
+                                                                      ]
+                                                                  ),
+                                                                  child: GestureDetector(
+                                                                    onTapDown: (details) {
+                                                                      listMapDx = details.globalPosition.dx.toInt();
+                                                                      listMapDy = details.globalPosition.dy.toInt();
+
+                                                                      _isLeft = false;
+                                                                      ref.read(sideImageListMapProvider.notifier).state = true;
+                                                                    },
+                                                                    child: MouseRegion(
+                                                                      onEnter: (e) {
+                                                                        _nowHoverdOn = 2;
+                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                      },
+                                                                      child: Image(
+                                                                        image: FileImage(File(rightList.list[rightList.index])),
+                                                                        fit: BoxFit.contain,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -760,8 +1024,10 @@ class _MainView extends ConsumerState<MainView> {
                                                     ),
                                                   ),
                                                 ),
-                                              )
-                                            else
+                                              ),
+
+                                            // 리스트 모드
+                                            if(ref.read(lookModeProvider) == "Long")
                                               Listener(
                                                 behavior: HitTestBehavior.opaque,
                                                 onPointerSignal: (event) {
@@ -819,7 +1085,7 @@ class _MainView extends ConsumerState<MainView> {
                                                     ),
                                                   ),
                                                 ),
-                                              )
+                                              ),
 
 
                                         ]
@@ -833,8 +1099,7 @@ class _MainView extends ConsumerState<MainView> {
                       },
                     ),
                   ),
-
-                  ref.read(lookModeProvider) == "Cut" ?
+                  if (ref.read(lookModeProvider) == "Cut")
                     Positioned(
                         bottom: 20,
                         right: MediaQuery.of(context).size.width * 0.5 - 300,
@@ -842,7 +1107,8 @@ class _MainView extends ConsumerState<MainView> {
                             enable: ref.read(avoidWidgetProvider),
                             child: const BottomBar()
                         )
-                    ) :
+                    ),
+                  if (ref.read(lookModeProvider) == "Long")
                   Positioned(
                       bottom: 20,
                       right: MediaQuery.of(context).size.width * 0.5 - 150,
@@ -923,6 +1189,22 @@ class _MainView extends ConsumerState<MainView> {
               child: ImageConverter(
                 images: state.images
               ),
+            ),
+
+          // 사이드 이미비 리스트
+          if(sideListMapWatching)
+            Positioned(
+              top: listMapDy.toDouble() - 10,
+              left: listMapDx.toDouble() - 10,
+              child: MouseRegion(
+                onExit: (e) {
+                  ref.read(sideImageListMapProvider.notifier).state = false;
+                },
+                child: OpacityWidget(
+                  enable: sideListMapWatching,
+                  child: VerticalImageMap(isLeft: _isLeft)
+                )
+              )
             ),
 
           Positioned(
