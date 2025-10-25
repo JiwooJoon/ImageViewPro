@@ -11,6 +11,7 @@ import 'package:googleapis/drive/v2.dart' as drive;import 'package:image_view_pr
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/ListModel.dart';
+import 'package:image_view_pro/model/MultiViewProvider.dart';
 import 'package:image_view_pro/model/stateModel.dart';
 import 'package:image_view_pro/widget/Second_Window.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,6 +28,7 @@ final modalProvider = StateProvider<bool>((ref) => false);
 final imageLoadProvider = StateProvider<bool>((ref) => false);
 final avoidWidgetProvider = StateProvider<bool>((ref) => false);
 final imageConvertProvider = StateProvider<bool>((ref) => false);
+final sideImageListMapProvider = StateProvider<bool>((ref) => false);
 
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final backGroundProvider = StateProvider<List<String>>((ref) => []);
@@ -103,6 +105,30 @@ class StateProv extends StateNotifier<StateModel> {
   }
 }
 
+class MultiViewProv extends StateNotifier<MultiViewProvider> {
+  MultiViewProv() : super(MultiViewProvider(
+    index: 0,
+    list: [],
+  ));
+
+  void updateIndex(int index) {
+    state = state.copyWith(index: index);
+  }
+
+  void updateImage(String path) {
+    state = state.copyWith(list: [...state.list, path]);
+  }
+
+  void removeImage(String path) {
+    final list = state.list.where((p) => p != path).toList();
+    state = state.copyWith(list: list);
+  }
+
+  void clearImages() {
+    state = state.copyWith(list: []);
+  }
+}
+
 class ListProv extends StateNotifier<ListModel> {
   ListProv() : super(ListModel(
       pad: 0.0,
@@ -130,6 +156,12 @@ final stateProvider = StateNotifierProvider<StateProv, StateModel>(
 );
 final listProvider = StateNotifierProvider<ListProv, ListModel>(
     (ref) => ListProv()
+);
+final leftViewProvider = StateNotifierProvider<MultiViewProv, MultiViewProvider>(
+    (ref) => MultiViewProv()
+);
+final rightViewProvider = StateNotifierProvider<MultiViewProv, MultiViewProvider>(
+        (ref) => MultiViewProv()
 );
 
 void main(List<String> args) async {

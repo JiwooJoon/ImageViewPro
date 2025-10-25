@@ -22,6 +22,15 @@ class _OpacityWidget extends ConsumerState<OpacityWidget> {
 
   bool _hovered = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // 등장 시 부드럽게 나타나도록
+    Future.delayed(Duration.zero, () {
+      if (mounted) setState(() => _hovered = true);
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +50,7 @@ class _OpacityWidget extends ConsumerState<OpacityWidget> {
       child: AnimatedOpacity(
         opacity: _hovered ? 1.0 : 0.0,
         duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
         child: widget.child,
       ),
     ) : widget.child;
