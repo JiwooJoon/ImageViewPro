@@ -38,6 +38,7 @@ final imageAngleProvider = StateProvider<double>((ref) => 0.0);
 final favPathProvider = StateProvider<List<String>>((ref) => []);
 final subscriptProvider = StateProvider<StreamSubscription<ImageModel>?>((ref) => null);
 final sliderProvider = StateProvider<double>((ref) => 0.0);
+final hotkeyProvider = StateProvider<Map<String, String>>((ref) => {});
 
 final imageProviderProvider = StateProvider<List<ImageProvider>>((ref) => []);
 

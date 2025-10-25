@@ -58,6 +58,7 @@ dependencies:
   image_editor_plus: ^1.0.8
   flutter_context_menu: ^0.3.0
   image_scaler: ^0.0.2
+  pdfx: ^2.9.2
 
 
 
