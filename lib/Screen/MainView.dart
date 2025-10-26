@@ -23,6 +23,7 @@ import 'package:image_view_pro/widget/FavGallery.dart';
 import 'package:image_view_pro/widget/ImageConverter.dart';
 import 'package:image_view_pro/widget/ListBottomBar.dart';
 import 'package:image_view_pro/widget/OpacityWidget.dart';
+import 'package:image_view_pro/widget/PdfConverter.dart';
 import 'package:image_view_pro/widget/VerticalImageListMap.dart';
 import 'package:image_view_pro/widget/VtoD.dart';
 import 'package:path/path.dart' as p;
@@ -137,6 +138,8 @@ class _MainView extends ConsumerState<MainView> {
     final isFavorite = ref.watch(favProvider);
     final isConverting = ref.watch(converterProvider);
     final isModaling = ref.watch(modalProvider);
+    final isPdfConverting = ref.watch(pdfConverterProvider);
+
     _isLoadingImages = ref.watch(imageLoadProvider);
     final imageListProvider = ref.watch(imageProviderProvider);
     final leftList = ref.watch(leftViewProvider);
@@ -1152,14 +1155,21 @@ class _MainView extends ConsumerState<MainView> {
             )
         ),
 
-
-          if (isLoading || isModaling)
-            const ModalBarrier(
-              dismissible: false,
-              color: Colors.black38,
+          // 사이드 이미지 리스트
+          if(sideListMapWatching)
+            Positioned(
+                top: listMapDy.toDouble() - 10,
+                left: listMapDx.toDouble() - 10,
+                child: MouseRegion(
+                    onExit: (e) {
+                      ref.read(sideImageListMapProvider.notifier).state = false;
+                    },
+                    child: OpacityWidget(
+                        enable: sideListMapWatching,
+                        child: VerticalImageMap(isLeft: _isLeft)
+                    )
+                )
             ),
-          if (isLoading)
-            const LoadingOverlay(msg: "로딩 중..",),
 
           if(isUploading)
             Positioned(
@@ -1187,25 +1197,31 @@ class _MainView extends ConsumerState<MainView> {
               top: MediaQuery.of(context).size.height * 0.5 - 300,
               right: MediaQuery.of(context).size.width * 0.5 - 400,
               child: ImageConverter(
-                images: state.images
+                  images: state.images
               ),
             ),
 
-          // 사이드 이미비 리스트
-          if(sideListMapWatching)
+          if(isPdfConverting)
             Positioned(
-              top: listMapDy.toDouble() - 10,
-              left: listMapDx.toDouble() - 10,
-              child: MouseRegion(
-                onExit: (e) {
-                  ref.read(sideImageListMapProvider.notifier).state = false;
-                },
-                child: OpacityWidget(
-                  enable: sideListMapWatching,
-                  child: VerticalImageMap(isLeft: _isLeft)
-                )
-              )
+              top: MediaQuery.of(context).size.height * 0.5 - 125,
+              right: MediaQuery.of(context).size.width * 0.5 - 200,
+              child: PdfConverter(
+              ),
             ),
+
+
+          if (isLoading || isModaling)
+            const ModalBarrier(
+              dismissible: false,
+              color: Colors.black38,
+            ),
+          if (isLoading)
+            const LoadingOverlay(msg: "로딩 중..",),
+
+
+
+
+
 
           Positioned(
               top: 0,

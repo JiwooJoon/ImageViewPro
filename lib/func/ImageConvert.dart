@@ -100,7 +100,6 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
       outPath = p.join(dir, "lal_converted", "$name(1).$extValue").replaceAll(r"\", "/");
     }
 
-    final outDir = Directory(p.dirname(outPath));
 
     // 6. 인코딩 및 저장
     List<int> encoded;

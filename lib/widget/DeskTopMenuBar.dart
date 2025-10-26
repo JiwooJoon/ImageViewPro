@@ -226,6 +226,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ref.read(imageProviderProvider.notifier).state.clear();
                       ref.read(leftViewProvider.notifier).clearImages();
                       ref.read(rightViewProvider.notifier).clearImages();
+                      ref.read(sliderProvider.notifier).state = 0.0;
                       debugPrint(state.images.toString());
                     });
 
@@ -351,34 +352,36 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                 // 이미지 에디터
                 MenuItemButton(
                   onPressed: () async {
-                    imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
+                    // imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
 
 
-                    if (!Platform.isMacOS) {
+                    // if (!Platform.isMacOS) {
+                    //
+                    //   final editedImage = await showDialog(
+                    //       fullscreenDialog: true,
+                    //       context: context,
+                    //       builder: (context) {
+                    //         return Dialog(
+                    //           insetPadding: EdgeInsets.zero,
+                    //           child: ImageEditor(
+                    //             image: imageByte,
+                    //           ),
+                    //         );
+                    //       }
+                    //   );
+                    //   String? selectedPath = await FilePicker.platform.getDirectoryPath(
+                    //     dialogTitle: "저장할 폴더를 고르세요",
+                    //     lockParentWindow: true
+                    //   );
+                    //
+                    //   final imgName = getImageName(state.images[state.curIndex].path);
+                    //   final outPutPath = "$selectedPath/${imgName}_edited.png".replaceAll(r"\", "/");
+                    //
+                    //   debugPrint(outPutPath);
+                    //   await File(outPutPath.toString()).writeAsBytes(editedImage);
+                    // }
 
-                      final editedImage = await showDialog(
-                          fullscreenDialog: true,
-                          context: context,
-                          builder: (context) {
-                            return Dialog(
-                              insetPadding: EdgeInsets.zero,
-                              child: ImageEditor(
-                                image: imageByte,
-                              ),
-                            );
-                          }
-                      );
-                      String? selectedPath = await FilePicker.platform.getDirectoryPath(
-                        dialogTitle: "저장할 폴더를 고르세요",
-                        lockParentWindow: true
-                      );
-
-                      final imgName = getImageName(state.images[state.curIndex].path);
-                      final outPutPath = "$selectedPath/${imgName}_edited.png".replaceAll(r"\", "/");
-
-                      debugPrint(outPutPath);
-                      await File(outPutPath.toString()).writeAsBytes(editedImage);
-                    }
+                    createWindow(windowName: "editor", windows: [], data: state.images[state.curIndex].path);
                   },
                   child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
                 ),
@@ -429,7 +432,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ).show(context);
                       return;
                     }
-
                     final result = await startProcess();
                     createWindow(windowName: "translate_window", windows: [], data: result);
                   },
@@ -443,6 +445,16 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   },
                   child: const MenuAcceleratorLabel("즐겨찾기(S)"),
                 ),
+
+                // pdf 변환기
+                MenuItemButton(
+                  onPressed: () {
+                    ref.read(pdfConverterProvider.notifier).state = true;
+                  },
+                  child: const MenuAcceleratorLabel("pdf 변환기(P)"),
+                ),
+
+
 
               ],
 

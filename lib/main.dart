@@ -29,6 +29,7 @@ final imageLoadProvider = StateProvider<bool>((ref) => false);
 final avoidWidgetProvider = StateProvider<bool>((ref) => false);
 final imageConvertProvider = StateProvider<bool>((ref) => false);
 final sideImageListMapProvider = StateProvider<bool>((ref) => false);
+final pdfConverterProvider = StateProvider<bool>((ref) => false);
 
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final backGroundProvider = StateProvider<List<String>>((ref) => []);
@@ -41,6 +42,7 @@ final favPathProvider = StateProvider<List<String>>((ref) => []);
 final subscriptProvider = StateProvider<StreamSubscription<ImageModel>?>((ref) => null);
 final sliderProvider = StateProvider<double>((ref) => 0.0);
 final hotkeyProvider = StateProvider<Map<String, String>>((ref) => {});
+final pdfPathProvider = StateProvider<String>((ref) => "");
 
 final imageProviderProvider = StateProvider<List<ImageProvider>>((ref) => []);
 
