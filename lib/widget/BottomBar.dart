@@ -32,8 +32,6 @@ class _BottomBar extends ConsumerState<BottomBar> {
         setState(() {
           if (state.curSize < 6 && state.curIndex < (state.images.length - state.curSize)) {
             ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
-          } else {
-            // todo: 스낵바
           }
         });
 
@@ -42,8 +40,6 @@ class _BottomBar extends ConsumerState<BottomBar> {
           if (state.curSize < 6 && state.curIndex > 0) {
             ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
             ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
-          } else {
-            // TODO: 스낵바 넣을 것
           }
         });
       }
@@ -54,8 +50,6 @@ class _BottomBar extends ConsumerState<BottomBar> {
         setState(() {
           if (state.curSize > 1) {
             ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
-          } else {
-            // todo : 스낵바
           }
         });
       } else {
@@ -63,8 +57,6 @@ class _BottomBar extends ConsumerState<BottomBar> {
           if (state.curSize > 1 && state.curIndex > 1) {
             ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
             ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
-          } else {
-            // todo : 오류 스낵바
           }
         });
       }

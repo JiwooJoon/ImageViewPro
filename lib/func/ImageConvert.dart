@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:googleapis/spanner/v1.dart';
 import 'package:image/image.dart' as img;
+import 'package:image_view_pro/main.dart';
 import 'package:path/path.dart' as p;
 
 Future<void> convertImagesInParallel(
@@ -12,9 +15,9 @@ Future<void> convertImagesInParallel(
       required double angle,
       required String howToSave,
       required String outputPath,
+      required WidgetRef ref,
     }) async {
-  const int isolateCount = 5;
-  final int batchSize = (imagePaths.length / isolateCount).ceil();
+  const int batchSize = 50;
 
   final List<List<String>> batches = [];
   for (int i = 0; i < imagePaths.length; i += batchSize) {
@@ -24,6 +27,7 @@ Future<void> convertImagesInParallel(
     );
     batches.add(batch);
   }
+  ref.read(cancelImageConvertProvider.notifier).state = false;
 
   final futures = batches.map((batch) async {
     for (final path in batch) {
@@ -35,13 +39,24 @@ Future<void> convertImagesInParallel(
         'curAngle': angle,
         'howToSave': howToSave,
         'outputPath': outputPath,
+        'state': ref.read(cancelImageConvertProvider)
       };
-      await compute(imageConvertProcess, args);
+      try {
+        await compute(imageConvertProcess, args);
+      } catch (e) {
+        return;
+      }
+
+      if (ref.read(cancelImageConvertProvider) == true) {
+        debugPrint("취소.");
+        return;
+      }
     }
   }).toList();
 
+  print('총 ${imagePaths.length}개의 이미지 변환을 시작합니다. :  ${DateTime.now()}');
   await Future.wait(futures);
-  print('✅ 총 ${imagePaths.length}개의 이미지 변환 완료!');
+  print('총 ${imagePaths.length}개의 이미지 변환 완료! : ${DateTime.now()}');
 }
 
 Future<void> imageConvertProcess(Map<String, dynamic> args) async {
@@ -52,6 +67,12 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
   final curAngle = args['curAngle'] as double;
   final howToSave = args['howToSave'] as String;
   final outputPath = args['outputPath'] as String;
+  final state = args['state'] as bool;
+
+  if (state == true) {
+    debugPrint("취소.");
+    return;
+  }
 
   img.FlipDirection? flipDir;
   if (curFlip[0] == -1.0 && curFlip[1] == 1.0) {
@@ -97,6 +118,10 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
     } else if (howToSave == "특정 폴더에") {
       outPath = p.join(outputPath, "$name.$extValue").replaceAll(r"\", "/");
     } else {
+      final directory = Directory(p.join(dir, "lal_converted").replaceAll(r"\", "/"));
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
       outPath = p.join(dir, "lal_converted", "$name(1).$extValue").replaceAll(r"\", "/");
     }
 
@@ -114,9 +139,9 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
     }
 
     await File(outPath).writeAsBytes(encoded);
-    print("✅ 변환 완료: $outPath");
+    print("변환 완료: $outPath");
   } catch (e, st) {
-    print("❌ 변환 중 오류: $e");
+    print("변환 중 오류: $e");
     print(st);
   }
 }

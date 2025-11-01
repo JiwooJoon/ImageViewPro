@@ -352,43 +352,44 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                 // 이미지 에디터
                 MenuItemButton(
                   onPressed: () async {
-                    // imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
+                    imageByte = (await File(state.images[state.curIndex].path).readAsBytes()) as Uint8List?;
 
 
-                    // if (!Platform.isMacOS) {
-                    //
-                    //   final editedImage = await showDialog(
-                    //       fullscreenDialog: true,
-                    //       context: context,
-                    //       builder: (context) {
-                    //         return Dialog(
-                    //           insetPadding: EdgeInsets.zero,
-                    //           child: ImageEditor(
-                    //             image: imageByte,
-                    //           ),
-                    //         );
-                    //       }
-                    //   );
-                    //   String? selectedPath = await FilePicker.platform.getDirectoryPath(
-                    //     dialogTitle: "저장할 폴더를 고르세요",
-                    //     lockParentWindow: true
-                    //   );
-                    //
-                    //   final imgName = getImageName(state.images[state.curIndex].path);
-                    //   final outPutPath = "$selectedPath/${imgName}_edited.png".replaceAll(r"\", "/");
-                    //
-                    //   debugPrint(outPutPath);
-                    //   await File(outPutPath.toString()).writeAsBytes(editedImage);
-                    // }
+                    if (!Platform.isMacOS) {
 
-                    createWindow(windowName: "editor", windows: [], data: state.images[state.curIndex].path);
+                      final editedImage = await showDialog(
+                          fullscreenDialog: true,
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                              insetPadding: EdgeInsets.zero,
+                              child: ImageEditor(
+                                image: imageByte,
+                              ),
+                            );
+                          }
+                      );
+                      String? selectedPath = await FilePicker.platform.getDirectoryPath(
+                        dialogTitle: "저장할 폴더를 고르세요",
+                        lockParentWindow: true
+                      );
+
+                      final imgName = getImageName(state.images[state.curIndex].path);
+                      final outPutPath = "$selectedPath/${imgName}_edited.png".replaceAll(r"\", "/");
+
+                      debugPrint(outPutPath);
+                      await File(outPutPath.toString()).writeAsBytes(editedImage);
+                    }
+
+                    // createWindow(windowName: "editor", windows: [], data: state.images[state.curIndex].path);
                   },
                   child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
                 ),
 
-                // 일괄 변환기 ** 예정
+                // 일괄 변환기
                 MenuItemButton(
                   onPressed: () {
+
                     if (ref.read(imageConvertProvider) == true) {
                       Flushbar(
                         message: "변환중인 이미지가 있습니다.",
@@ -420,18 +421,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       ).show(context);
                       return;
                     }
-
-                    if (state.curSize != 1) {
-                      Flushbar(
-                        message: "이미지를 한장만 보고 있을 때 가능합니다.",
-                        duration: const Duration(seconds: 2),
-                        flushbarPosition: FlushbarPosition.TOP,
-                        margin: const EdgeInsets.all(20),
-                        borderRadius: BorderRadius.circular(10),
-                        backgroundColor: Colors.grey.shade500,
-                      ).show(context);
-                      return;
-                    }
+                    
                     final result = await startProcess();
                     createWindow(windowName: "translate_window", windows: [], data: result);
                   },

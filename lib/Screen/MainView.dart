@@ -1171,6 +1171,12 @@ class _MainView extends ConsumerState<MainView> {
                 )
             ),
 
+          if (isLoading || isModaling)
+            const ModalBarrier(
+              dismissible: false,
+              color: Colors.black38,
+            ),
+
           if(isUploading)
             Positioned(
               top: 30,
@@ -1210,11 +1216,6 @@ class _MainView extends ConsumerState<MainView> {
             ),
 
 
-          if (isLoading || isModaling)
-            const ModalBarrier(
-              dismissible: false,
-              color: Colors.black38,
-            ),
           if (isLoading)
             const LoadingOverlay(msg: "로딩 중..",),
 

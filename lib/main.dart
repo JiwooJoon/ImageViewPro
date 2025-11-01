@@ -30,6 +30,7 @@ final avoidWidgetProvider = StateProvider<bool>((ref) => false);
 final imageConvertProvider = StateProvider<bool>((ref) => false);
 final sideImageListMapProvider = StateProvider<bool>((ref) => false);
 final pdfConverterProvider = StateProvider<bool>((ref) => false);
+final cancelImageConvertProvider = StateProvider<bool>((ref) => false);
 
 final uploadingProcessProvider = StateProvider<String>((ref) => "");
 final backGroundProvider = StateProvider<List<String>>((ref) => []);

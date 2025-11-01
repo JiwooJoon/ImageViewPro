@@ -556,6 +556,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                 right: 135,
                 child: OutlinedButton.icon(
                     onPressed: () async {
+                      ref.read(cancelImageConvertProvider.notifier).state = false;
                       ref.read(modalProvider.notifier).state = false;
                       ref.read(converterProvider.notifier).state = false;
                     },
@@ -587,13 +588,15 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                 child: OutlinedButton.icon(
                     onPressed: () async {
 
+
                       await convertImagesInParallel( _paths,
                         extValue: _extValue,
                         flip: _curFlip,
                         scaleValue: _scaleValue,
                         angle: _curAngle,
                         howToSave: _howToSave,
-                        outputPath: _outputPath!
+                        outputPath: _outputPath!,
+                        ref: ref
                       );
 
                       ref.read(modalProvider.notifier).state = false;
