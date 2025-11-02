@@ -6,6 +6,7 @@ import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:image_view_pro/func/googleLogin.dart';
@@ -169,7 +170,7 @@ Future<void> uploadFile(Map<String, dynamic> options,
 // ref 필요...
 Future<void>
 downloadFilesStream (Map<String,dynamic> options,
-    BuildContext ctx, List<drive.File> files, StateModel state) async {
+    BuildContext ctx, List<drive.File> files, StateModel state, StateController<List<ImageProvider<Object>>> notifier) async {
 
   debugPrint(options['clientId']);
 
@@ -201,6 +202,8 @@ downloadFilesStream (Map<String,dynamic> options,
       await media.stream.pipe(sink);
       await sink.close();
 
+
+      notifier.state.add(FileImage(File(savePath)));
       state.images.add(await pathToModel(savePath));
   } catch (e) {
       debugPrint("$e 오류");

@@ -422,7 +422,9 @@ class _DtoVGallery extends ConsumerState<DtoVGallery> {
 
                     debugPrint(state.options['clientId']);
 
-                    downloadFilesStream(state.options, ctx, list, state);
+                    final imageProvierNotifier = ref.read(imageProviderProvider.notifier);
+
+                    downloadFilesStream(state.options, ctx, list, state, imageProvierNotifier);
 
 
                     Flushbar(

@@ -1284,6 +1284,12 @@ class _MainView extends ConsumerState<MainView> {
                 )
             ),
 
+          if (isModaling)
+            const ModalBarrier(
+              dismissible: false,
+              color: Colors.black38,
+            ),
+
 
 
           if(isUploading)
@@ -1325,7 +1331,7 @@ class _MainView extends ConsumerState<MainView> {
               ),
             ),
 
-          if (isLoading || isModaling)
+          if (isLoading)
             const ModalBarrier(
               dismissible: false,
               color: Colors.black38,

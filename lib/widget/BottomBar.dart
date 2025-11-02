@@ -188,14 +188,14 @@ class _BottomBar extends ConsumerState<BottomBar> {
                                   ),
                                   child: Slider(
                                     value: ref.read(sliderProvider),
-                                    max: ref.read(imageProviderProvider).isEmpty ? 0.0 : ref.read(imageProviderProvider).length.toDouble() - 1,
+                                    max: ref.read(imageProviderProvider).isEmpty ? 0.0 : ref.read(imageProviderProvider).length.toDouble(),
                                     min: 0.0,
 
                                     divisions: ref.read(stateProvider).images.isEmpty ? 1 : ref.read(stateProvider).images.length,
                                     onChanged: (double value) {
                                       if (value < 0.0) {
                                         ref.read(sliderProvider.notifier).state = 0;
-                                      } else if ( value > ref.read(stateProvider).images.length.toDouble() - 1) {
+                                      } else if ( value > ref.read(stateProvider).images.length.toDouble()) {
                                         ref.read(sliderProvider.notifier).state = ref.read(stateProvider).images.length + 1;
                                       } else {
                                         ref.read(sliderProvider.notifier).state = value;
