@@ -35,6 +35,7 @@ Future<void> convertProcessStart(
       'pageNumber': i,
       'bytes': pageImage!.bytes,
     });
+    debugPrint("총 $pageCount 페이지 변환 완료, 저장 시작 ${DateTime.now()}");
   }
   await document.close();
   debugPrint("총 $pageCount 페이지 변환 완료, 저장 시작 ${DateTime.now()}");

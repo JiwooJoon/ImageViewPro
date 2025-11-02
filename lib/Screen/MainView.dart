@@ -35,6 +35,7 @@ import 'package:image_view_pro/widget/DeskTopMenuBar.dart';
 import 'package:image_view_pro/widget/LoadingOverlay.dart';
 import 'package:path_provider/path_provider.dart';
 import '../func/imageProcess.dart';
+import '../model/stateModel.dart';
 import '../widget/BottomBar.dart';
 import 'package:image_view_pro/func/aboutWindow.dart';
 
@@ -56,6 +57,7 @@ class _MainView extends ConsumerState<MainView> {
 
   List<String> droppedFiles = [];
   bool isDragging = false;
+  bool isPdf = false;
 
   bool isHoverOnMenubar = true;
   bool isHoverOnNavi = true;
@@ -76,6 +78,11 @@ class _MainView extends ConsumerState<MainView> {
 
   final PageStorageKey<String> _listViewKey = PageStorageKey<String>('MyPermanentImageListView');
 
+  late FocusNode _focusNode;
+
+
+
+
 
   @override
   void initState() {
@@ -85,7 +92,10 @@ class _MainView extends ConsumerState<MainView> {
     DesktopMultiWindow.setMethodHandler(handleMethodCall);
     _loadFav();
     _scrollController = ScrollController();
+    _focusNode = FocusNode();
+
   }
+
 
 
   Future<void> _loadOpt() async {
@@ -123,8 +133,101 @@ class _MainView extends ConsumerState<MainView> {
   @override
   void dispose() {
     _scrollController.dispose();
+
+    _focusNode.dispose();
     super.dispose();
   }
+
+  void convertIndexPlusOrMinus({required bool isPlus, required StateModel state}) {
+    if (state.images.isEmpty) {
+      return;
+    }
+
+    if (ref.read(lookModeProvider) == "Cut") {
+      if (isPlus) {
+        isOrderWatched = true;
+        if (state.curIndex < (state.images.length - state.curSize)) {
+          ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+          ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state + 1;
+        } else {
+          if (kDebugMode) {
+            ref.read(stateProvider.notifier).updateIndex(state.images.length - 1);
+            ref.read(sliderProvider.notifier).state = state.images.length.toDouble() - 1;
+            print("탑에 도달했습니다.");
+          }
+        }
+        setState(() {
+        });
+
+      } else {
+        isOrderWatched = true;
+
+        if (state.curIndex > 0) {
+          ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
+          ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state - 1;
+        } else {
+          ref.read(stateProvider.notifier).updateIndex(0);
+          ref.read(sliderProvider.notifier).state = 0;
+          if (kDebugMode) {
+            print("처음 이미지입니다.");
+          }
+        }
+        setState(() {
+
+        });
+
+      }
+    }
+  }
+
+  void attachBackOrFront({required bool isBack, required StateModel state}) {
+    if (state.images.isEmpty) {
+      return;
+    }
+
+    if (isBack) {
+      if (state.curSize < 6 && state.curIndex < (state.images.length - state.curSize)) {
+        ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
+      }
+      setState(() {
+
+      });
+
+    } else {
+      if (state.curSize < 6 && state.curIndex > 0) {
+        ref.read(stateProvider.notifier).updateSize(state.curSize + 1);
+        ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
+      }
+      setState(() {
+
+      });
+    }
+  }
+
+  void detachBackOrFront({required bool isBack, required StateModel state}) {
+    if (state.images.isEmpty) {
+      return;
+    }
+
+    if (isBack) {
+      if (state.curSize > 1) {
+        ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
+      }
+      setState(() {
+
+      });
+    } else {
+      if (state.curSize > 1 && state.curIndex > 1) {
+        ref.read(stateProvider.notifier).updateSize(state.curSize - 1);
+        ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
+      }
+      setState(() {
+
+      });
+    }
+  }
+
+
 
 
 
@@ -186,57 +289,6 @@ class _MainView extends ConsumerState<MainView> {
       }
 
     });
-
-    void convertIndexPlusOrMinus({required bool isPlus}) {
-      if (ref.read(lookModeProvider) == "Cut") {
-        if (isPlus) {
-          setState(() {
-            isOrderWatched = true;
-            if (state.curIndex < (state.images.length - state.curSize)) {
-              ref.read(stateProvider.notifier).updateIndex(state.curIndex + 1);
-              ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state + 1;
-            } else {
-              if (kDebugMode) {
-                print("탑에 도달했습니다.");
-              }
-            }
-          });
-
-          _orderTimer?.cancel();
-
-          _orderTimer = Timer(const Duration(seconds: 1), () {
-            setState(() {
-              if (mounted) {
-                isOrderWatched = false;
-              }
-            });
-          });
-        } else {
-          setState(() {
-            isOrderWatched = true;
-
-            if (state.curIndex > 0) {
-              ref.read(stateProvider.notifier).updateIndex(state.curIndex - 1);
-              ref.read(sliderProvider.notifier).state = ref.read(sliderProvider.notifier).state - 1;
-            } else {
-              if (kDebugMode) {
-                print("처음 이미지입니다.");
-              }
-            }
-          });
-
-          _orderTimer?.cancel();
-
-          _orderTimer = Timer(const Duration(seconds: 1), () {
-            setState(() {
-              if (mounted) {
-                isOrderWatched = false;
-              }
-            });
-          });
-        }
-      }
-    }
 
 
 
@@ -355,8 +407,18 @@ class _MainView extends ConsumerState<MainView> {
                                   FileImage(File(file.path))
                                 );
 
-                              } else {
-
+                              } else if (ext.endsWith(".pdf")) {
+                                Flushbar(
+                                  message: "pdf 파일을 불러왔습니다.",
+                                  duration: const Duration(seconds: 2),
+                                  flushbarPosition: FlushbarPosition.TOP,
+                                  margin: const EdgeInsets.all(20),
+                                  borderRadius: BorderRadius.circular(10),
+                                  backgroundColor: Colors.grey.shade500,
+                                ).show(context);
+                                isPdf = true;
+                                ref.read(pdfPathProvider.notifier).state = file.path;
+                                ref.read(pdfConverterProvider.notifier).state = true;
                               }
                             }
                             // 여러개의 이미지인 경우
@@ -589,8 +651,36 @@ class _MainView extends ConsumerState<MainView> {
                       builder: (BuildContext context, List<Object?> candidateData, List<dynamic> rejectedData) {
                         return FocusableActionDetector(
                           autofocus: true,
-                          shortcuts: const <ShortcutActivator, Intent>{},
-                          actions: const <Type, Action<Intent>>{},
+                          shortcuts: const <ShortcutActivator, Intent>{
+                            SingleActivator(LogicalKeyboardKey.arrowRight): NextImageIntent(),
+                            SingleActivator(LogicalKeyboardKey.arrowRight, control: true): AttachNextImageIntent(),
+                            SingleActivator(LogicalKeyboardKey.arrowRight, alt: true): DetachNextImageIntent(),
+                            SingleActivator(LogicalKeyboardKey.arrowLeft): PrevImageIntent(),
+                            SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): AttachPrevImageIntent(),
+                            SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): DetachPrevImageIntent(),
+                          },
+                          actions: <Type, Action<Intent>>{
+                            NextImageIntent: CallbackAction<NextImageIntent>(
+                              onInvoke: (NextImageIntent intent) => convertIndexPlusOrMinus(isPlus: true, state: state)
+                            ),
+                            AttachNextImageIntent: CallbackAction<AttachNextImageIntent>(
+                                onInvoke: (AttachNextImageIntent intent) => attachBackOrFront(isBack: true, state: state)
+                            ),
+                            DetachNextImageIntent: CallbackAction<DetachNextImageIntent>(
+                                onInvoke: (DetachNextImageIntent intent) => detachBackOrFront(isBack: true, state: state)
+                            ),
+
+                            PrevImageIntent: CallbackAction<PrevImageIntent>(
+                                onInvoke: (PrevImageIntent intent) => convertIndexPlusOrMinus(isPlus: false, state: state)
+                            ),
+                            AttachPrevImageIntent: CallbackAction<AttachPrevImageIntent>(
+                                onInvoke: (AttachPrevImageIntent intent) => attachBackOrFront(isBack: false, state: state)
+                            ),
+                            DetachPrevImageIntent: CallbackAction<DetachPrevImageIntent>(
+                                onInvoke: (DetachPrevImageIntent intent) => detachBackOrFront(isBack: false, state: state)
+                            ),
+
+                          },
                           child: Listener(
                             onPointerSignal: (PointerSignalEvent event) {
 
@@ -633,7 +723,7 @@ class _MainView extends ConsumerState<MainView> {
                                             ref.read(leftViewProvider.notifier).updateIndex(ref.read(leftViewProvider).index + 1);
                                           }
                                         } else if (_nowHoverdOn == 1) { // 중앙
-                                          convertIndexPlusOrMinus(isPlus: true);
+                                          convertIndexPlusOrMinus(isPlus: true, state: ref.read(stateProvider));
                                         } else { // 오른쪽
                                           if (ref.read(rightViewProvider).index < ref.read(rightViewProvider).list.length - 1) {
                                             ref.read(rightViewProvider.notifier).updateIndex(ref.read(rightViewProvider).index + 1);
@@ -645,7 +735,7 @@ class _MainView extends ConsumerState<MainView> {
                                             ref.read(leftViewProvider.notifier).updateIndex(ref.read(leftViewProvider).index - 1);
                                           }
                                         } else if (_nowHoverdOn == 1) { // 중앙
-                                          convertIndexPlusOrMinus(isPlus: false);
+                                          convertIndexPlusOrMinus(isPlus: false, state: ref.read(stateProvider));
                                         } else { // 오른쪽
                                           if (ref.read(rightViewProvider).index > 0) {
                                             ref.read(rightViewProvider.notifier).updateIndex(ref.read(rightViewProvider).index - 1);
@@ -802,111 +892,36 @@ class _MainView extends ConsumerState<MainView> {
                                             // 단일 뷰 모드
                                             if(ref.read(lookModeProvider) == "Cut")
                                               Center(
-                                                child: InteractiveViewer(
-                                                  minScale: 0.5,
-                                                  maxScale: 3.0,
-                                                  panEnabled: true, // 드래그 이동 가능
-                                                  scaleEnabled: false, // 줌인/줌아웃 가능
-                                                  boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
-                                                  alignment: Alignment.center, // 확대/축소 기준을 중앙으로
-                                                  child: SizedBox(
-                                                    width: MediaQuery.of(context).size.width,
-                                                    height: MediaQuery.of(context).size.height,
-                                                    child: Transform.scale(
-                                                      scale: state.curZoom,
-                                                      alignment: Alignment.center,
-                                                      child: IntrinsicWidth(
-                                                        child: Flex(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          direction: Axis.horizontal,
-                                                          children: [
-                                                            // 왼쪽 뷰
-                                                            if (leftList.list.isNotEmpty)
-                                                              Flexible(
-                                                                child: ContextMenuRegion(
-                                                                  contextMenu: ContextMenu(
-                                                                      entries: [
-                                                                        ref.read(favPathProvider).contains(leftList.list[leftList.index]) ?
-                                                                        MenuItem(
-                                                                            label: "즐겨찾기 제거",
-                                                                            icon: Icons.favorite,
-                                                                            onSelected: () async {
-                                                                              ref.read(favPathProvider).remove(leftList.list[leftList.index]);
-                                                                              Map<String, List<String>> jsonIn = {
-                                                                                "fav" : ref.read(favPathProvider)
-                                                                              };
-
-                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
-
-                                                                            }
-                                                                        ) :
-                                                                        MenuItem(
-                                                                            label: "즐겨찾기 추가",
-                                                                            icon: Icons.favorite_border,
-                                                                            onSelected: () async {
-                                                                              ref.read(favPathProvider).add(leftList.list[leftList.index]);
-                                                                              Map<String, List<String>> jsonIn = {
-                                                                                "fav" : ref.read(favPathProvider)
-                                                                              };
-
-                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
-                                                                            }
-                                                                        ),
-                                                                        MenuItem(
-                                                                            label: "목록에서 제거",
-                                                                            icon: Icons.remove,
-                                                                            onSelected: () async {
-                                                                              ref.read(leftViewProvider.notifier).removeImage(leftList.list[leftList.index]);
-                                                                              if (leftList.index == leftList.list.length) {
-                                                                                ref.read(leftViewProvider.notifier).updateIndex(leftList.index - 1);
-                                                                              }
-                                                                              setState(() {
-
-                                                                              });
-                                                                            }
-                                                                        ),
-                                                                      ]
-                                                                  ),
-                                                                  child: GestureDetector(
-                                                                    onTapDown: (details) {
-                                                                      listMapDx = details.globalPosition.dx.toInt();
-                                                                      listMapDy = details.globalPosition.dy.toInt();
-
-                                                                      _isLeft = true;
-                                                                      ref.read(sideImageListMapProvider.notifier).state = true;
-                                                                    },
-                                                                    child: MouseRegion(
-                                                                      onEnter: (e) {
-                                                                        _nowHoverdOn = 0;
-                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
-                                                                      },
-                                                                      child: Image(
-                                                                        image: FileImage(File(leftList.list[leftList.index])),
-                                                                        fit: BoxFit.contain,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-
-                                                            // 중앙 뷰
-                                                            for (int i = state.curIndex;
-                                                            i < state.curIndex + state.curSize && i < state.images.length;
-                                                            i++)
-                                                              Flexible(
-                                                                child: Transform(
-                                                                  alignment: Alignment.center,
-                                                                  transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
-                                                                    ..scale(1.0, 1.0, 1.0),
+                                                  child: InteractiveViewer(
+                                                    minScale: 0.5,
+                                                    maxScale: 3.0,
+                                                    panEnabled: true, // 드래그 이동 가능
+                                                    scaleEnabled: false, // 줌인/줌아웃 가능
+                                                    boundaryMargin: const EdgeInsets.all(double.infinity), // 무한 이동 가능
+                                                    alignment: Alignment.center, // 확대/축소 기준을 중앙으로
+                                                    child: SizedBox(
+                                                      width: MediaQuery.of(context).size.width,
+                                                      height: MediaQuery.of(context).size.height,
+                                                      child: Transform.scale(
+                                                        scale: state.curZoom,
+                                                        alignment: Alignment.center,
+                                                        child: IntrinsicWidth(
+                                                          child: Flex(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            direction: Axis.horizontal,
+                                                            children: [
+                                                              // 왼쪽 뷰
+                                                              if (leftList.list.isNotEmpty)
+                                                                Flexible(
                                                                   child: ContextMenuRegion(
                                                                     contextMenu: ContextMenu(
                                                                         entries: [
-                                                                          ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                          ref.read(favPathProvider).contains(leftList.list[leftList.index]) ?
                                                                           MenuItem(
                                                                               label: "즐겨찾기 제거",
                                                                               icon: Icons.favorite,
                                                                               onSelected: () async {
-                                                                                ref.read(favPathProvider).remove(state.images[i].path);
+                                                                                ref.read(favPathProvider).remove(leftList.list[leftList.index]);
                                                                                 Map<String, List<String>> jsonIn = {
                                                                                   "fav" : ref.read(favPathProvider)
                                                                                 };
@@ -919,7 +934,7 @@ class _MainView extends ConsumerState<MainView> {
                                                                               label: "즐겨찾기 추가",
                                                                               icon: Icons.favorite_border,
                                                                               onSelected: () async {
-                                                                                ref.read(favPathProvider).add(state.images[i].path);
+                                                                                ref.read(favPathProvider).add(leftList.list[leftList.index]);
                                                                                 Map<String, List<String>> jsonIn = {
                                                                                   "fav" : ref.read(favPathProvider)
                                                                                 };
@@ -931,7 +946,21 @@ class _MainView extends ConsumerState<MainView> {
                                                                               label: "목록에서 제거",
                                                                               icon: Icons.remove,
                                                                               onSelected: () async {
-                                                                                ref.read(stateProvider).images.removeAt(i);
+                                                                                ref.read(leftViewProvider.notifier).removeImage(leftList.list[leftList.index]);
+                                                                                if (leftList.index == leftList.list.length) {
+                                                                                  ref.read(leftViewProvider.notifier).updateIndex(leftList.index - 1);
+                                                                                }
+                                                                                setState(() {
+
+                                                                                });
+                                                                              }
+                                                                          ),
+                                                                          MenuItem(
+                                                                              label: "전체 제거",
+                                                                              icon: Icons.clear,
+                                                                              onSelected: () async {
+                                                                                ref.read(leftViewProvider.notifier).clearImages();
+                                                                                ref.read(leftViewProvider.notifier).updateIndex(0);
                                                                                 setState(() {
 
                                                                                 });
@@ -939,95 +968,179 @@ class _MainView extends ConsumerState<MainView> {
                                                                           ),
                                                                         ]
                                                                     ),
-                                                                    child: MouseRegion(
-                                                                      onEnter: (e) {
-                                                                        _nowHoverdOn = 1;
-                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                    child: GestureDetector(
+                                                                      onTapDown: (details) {
+                                                                        listMapDx = details.globalPosition.dx.toInt();
+                                                                        listMapDy = details.globalPosition.dy.toInt();
+
+                                                                        _isLeft = true;
+                                                                        ref.read(sideImageListMapProvider.notifier).state = true;
                                                                       },
-                                                                      child: Image(
-                                                                        image: imageListProvider[i],
-                                                                        fit: BoxFit.contain,
+                                                                      child: MouseRegion(
+                                                                        onEnter: (e) {
+                                                                          _nowHoverdOn = 0;
+                                                                          debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                        },
+                                                                        child: Image(
+                                                                          image: FileImage(File(leftList.list[leftList.index])),
+                                                                          fit: BoxFit.contain,
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              ),
 
-                                                            // 오른뷰
-                                                            if (rightList.list.isNotEmpty)
-                                                              Flexible(
-                                                                child: ContextMenuRegion(
-                                                                  contextMenu: ContextMenu(
-                                                                      entries: [
-                                                                        ref.read(favPathProvider).contains(rightList.list[rightList.index]) ?
-                                                                        MenuItem(
-                                                                            label: "즐겨찾기 제거",
-                                                                            icon: Icons.favorite,
-                                                                            onSelected: () async {
-                                                                              ref.read(favPathProvider).remove(rightList.list[rightList.index]);
-                                                                              Map<String, List<String>> jsonIn = {
-                                                                                "fav" : ref.read(favPathProvider)
-                                                                              };
+                                                              // 중앙 뷰
+                                                              for (int i = state.curIndex;
+                                                              i < state.curIndex + state.curSize && i < state.images.length;
+                                                              i++)
+                                                                Flexible(
+                                                                  child: Transform(
+                                                                    alignment: Alignment.center,
+                                                                    transform: Matrix4.rotationZ(ref.read(imageAngleProvider) * math.pi / 180) // 180도 회전
+                                                                      ..scale(1.0, 1.0, 1.0),
+                                                                    child: ContextMenuRegion(
+                                                                      contextMenu: ContextMenu(
+                                                                          entries: [
+                                                                            ref.read(favPathProvider).contains(state.images[i].path) ?
+                                                                            MenuItem(
+                                                                                label: "즐겨찾기 제거",
+                                                                                icon: Icons.favorite,
+                                                                                onSelected: () async {
+                                                                                  ref.read(favPathProvider).remove(state.images[i].path);
+                                                                                  Map<String, List<String>> jsonIn = {
+                                                                                    "fav" : ref.read(favPathProvider)
+                                                                                  };
 
-                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                                  await _favFile!.writeAsString(jsonEncode(jsonIn));
 
-                                                                            }
-                                                                        ) :
-                                                                        MenuItem(
-                                                                            label: "즐겨찾기 추가",
-                                                                            icon: Icons.favorite_border,
-                                                                            onSelected: () async {
-                                                                              ref.read(favPathProvider).add(rightList.list[rightList.index]);
-                                                                              Map<String, List<String>> jsonIn = {
-                                                                                "fav" : ref.read(favPathProvider)
-                                                                              };
+                                                                                }
+                                                                            ) :
+                                                                            MenuItem(
+                                                                                label: "즐겨찾기 추가",
+                                                                                icon: Icons.favorite_border,
+                                                                                onSelected: () async {
+                                                                                  ref.read(favPathProvider).add(state.images[i].path);
+                                                                                  Map<String, List<String>> jsonIn = {
+                                                                                    "fav" : ref.read(favPathProvider)
+                                                                                  };
 
-                                                                              await _favFile!.writeAsString(jsonEncode(jsonIn));
-                                                                            }
+                                                                                  await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                                }
+                                                                            ),
+                                                                            MenuItem(
+                                                                                label: "목록에서 제거",
+                                                                                icon: Icons.remove,
+                                                                                onSelected: () async {
+                                                                                  ref.read(stateProvider).images.removeAt(i);
+                                                                                  ref.read(imageProviderProvider).removeAt(i);
+                                                                                  setState(() {
+
+                                                                                  });
+                                                                                }
+                                                                            ),
+                                                                          ]
+                                                                      ),
+                                                                      child: MouseRegion(
+                                                                        onEnter: (e) {
+                                                                          _nowHoverdOn = 1;
+                                                                          debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                        },
+                                                                        child: Image(
+                                                                          image: imageListProvider[i],
+                                                                          fit: BoxFit.contain,
                                                                         ),
-                                                                        MenuItem(
-                                                                            label: "목록에서 제거",
-                                                                            icon: Icons.remove,
-                                                                            onSelected: () async {
-                                                                              ref.read(rightViewProvider.notifier).removeImage(rightList.list[rightList.index]);
-                                                                              if (rightList.index == rightList.list.length) {
-                                                                                ref.read(rightViewProvider.notifier).updateIndex(rightList.index - 1);
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+
+                                                              // 오른뷰
+                                                              if (rightList.list.isNotEmpty)
+                                                                Flexible(
+                                                                  child: ContextMenuRegion(
+                                                                    contextMenu: ContextMenu(
+                                                                        entries: [
+                                                                          ref.read(favPathProvider).contains(rightList.list[rightList.index]) ?
+                                                                          MenuItem(
+                                                                              label: "즐겨찾기 제거",
+                                                                              icon: Icons.favorite,
+                                                                              onSelected: () async {
+                                                                                ref.read(favPathProvider).remove(rightList.list[rightList.index]);
+                                                                                Map<String, List<String>> jsonIn = {
+                                                                                  "fav" : ref.read(favPathProvider)
+                                                                                };
+
+                                                                                await _favFile!.writeAsString(jsonEncode(jsonIn));
+
                                                                               }
-                                                                              setState(() {
+                                                                          ) :
+                                                                          MenuItem(
+                                                                              label: "즐겨찾기 추가",
+                                                                              icon: Icons.favorite_border,
+                                                                              onSelected: () async {
+                                                                                ref.read(favPathProvider).add(rightList.list[rightList.index]);
+                                                                                Map<String, List<String>> jsonIn = {
+                                                                                  "fav" : ref.read(favPathProvider)
+                                                                                };
 
-                                                                              });
-                                                                            }
-                                                                        ),
-                                                                      ]
-                                                                  ),
-                                                                  child: GestureDetector(
-                                                                    onTapDown: (details) {
-                                                                      listMapDx = details.globalPosition.dx.toInt();
-                                                                      listMapDy = details.globalPosition.dy.toInt();
+                                                                                await _favFile!.writeAsString(jsonEncode(jsonIn));
+                                                                              }
+                                                                          ),
+                                                                          MenuItem(
+                                                                              label: "목록에서 제거",
+                                                                              icon: Icons.remove,
+                                                                              onSelected: () async {
+                                                                                ref.read(rightViewProvider.notifier).removeImage(rightList.list[rightList.index]);
+                                                                                if (rightList.index == rightList.list.length) {
+                                                                                  ref.read(rightViewProvider.notifier).updateIndex(rightList.index - 1);
+                                                                                }
+                                                                                setState(() {
 
-                                                                      _isLeft = false;
-                                                                      ref.read(sideImageListMapProvider.notifier).state = true;
-                                                                    },
-                                                                    child: MouseRegion(
-                                                                      onEnter: (e) {
-                                                                        _nowHoverdOn = 2;
-                                                                        debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                                });
+                                                                              }
+                                                                          ),
+                                                                          MenuItem(
+                                                                              label: "전체 제거",
+                                                                              icon: Icons.clear,
+                                                                              onSelected: () async {
+                                                                                ref.read(rightViewProvider.notifier).clearImages();
+                                                                                ref.read(rightViewProvider.notifier).updateIndex(0);
+                                                                                setState(() {
+
+                                                                                });
+                                                                              }
+                                                                          ),
+                                                                        ]
+                                                                    ),
+                                                                    child: GestureDetector(
+                                                                      onTapDown: (details) {
+                                                                        listMapDx = details.globalPosition.dx.toInt();
+                                                                        listMapDy = details.globalPosition.dy.toInt();
+
+                                                                        _isLeft = false;
+                                                                        ref.read(sideImageListMapProvider.notifier).state = true;
                                                                       },
-                                                                      child: Image(
-                                                                        image: FileImage(File(rightList.list[rightList.index])),
-                                                                        fit: BoxFit.contain,
+                                                                      child: MouseRegion(
+                                                                        onEnter: (e) {
+                                                                          _nowHoverdOn = 2;
+                                                                          debugPrint("현재 올라간 위치 : $_nowHoverdOn");
+                                                                        },
+                                                                        child: Image(
+                                                                          image: FileImage(File(rightList.list[rightList.index])),
+                                                                          fit: BoxFit.contain,
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              ),
-                                                          ],
-                                                        ),
-                                                      )
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
 
                                             // 리스트 모드
                                             if(ref.read(lookModeProvider) == "Long")
@@ -1171,11 +1284,7 @@ class _MainView extends ConsumerState<MainView> {
                 )
             ),
 
-          if (isLoading || isModaling)
-            const ModalBarrier(
-              dismissible: false,
-              color: Colors.black38,
-            ),
+
 
           if(isUploading)
             Positioned(
@@ -1212,12 +1321,21 @@ class _MainView extends ConsumerState<MainView> {
               top: MediaQuery.of(context).size.height * 0.5 - 125,
               right: MediaQuery.of(context).size.width * 0.5 - 200,
               child: PdfConverter(
+                isPath: isPdf,
               ),
+            ),
+
+          if (isLoading || isModaling)
+            const ModalBarrier(
+              dismissible: false,
+              color: Colors.black38,
             ),
 
 
           if (isLoading)
             const LoadingOverlay(msg: "로딩 중..",),
+
+
 
 
 
@@ -1243,4 +1361,28 @@ class _MainView extends ConsumerState<MainView> {
 
   }
 
+}
+
+class NextImageIntent extends Intent {
+  const NextImageIntent();
+}
+
+class AttachNextImageIntent extends Intent {
+  const AttachNextImageIntent();
+}
+
+class DetachNextImageIntent extends Intent {
+  const DetachNextImageIntent();
+}
+
+class PrevImageIntent extends Intent {
+  const PrevImageIntent();
+}
+
+class AttachPrevImageIntent extends Intent {
+  const AttachPrevImageIntent();
+}
+
+class DetachPrevImageIntent extends Intent {
+  const DetachPrevImageIntent();
 }

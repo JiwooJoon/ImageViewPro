@@ -24,10 +24,12 @@ import 'package:image/image.dart' as img;
 import '../util/OpenExplorer.dart';
 
 class PdfConverter extends ConsumerStatefulWidget {
-  const PdfConverter({
+  const PdfConverter( {
     super.key,
-    
+    this.isPath
   });
+
+  final bool? isPath;
 
   @override
   ConsumerState<PdfConverter> createState() => _PdfConverter();
@@ -47,6 +49,16 @@ class _PdfConverter extends ConsumerState<PdfConverter> {
 
 
   Future<void> _initPath() async {
+    // 열기 전에 pdf파일의 경로를 알고 있다면..
+
+    final document = await PdfDocument.openFile(ref.read(pdfPathProvider));
+
+    end = document.pagesCount.toDouble();
+    rangeValues = RangeValues(start, end);
+    _endController.text = end.toInt().toString();
+    _startController.text = "0";
+    _outputPath = ref.read(pdfPathProvider);
+    debugPrint(end.toString());
 
   }
 
@@ -55,8 +67,13 @@ class _PdfConverter extends ConsumerState<PdfConverter> {
   void initState() {
     super.initState();
 
+
     rangeValues = RangeValues(start, end);
-    ref.read(pdfPathProvider.notifier).state = "";
+    if (widget.isPath == true) {
+      debugPrint(ref.read(pdfPathProvider));
+      _initPath();
+    }
+
 
     _startController = TextEditingController(text: "0");
     _endController = TextEditingController(text: "0");
@@ -64,6 +81,8 @@ class _PdfConverter extends ConsumerState<PdfConverter> {
 
   @override
   void dispose() {
+    // _startController.dispose();
+    // _endController.dispose();
     super.dispose();
   }
 
@@ -347,13 +366,17 @@ class _PdfConverter extends ConsumerState<PdfConverter> {
 
                         ref.read(loadingProvider.notifier).state = true;
                         await convertProcessStart(
-                        ref.read(pdfPathProvider), dir, name, start.toInt() + 1, end.toInt()
+                        ref.read(pdfPathProvider), dir, name, rangeValues!.start.toInt() + 1, rangeValues!.end.toInt()
                         );
+
                         ref.read(loadingProvider.notifier).state = false;
                         ref.read(pdfConverterProvider.notifier).state = false;
 
+                        if (!mounted) return;
+
+
                         Flushbar(
-                          message: "${end - start + 1}개의 이미지 변환 완료 (클릭시 저장한 곳을 엽니다)",
+                          message: "${rangeValues!.end.toInt() - rangeValues!.start.toInt()}개의 이미지 변환 완료 (클릭시 저장한 곳을 엽니다)",
                           duration: const Duration(seconds: 2),
                           flushbarPosition: FlushbarPosition.TOP,
                           margin: const EdgeInsets.all(20),
@@ -361,9 +384,10 @@ class _PdfConverter extends ConsumerState<PdfConverter> {
                           backgroundColor: Colors.grey.shade500,
                           onTap: (e) {
                             debugPrint("opened");
-                            openFolderInExplorer(ref.read(pdfPathProvider));
+                            openFolderInExplorer(dir);
                           },
                         ).show(context);
+
                       },
                       label: const Text("변환"),
                       icon: const Icon(Icons.start),

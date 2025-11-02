@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'package:googleapis/drive/v2.dart' as drive;import 'package:image_view_pro/Screen/MainView.dart';
+import 'package:googleapis/drive/v2.dart' as drive;
+import 'package:image_view_pro/Screen/MainView.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:image_view_pro/model/ListModel.dart';
@@ -65,6 +66,9 @@ class StateProv extends StateNotifier<StateModel> {
       },
     )
   );
+  void clampIndex() {
+    state = state.copyWith(curIndex: state.curIndex.clamp(0, state.images.length));
+  }
 
   // 상태를 변경하는 메서드
   void updateIndex(int index) {
@@ -89,10 +93,12 @@ class StateProv extends StateNotifier<StateModel> {
 
   void addImage(ImageModel image) {
     state.images.add(image);
+    clampIndex();
   }
 
   void addImages(List<ImageModel> images) {
     state.images.addAll(images);
+    clampIndex();
   }
 
   void clearImages() {
@@ -189,6 +195,7 @@ void main(List<String> args) async {
       ProviderScope(child: SecondaryWindowApp(windowId: windowId, windowName: config['name'] as String, result: config['data'] ?? "오류",))
     );
   } else {
+
     runApp(
         ProviderScope(
             child: MaterialApp(
