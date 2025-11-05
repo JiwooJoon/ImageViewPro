@@ -8,12 +8,6 @@ Future<String> pickSingleFile() async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.image,
   );
-  // if (result != null) {
-  //   // 사용자가 파일을 선택했을 때 파일 경로 저장
-  //   setState(() {
-  //     _singleFilePath = result.files.single.path;
-  //   });
-  // }
   return result!.files.single.path.toString();
 }
 
@@ -29,12 +23,11 @@ Future<List<String?>> pickMultipleFiles() async {
 Future<String> pickDirectory() async {
   // 디렉터리 선택 다이얼로그 열기
   String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-  // if (selectedDirectory != null) {
-  //   // 선택된 디렉터리 경로 저장
-  //   setState(() {
-  //     _directoryPath = selectedDirectory;
-  //   });
-  // }
+
 
   return selectedDirectory.toString();
 }
+
+
+// 이거 내가 함수로 따로 만들어놨었네ㅋㅋㅋ
+// 에라이 멍청한놈ㅋㅋㅋㅋ 등신ㅋㅋ

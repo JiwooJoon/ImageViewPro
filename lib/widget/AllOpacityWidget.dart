@@ -31,3 +31,5 @@ class _AllOpacityWidget extends ConsumerState<AllOpacityWidget> {
     );
   }
 }
+
+// 전체 가림 버튼을 누를시 자식 위젯을 가려주는 투명화 위젯

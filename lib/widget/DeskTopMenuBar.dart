@@ -140,6 +140,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         ref.read(imageProviderProvider.notifier).state = providers;
 
                       },
+                      leadingIcon: const Icon(Icons.image),
                       child: const MenuAcceleratorLabel("파일에서.. (F)"),
                     ),
                     MenuItemButton(
@@ -161,15 +162,18 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         ref.read(imageProviderProvider.notifier).state = providers;
                         debugPrint("가져온 이미지의 수 : ${state.images.length}");
                       },
+                      leadingIcon: const Icon(Icons.folder),
                       child: const MenuAcceleratorLabel("폴더에서.. (D)"),
                     ),
                     MenuItemButton(
                       onPressed: () {
                         ref.read(driveGProvider.notifier).state = true;
                       },
+                      leadingIcon: const Icon(Icons.add_to_drive),
                       child: const MenuAcceleratorLabel("GDrive에서.. (G)"),
                     )
                   ],
+                  leadingIcon: const Icon(Icons.open_in_new),
                   child: const MenuAcceleratorLabel("열기 (O)"),
                 ),
                 // 추가로 열기
@@ -208,9 +212,11 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         }
 
                       },
+                      leadingIcon: const Icon(Icons.file_open),
                       child: const MenuAcceleratorLabel("파일에서.. (F)"),
                     ),
                   ],
+                  leadingIcon: const Icon(Icons.add_box),
                   child: const MenuAcceleratorLabel("이미지 추가 (A)"),
                 ),
                 // 이미지 닫기
@@ -231,6 +237,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     });
 
                   },
+                  leadingIcon: const Icon(Icons.close_outlined),
                   child: const MenuAcceleratorLabel("이미지 닫기 (C)"),
                 ),
                 // 저장하기
@@ -280,17 +287,6 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       child: const MenuAcceleratorLabel("현 이미지 저장(C)"),
                     ),
                     MenuItemButton(
-                      onPressed: () {
-
-                        setState(() {
-                          ref.read(stateProvider.notifier).updateSize(1);
-                          ref.read(uploadGProvider.notifier).state = true;
-                        });
-
-                      },
-                      child: const MenuAcceleratorLabel("전체 이미지 저장 (A)"),
-                    ),
-                    MenuItemButton(
                       onPressed: () async {
                         List<String> path = [];
                         for (var i = state.curIndex; i < (state.curIndex + state.curSize); i++ ) {
@@ -338,6 +334,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                       child: const MenuAcceleratorLabel("보이는 대로 저장 (S)"),
                     )
                   ],
+                  leadingIcon: const Icon(Icons.save),
                   child: const MenuAcceleratorLabel("저장 (S)"),
                 ),
 
@@ -383,6 +380,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
 
                     // createWindow(windowName: "editor", windows: [], data: state.images[state.curIndex].path);
                   },
+                  leadingIcon: const Icon(Icons.edit_rounded),
                   child: const MenuAcceleratorLabel("이미지 에디터 실행(E)"),
                 ),
 
@@ -404,6 +402,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     ref.read(modalProvider.notifier).state = true;
                     ref.read(converterProvider.notifier).state = true;
                   },
+                  leadingIcon: const Icon(Icons.change_circle),
                   child: const MenuAcceleratorLabel("일괄 변환기(A)"),
                 ),
 
@@ -425,6 +424,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                     final result = await startProcess();
                     createWindow(windowName: "translate_window", windows: [], data: result);
                   },
+                  leadingIcon: const Icon(Icons.g_translate),
                   child: const MenuAcceleratorLabel("이미지 번역 (O)"),
                 ),
 
@@ -433,6 +433,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   onPressed: () {
                     ref.read(favProvider.notifier).state = true;
                   },
+                  leadingIcon: const Icon(Icons.stars),
                   child: const MenuAcceleratorLabel("즐겨찾기(S)"),
                 ),
 
@@ -441,6 +442,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   onPressed: () {
                     ref.read(pdfConverterProvider.notifier).state = true;
                   },
+                  leadingIcon: const Icon(Icons.picture_as_pdf),
                   child: const MenuAcceleratorLabel("pdf 변환기(P)"),
                 ),
 
@@ -470,6 +472,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                         }
                     );
                   },
+                  leadingIcon: const Icon(Icons.settings),
                   child: const MenuAcceleratorLabel("설정 (O)"),
                 ),
                 // 대하여
@@ -477,6 +480,7 @@ class _DeskTopMenuBar extends ConsumerState<DeskTopMenuBar> {
                   onPressed: () {
                     createWindow(windowName: "LaL", windows: [], data: '');
                   },
+                  leadingIcon: const Icon(Icons.cruelty_free),
                   child: const MenuAcceleratorLabel("LaL에 대하여.. (L)"),
                 ),
               ],

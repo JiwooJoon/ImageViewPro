@@ -589,7 +589,7 @@ class _ImageConverter extends ConsumerState<ImageConverter> {
                     onPressed: () async {
 
 
-                      await convertImagesInParallel( _paths,
+                      await convertImagesParallel( _paths,
                         extValue: _extValue,
                         flip: _curFlip,
                         scaleValue: _scaleValue,

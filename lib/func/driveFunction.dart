@@ -121,53 +121,10 @@ Future<void> uploadFile(Map<String, dynamic> options,
   }
 }
 
-// // 드라이브 파일 다운로드
-// Future<List<String>> downloadFiles(Map<String, dynamic> options,
-//     FlutterSecureStorage storage, List<ImageModel> images,
-//     String folderName, BuildContext ctx, List<drive.File> files) async {
-//
-//   final client = await getAuthClient(options, storage);
-//   var driveApi = drive.DriveApi(client);
-//
-//   List<String> paths = [];
-//
-//   for (final file in files) {
-//     if (file.id == null) continue;
-//
-//     try {
-//       final media = await driveApi.files.get(
-//         file.id!,
-//         downloadOptions: drive.DownloadOptions.fullMedia,
-//       ) as drive.Media;
-//
-//       // 현 프로그램의 경로 가져오기
-//       final appDir = await getApplicationDocumentsDirectory();
-//       final saveDir = Directory("${appDir.path}/drive/images");
-//
-//       // 폴더가 없으면 자동 생성하기
-//       if (!(await saveDir.exists())) {
-//         await saveDir.create(recursive: true);
-//       }
-//
-//       final savePath = "${saveDir.path}/${file.name}";
-//       final localFile = File(savePath);
-//       final sink = localFile.openWrite();
-//       await media.stream.pipe(sink);
-//       await sink.close();
-//
-//       paths.add(savePath);
-//     } catch (e) {
-//       debugPrint("$e 오류");
-//     }
-//   }
-//
-//   return paths;
-//
-// }
+
 
 // 드라이브 파일 다운로드
 // 스트림식 방식으로 하나 다운로드 될 때마다 추가한다.
-// ref 필요...
 Future<void>
 downloadFilesStream (Map<String,dynamic> options,
     BuildContext ctx, List<drive.File> files, StateModel state, StateController<List<ImageProvider<Object>>> notifier) async {

@@ -5,11 +5,6 @@ import 'package:image/image.dart' as img;
 import 'package:image_view_pro/model/ImageModel.dart';
 import 'package:path/path.dart' as p;
 
-Future<img.Image?> getImage(String imgPath) async {
-  final image = img.decodeImage(await File(imgPath).readAsBytes());
-
-  return image;
-}
 
 Future<List<ImageModel>> loadImagesPathFromFolder(String folderPath) async {
   final dir = Directory(folderPath);
@@ -50,18 +45,4 @@ List<ImageModel> loadImagesPath(List<String?> imagePaths) {
 String getImageName(String path) {
   final name = p.basenameWithoutExtension(path);
   return name;
-}
-
-Future<int?> getImageHeight(String path) async {
-  img.Image? image;
-  image = img.decodeImage(await File(path).readAsBytes());
-
-  return image?.height;
-}
-
-Future<int?> getImageWidth(String path) async {
-  img.Image? image;
-  image = img.decodeImage(await File(path).readAsBytes());
-
-  return image?.width;
 }

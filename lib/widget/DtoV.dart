@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:image_view_pro/func/driveFunction.dart';
 import 'package:image_view_pro/main.dart';
-import 'package:image_view_pro/model/ImageModel.dart';
 
 class DtoVGallery extends ConsumerStatefulWidget {
   const DtoVGallery({

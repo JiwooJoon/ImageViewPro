@@ -5,18 +5,18 @@ import 'package:flutter/foundation.dart';
 
 class GoogleVisionOcr {
 
-  // 2. OCR (텍스트 인식) 함수
+  // OCR (텍스트 인식) 함수
   Future<String> recognizeText(File imageFile, String myKey) async {
     final String apiKey = myKey;
 
-    // Google Vision API의 텍스트 감지 엔드포인트
+    // Google Vision API의 텍스트 감지 api post
     final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=$apiKey";
 
-    // 1. 이미지를 Base64 문자열로 변환
+    // 이미지를 Base64 문자열로 변환
     final List<int> imageBytes = imageFile.readAsBytesSync();
     final String base64Image = base64Encode(imageBytes);
 
-    // 2. API 요청 본문 (JSON Payload) 구성
+    // API 요청 본문 구성
     final Map<String, dynamic> requestBody = {
       "requests": [
         {

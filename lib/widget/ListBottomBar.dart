@@ -25,7 +25,6 @@ class _ListBottomBar extends ConsumerState<ListBottomBar> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(stateProvider);
 
     return MouseRegion(
       onEnter: (e) {

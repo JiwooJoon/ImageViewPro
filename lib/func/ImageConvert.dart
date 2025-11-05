@@ -7,7 +7,8 @@ import 'package:image/image.dart' as img;
 import 'package:image_view_pro/main.dart';
 import 'package:path/path.dart' as p;
 
-Future<void> convertImagesInParallel(
+// 병렬 이미지 변환
+Future<void> convertImagesParallel(
     List<String> imagePaths, {
       required String extValue,
       required List<double> flip,
@@ -18,6 +19,7 @@ Future<void> convertImagesInParallel(
       required WidgetRef ref,
     }) async {
   const int batchSize = 50;
+  // 기본 50개씩 나눔
 
   final List<List<String>> batches = [];
   for (int i = 0; i < imagePaths.length; i += batchSize) {
@@ -75,6 +77,7 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
   }
 
   img.FlipDirection? flipDir;
+
   if (curFlip[0] == -1.0 && curFlip[1] == 1.0) {
     flipDir = img.FlipDirection.vertical;
   } else if (curFlip[0] == 1.0 && curFlip[1] == -1.0) {
@@ -84,12 +87,12 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
   }
 
   try {
-    // 1. 디코드
+    // 디코드
     final bytes = await File(imagePath).readAsBytes();
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('이미지를 디코드할 수 없습니다: $imagePath');
 
-    // 2. 스케일
+    // 스케일
     if (scaleValue != 1.0) {
       image = await img.copyResize(
         image,
@@ -98,17 +101,17 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
       );
     }
 
-    // 3. 회전 (degree)
+    // 회전
     if (curAngle != 0) {
       image = await img.copyRotate(image, angle: curAngle);
     }
 
-    // 4. 플립
+    // 플립
     if (flipDir != null) {
       image = await img.copyFlip(image, direction: flipDir);
     }
 
-    // 5. 출력 경로 설정
+    // 출력 경로 설정
     final dir = p.dirname(imagePath);
     final name = p.basenameWithoutExtension(imagePath);
     late final String outPath;
@@ -124,9 +127,12 @@ Future<void> imageConvertProcess(Map<String, dynamic> args) async {
       }
       outPath = p.join(dir, "lal_converted", "$name(1).$extValue").replaceAll(r"\", "/");
     }
+    // 플랫폼 마다 경로를 바꿔줘야함..
+    // 윈도우의 경우 / 를 쓰는데 맥, 리눅스는 다름..일단 윈도우만
 
 
-    // 6. 인코딩 및 저장
+
+    // 인코딩 및 저장
     List<int> encoded;
     if (extValue.toLowerCase() == 'png') {
       encoded = img.encodePng(image);

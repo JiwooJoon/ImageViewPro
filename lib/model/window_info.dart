@@ -11,3 +11,5 @@ class WindowInfo {
     required this.controller
   });
 }
+
+// 윈도우 창용 정보들

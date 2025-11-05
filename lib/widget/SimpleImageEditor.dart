@@ -136,7 +136,7 @@ class _SimpleImageEditor extends State<SimpleImageEditor> {
                   }
                 );
               },
-              icon: Icon(
+              icon: const Icon(
                 Icons.rotate_90_degrees_cw
               )
           )

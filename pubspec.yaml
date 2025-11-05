@@ -90,6 +90,7 @@ flutter:
     - assets/images/back_detach2.png
     - assets/images/front_attach2.png
     - assets/images/front_detach2.png
+    - assets/images/ohWhatASxxx.png
     - config/option.json
     - .env
 

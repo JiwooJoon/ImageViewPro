@@ -42,7 +42,7 @@ Future<void> saveImages(List<String> paths, WidgetRef ref) async {
 
 // 보이는대로 저장
 // 이미지 리스트 생성 해당 리스트로 길이계산
-// 캔버스에 이미지들을 그린후 캔버스채로 저장
+// 캔버스에 이미지들을 그린후 캔버스 채로 저장
 Future<String> saveImage(List<String> paths, WidgetRef ref) async {
   List<img.Image> images = [];
 
@@ -80,14 +80,14 @@ Future<String> saveImage(List<String> paths, WidgetRef ref) async {
 
   // 비어있는 캔버스를 생성
   final combined = img.Image(
-    width: totalWidth,
-    height: maxHeight,
+    width: totalWidth, // 전체 너비
+    height: maxHeight, // 가장 높은 높이기준
     numChannels: 4,
     backgroundColor: img.ColorInt32.rgba(0, 0, 0, 0),
   );
 
   var xOffset = 0;
-  for (var im in resized) {
+  for (var im in resized) { // 이미지들을 합성
     var yOffset = (maxHeight - im.height) ~/ 2;
 
     img.compositeImage(

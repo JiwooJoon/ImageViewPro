@@ -13,3 +13,4 @@ Future<void> saveOpt(Map<String, dynamic> opt) async {
 }
 
 // json을 불러오고 가져오는
+// 여기서는 설정을 가져오고 씀여

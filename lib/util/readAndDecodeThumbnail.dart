@@ -14,3 +14,5 @@ ImageModel _readAndDecodeThumbnail(String path) {
     height: thumbnail.height,
   );
 }
+
+// 진짜 나중에 쓸 수도

@@ -6,15 +6,15 @@ class TranslatedView extends StatelessWidget {
     required this.recognized
   });
 
-  // final List<String> recognized = [];
   final String recognized;
 
   @override
   Widget build(BuildContext ctx) {
-    // String strings = recognized.join("\n");
 
     return SizedBox(
       child: Text(recognized),
     );
   }
 }
+
+// 단순 글만 보여주기에 상태없는 위젯으로 씀

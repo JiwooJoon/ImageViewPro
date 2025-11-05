@@ -1,5 +1,3 @@
-import 'package:flutter/cupertino.dart';
-
 class MultiViewProvider {
   final int index;
   final List<String> list;
@@ -19,3 +17,5 @@ class MultiViewProvider {
     );
   }
 }
+
+// 왼쪽 오른쪽 뷰어용 POJO
